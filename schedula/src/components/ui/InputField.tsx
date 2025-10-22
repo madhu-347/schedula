@@ -32,7 +32,7 @@ export const InputFieldComponent: React.FC<InputFieldProps> = ({
     disabled={disabled}
     name={name}
     id={id}
-    className={`w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors duration-200 ${className}`}
+    className={`w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors duration-200 placeholder-gray-500 ${className}`}
     style={{
       fontSize: 16,
     }}

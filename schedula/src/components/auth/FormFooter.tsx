@@ -21,12 +21,13 @@ export const FormFooterComponent: React.FC<FooterProps> = ({
     {question}
     <span
       style={{
-        color: "#7EC7E3",
+        color: "#5EB3E0",
         fontWeight: 500,
         marginLeft: 8,
         cursor: "pointer",
       }}
       onClick={onLinkClick}
+      className="text-blue-300"
     >
       {linkText}
     </span>

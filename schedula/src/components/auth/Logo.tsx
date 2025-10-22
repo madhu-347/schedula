@@ -1,18 +1,27 @@
 import React from "react";
 
-export const LogoComponent: React.FC = () => (
+export const LogoComponent: React.FC<{ imageUrl: string }> = ({ imageUrl }) => (
   <div
     style={{
-      margin: "32px auto",
+      margin: "0 auto 32px auto",
       background: "#F4F4F4",
-      width: 200,
-      height: 150,
+      width: 120,
+      height: 80,
       display: "flex",
       justifyContent: "center",
       alignItems: "center",
-      borderRadius: 40,
+      borderRadius: 20,
     }}
   >
-    <span style={{ fontWeight: 700, fontSize: 28 }}>Your Logo</span>
+    <img
+      src={imageUrl}
+      alt="Logo"
+      style={{
+        width: "100%",
+        height: "100%",
+        objectFit: "contain",
+        borderRadius: 20,
+      }}
+    />
   </div>
 );
