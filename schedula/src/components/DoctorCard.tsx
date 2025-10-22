@@ -1,10 +1,9 @@
-"use client"; // <-- NEW: Makes this component interactive
+"use client"; 
 
 import Image from 'next/image';
 import { Heart } from 'lucide-react';
-import { useState } from 'react'; // <-- NEW: Import useState
 
-// Define a type for the doctor props
+// This is the new type definition
 type DoctorCardProps = {
   doctor: {
     id: number;
@@ -14,18 +13,19 @@ type DoctorCardProps = {
     bio: string;
     time: string;
     imageUrl: string;
+    is_favorited: boolean; // Prop is required
   };
+  // NEW: This function prop is also required
+  onToggleLike: (id: number) => void;
 };
 
-export default function DoctorCard({ doctor }: DoctorCardProps) {
-  // <-- NEW: Add a state to track if this card is "liked"
-  const [isLiked, setIsLiked] = useState(false);
+export default function DoctorCard({ doctor, onToggleLike }: DoctorCardProps) {
 
-  // <-- NEW: A function to toggle the like state
+  // This function now just calls the function from the parent
   const handleLikeClick = () => {
-    setIsLiked(!isLiked); // Toggles from true to false, or false to true
+    onToggleLike(doctor.id); 
   };
-
+  
   return (
     <div className="bg-white rounded-xl shadow-sm p-4 mb-4 flex">
       <Image
@@ -44,17 +44,14 @@ export default function DoctorCard({ doctor }: DoctorCardProps) {
             </p>
           </div>
           
-          {/* ▼▼▼ MODIFIED HEART ICON ▼▼▼ */}
           <Heart
             size={20}
-            onClick={handleLikeClick}
-            // <-- NEW: Conditional classes
+            onClick={handleLikeClick} // Still calls our handler
             className={`cursor-pointer transition-all duration-150 ${
-              isLiked ? 'text-red-500 fill-red-500' : 'text-gray-300'
+              // We now use the prop directly
+              doctor.is_favorited ? 'text-red-500 fill-red-500' : 'text-gray-300'
             }`}
           />
-          {/* ▲▲▲ MODIFIED HEART ICON ▲▲▲ */}
-
         </div>
         <p className="text-sm font-semibold text-green-600 mt-1">
           {doctor.status}
