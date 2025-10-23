@@ -13,90 +13,92 @@ import {
   ChevronRight,
 } from "lucide-react";
 import mockData from "@/lib/mockData.json";
+import DoctorCard from "@/components/cards/DoctorCard";
 
 // Enhanced Doctor Card Component
-const DoctorCard = ({
-  doctor,
-}: {
-  doctor: {
-    id: number;
-    name: string;
-    specialty: string;
-    status: string;
-    bio: string;
-    time: string;
-    imageUrl?: string;
-  };
-}) => {
-  const [isLiked, setIsLiked] = useState(false);
+// const DoctorCard = ({
+//   doctor,
+// }: {
+//   doctor: {
+//     id: number;
+//     name: string;
+//     specialty: string;
+//     status: string;
+//     bio: string;
+//     time: string;
+//     imageUrl?: string;
+//   };
+// }) => {
+// const [isLiked, setIsLiked] = useState(false);
 
-  return (
-    <div className="bg-white rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 p-5 mb-4 border border-gray-100">
-      <div className="flex gap-4">
-        <div className="relative shrink-0">
-          <Image
-            src={doctor.imageUrl || "/male-doctor-avatar.png"}
-            alt={doctor.name}
-            width={90}
-            height={90}
-            className="rounded-xl w-[90px] h-[90px] object-cover ring-2 ring-cyan-100"
-          />
-          <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-1 shadow-md">
-            {/* <div className="w-3 h-3 bg-green-500 rounded-full"></div> */}
-          </div>
-        </div>
+//   return (
+//     <div className="bg-white rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 p-5 mb-4 border border-gray-100">
+//       <div className="flex gap-4">
+//         <div className="relative shrink-0">
+//           <Image
+//             src={doctor.imageUrl || "/male-doctor-avatar.png"}
+//             alt={doctor.name}
+//             width={90}
+//             height={90}
+//             className="rounded-xl w-[90px] h-[90px] object-cover ring-2 ring-cyan-100"
+//           />
+//           <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-1 shadow-md">
+//             {/* <div className="w-3 h-3 bg-green-500 rounded-full"></div> */}
+//           </div>
+//         </div>
 
-        <div className="flex-1 min-w-0">
-          <div className="flex justify-between items-start mb-2">
-            <div className="flex-1">
-              <h3 className="font-bold text-lg text-gray-900 mb-1 leading-tight">
-                {doctor.name}
-              </h3>
-              <p className="text-sm font-semibold text-cyan-600 mb-1">
-                {doctor.specialty}
-              </p>
-            </div>
-            <button
-              onClick={() => setIsLiked(!isLiked)}
-              className={`p-2 rounded-full transition-all ${
-                isLiked
-                  ? "bg-red-50 text-red-500"
-                  : "bg-gray-50 text-gray-400 hover:bg-red-50 hover:text-red-500"
-              }`}
-            >
-              <Heart
-                className="w-5 h-5"
-                fill={isLiked ? "currentColor" : "none"}
-              />
-            </button>
-          </div>
+//         <div className="flex-1 min-w-0">
+//           <div className="flex justify-between items-start mb-2">
+//             <div className="flex-1">
+//               <h3 className="font-bold text-lg text-gray-900 mb-1 leading-tight">
+//                 {doctor.name}
+//               </h3>
+//               <p className="text-sm font-semibold text-cyan-600 mb-1">
+//                 {doctor.specialty}
+//               </p>
+//             </div>
+//             <button
+//               onClick={() => setIsLiked(!isLiked)}
+//               className={`p-2 rounded-full transition-all ${
+//                 isLiked
+//                   ? "bg-red-50 text-red-500"
+//                   : "bg-gray-50 text-gray-400 hover:bg-red-50 hover:text-red-500"
+//               }`}
+//             >
+//               <Heart
+//                 className="w-5 h-5"
+//                 fill={isLiked ? "currentColor" : "none"}
+//               />
+//             </button>
+//           </div>
 
-          <div className="flex items-center gap-2 mb-2">
-            <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-600 bg-green-50 px-2 py-1 rounded-full">
-              <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
-              {doctor.status}
-            </span>
-            <span className="inline-flex items-center gap-1 text-xs font-medium text-gray-600 bg-gray-100 px-2 py-1 rounded-full">
-              <Clock className="w-3 h-3" />
-              {doctor.time}
-            </span>
-          </div>
+//           <div className="flex items-center gap-2 mb-2">
+//             <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-600 bg-green-50 px-2 py-1 rounded-full">
+//               <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
+//               {doctor.status}
+//             </span>
+//             <span className="inline-flex items-center gap-1 text-xs font-medium text-gray-600 bg-gray-100 px-2 py-1 rounded-full">
+//               <Clock className="w-3 h-3" />
+//               {doctor.time}
+//             </span>
+//           </div>
 
-          <p className="text-sm text-gray-600 mb-3 line-clamp-2 leading-relaxed">
-            {doctor.bio}
-          </p>
+//           <p className="text-sm text-gray-600 mb-3 line-clamp-2 leading-relaxed">
+//             {doctor.bio}
+//           </p>
 
-          <button className="bg-linear-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 text-white font-semibold py-2.5 px-4 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 shadow-md hover:shadow-lg">
-            Book Appointment
-            <ChevronRight className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
+//           <button className="bg-linear-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 text-white font-semibold py-2.5 px-4 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 shadow-md hover:shadow-lg">
+//             Book Appointment
+//             <ChevronRight className="w-4 h-4" />
+//           </button>
+//         </div>
+//       </div>
+//     </div>
+//   );
+// };
 
 export default function DashboardPage() {
+  const [isLiked, setIsLiked] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedSpecialty, setSelectedSpecialty] = useState("all");
   const [user, setUser] = useState<{
@@ -217,7 +219,11 @@ export default function DashboardPage() {
         <div>
           {filteredDoctors.length > 0 ? (
             filteredDoctors.map((doctor: any) => (
-              <DoctorCard key={doctor.id} doctor={doctor} />
+              <DoctorCard
+                key={doctor.id}
+                doctor={doctor}
+                onToggleLike={(doctorId) => setIsLiked(!isLiked)}
+              />
             ))
           ) : (
             <div className="bg-white rounded-2xl shadow-md p-12 text-center border border-gray-100">

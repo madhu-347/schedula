@@ -12,7 +12,7 @@ export default function BottomNav() {
       </Link>
       <Link href="#" className="flex flex-col items-center text-gray-500">
         <LayoutGrid size={24} />
-        <span className="text-xs">Appoint...</span>
+        <span className="text-xs">Appointments</span>
       </Link>
       <Link href="#" className="flex flex-col items-center text-gray-500">
         <FileText size={24} />
