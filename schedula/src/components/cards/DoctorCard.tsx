@@ -1,7 +1,7 @@
-"use client"; 
+"use client";
 
-import Image from 'next/image';
-import { Heart } from 'lucide-react';
+import Image from "next/image";
+import { Heart } from "lucide-react";
 
 // This is the new type definition
 type DoctorCardProps = {
@@ -20,12 +20,6 @@ type DoctorCardProps = {
 };
 
 export default function DoctorCard({ doctor, onToggleLike }: DoctorCardProps) {
-
-  // This function now just calls the function from the parent
-  const handleLikeClick = () => {
-    onToggleLike(doctor.id);
-  };
-  
   return (
     <div className="bg-white rounded-xl shadow-sm p-4 mb-4 flex">
       <Image
@@ -43,13 +37,14 @@ export default function DoctorCard({ doctor, onToggleLike }: DoctorCardProps) {
               {doctor.specialty}
             </p>
           </div>
-          
+
           <Heart
             size={20}
-            onClick={handleLikeClick} // Still calls our handler
             className={`cursor-pointer transition-all duration-150 ${
               // We now use the prop directly
-              doctor.is_favorited ? 'text-red-500 fill-red-500' : 'text-gray-300'
+              doctor.is_favorited
+                ? "text-red-500 fill-red-500"
+                : "text-gray-300"
             }`}
           />
         </div>
@@ -57,7 +52,7 @@ export default function DoctorCard({ doctor, onToggleLike }: DoctorCardProps) {
           {doctor.status}
         </p>
         <p className="text-xs text-gray-500 my-2">{doctor.bio}</p>
-        
+
         <span className="bg-gray-100 text-gray-700 text-xs font-medium px-3 py-1 rounded-full">
           {doctor.time}
         </span>

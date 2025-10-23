@@ -8,7 +8,7 @@ import { LinkComponent } from "@/components/ui/Link";
 import { SocialLoginButtonComponent } from "@/components/auth/SocialLoginButton";
 import { FormFooterComponent } from "@/components/auth/FormFooter";
 import { LogoComponent } from "@/components/auth/Logo";
-import { ButtonComponent } from "@/components/ui/Button";
+import { Button } from "@/components/ui/Button";
 import { InputFieldComponent } from "@/components/ui/InputField";
 import { HeadingComponent } from "@/components/ui/Heading";
 import { createUser } from "@/lib/auth";
@@ -164,12 +164,13 @@ export default function RegisterPage() {
           </div>
 
           {/* Sign Up Button */}
-          <ButtonComponent
-            text={isLoading ? "Creating Account..." : "Sign Up"}
-            type={"submit"}
+          <Button
+            type="submit"
             disabled={!agreedToTerms || isLoading}
             className="w-full py-3 mt-2 bg-cyan-400 hover:bg-cyan-500 text-white font-semibold rounded-xl transition-colors duration-200"
-          />
+          >
+            {isLoading ? "Creating Account..." : "Sign Up"}
+          </Button>
 
           {/* Divider */}
           <DividerWithText text="Or sign up With" />
