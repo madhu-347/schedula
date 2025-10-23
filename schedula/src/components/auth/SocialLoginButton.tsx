@@ -13,7 +13,7 @@ export const SocialLoginButtonComponent: React.FC<SocialLoginButtonProps> = ({
 }) => (
   <button
     onClick={onClick}
-    className="w-full flex items-center justify-center py-4 rounded-xl border border-gray-200 bg-white text-lg font-medium mb-3 cursor-pointer gap-3 shadow-sm hover:shadow-md transition"
+    className="w-full flex items-center justify-center py-3 rounded-xl border border-gray-200 bg-white text-lg font-medium mb-3 cursor-pointer gap-3 shadow-sm hover:shadow-md transition"
   >
     {iconUrl && (
       <img src={iconUrl} alt="icon" style={{ width: 30, height: 30 }} />
