@@ -23,7 +23,7 @@ export default function DoctorCard({ doctor, onToggleLike }: DoctorCardProps) {
 
   // This function now just calls the function from the parent
   const handleLikeClick = () => {
-    onToggleLike(doctor.id); 
+    onToggleLike(doctor.id);
   };
   
   return (
