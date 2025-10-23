@@ -166,7 +166,7 @@ export default function RegisterPage() {
           {/* Sign Up Button */}
           <ButtonComponent
             text={isLoading ? "Creating Account..." : "Sign Up"}
-            onClick={() => {}}
+            type={"submit"}
             disabled={!agreedToTerms || isLoading}
             className="w-full py-3 mt-2 bg-cyan-400 hover:bg-cyan-500 text-white font-semibold rounded-xl transition-colors duration-200"
           />
