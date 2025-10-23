@@ -42,5 +42,25 @@
       "time": "11:00 AM-06:00 PM",
       "imageUrl": "/male-doctor-avatar.png"
     }
+  ],
+  "users": [
+    {
+      "name": "Priya Kumar",
+      "email": "priya@example.com",
+      "mobile": "9876543210",
+      "location": "Chennai"
+    },
+    {
+      "name": "John Mathew",
+      "email": "john@example.com",
+      "mobile": "9998887776",
+      "location": "Bangalore"
+    },
+    {
+      "name": "Anjali Rao",
+      "email": "anjali@example.com",
+      "mobile": "7012345678",
+      "location": "Hyderabad"
+    }
   ]
 }

@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { DividerWithText } from "@/components/auth/DividerWithText";
 import { SocialLoginButtonComponent } from "@/components/auth/SocialLoginButton";
 import { FormFooterComponent } from "@/components/auth/FormFooter";
@@ -9,7 +10,7 @@ import { LogoComponent } from "@/components/auth/Logo";
 import { ButtonComponent } from "@/components/ui/Button";
 import { InputFieldComponent } from "@/components/ui/InputField";
 import { HeadingComponent } from "@/components/ui/Heading";
-import { loginUser } from "@/lib/auth";
+import mockData from "@/lib/mockData.json";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -31,64 +32,57 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    console.log("logging in...");
+    console.log("🔐 Checking mock user credentials...");
+
     try {
-      // Authenticate user using auth.ts
-      const user = loginUser(formData.email, formData.password);
+      const user = mockData.users.find(
+        (u) => u.email === formData.email || u.mobile === formData.email
+      );
 
       if (user) {
-        console.log("Login successful:", user);
-
-        // Store user in localStorage for session management
+        console.log("✅ User found:", user);
         localStorage.setItem("user", JSON.stringify(user));
-
-        // Simulate delay for better UX
         await new Promise((resolve) => setTimeout(resolve, 1000));
-
-        // Redirect to dashboard
-        router.push("/dashboard");
+        router.push("/user/otp");
       } else {
-        alert("Invalid credentials. Please check your email and password.");
+        alert("❌ Invalid email or mobile. Please try again.");
       }
     } catch (error) {
       console.error("Login error:", error);
-      alert("Login failed. Please try again.");
+      alert("Something went wrong. Please try again.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleGoogleLogin = () => {
-    console.log("Google login clicked");
-    // Implement Google OAuth
-  };
-
-  const handleRegisterRedirect = () => {
-    router.push("/register");
-  };
-
-  const handleForgotPassword = () => {
-    console.log("Forgot password clicked");
-    // Implement forgot password logic
-  };
+  const handleGoogleLogin = () => console.log("Google login clicked");
+  const handleRegisterRedirect = () => router.push("/user/register");
+  const handleForgotPassword = () => console.log("Forgot password clicked");
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4 text-black">
-      <div className="bg-white rounded-3xl shadow-sm w-full max-w-md p-8">
-        {/* Logo */}
-        <LogoComponent imageUrl="/logo.png" />
+    <div className="min-h-screen bg-linear-to-r from-cyan-500 to-cyan-600  flex flex-col md:flex-row items-center justify-center">
+      
+      <div className="flex-1 rounded-4xl bg-white shadow-lg w-full max-w-md px-8">
+        <div className="py-4">
+{/* Logo */}
+        <div className="flex justify-center">
+          <LogoComponent imageUrl="/logo.png" />
+        </div>
 
-        {/* Title */}
+        {/* Heading */}
         <HeadingComponent text="Welcome Back" />
+        <p className="text-center text-gray-500 mb-6">
+          Please enter your details to continue
+        </p>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Email */}
+        <form onSubmit={handleSubmit} className="">
+          {/* Email / Mobile */}
           <div>
-            <label className="block text-sm font-medium mb-2">Email</label>
+            <label className="block text-sm font-medium">Email / Mobile</label>
             <InputFieldComponent
-              type="email"
-              placeholder="Enter your email"
+              type="text"
+              placeholder="Enter your email or mobile"
               value={formData.email}
               required={true}
               onChange={handleInputChange("email")}
@@ -98,18 +92,17 @@ export default function LoginPage() {
 
           {/* Password */}
           <div>
-            <label className="block text-sm font-medium mb-2">Password</label>
+            <label className="block text-sm font-medium">Password</label>
             <InputFieldComponent
               type="password"
               placeholder="Enter your password"
               value={formData.password}
               required={true}
               onChange={handleInputChange("password")}
-              className=""
             />
           </div>
 
-          {/* Remember Me and Forgot Password */}
+          {/* Remember Me & Forgot Password */}
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2">
               <input
@@ -137,7 +130,7 @@ export default function LoginPage() {
             text={isLoading ? "Signing In..." : "Sign In"}
             type={"submit"}
             disabled={isLoading}
-            className="w-full py-3 mt-2 bg-cyan-400 hover:bg-cyan-500 text-white font-semibold rounded-xl transition-colors duration-200"
+            className="w-full py-3 mt-2 bg-cyan-500 hover:bg-cyan-600 text-white font-semibold rounded-xl transition-colors duration-200"
           />
 
           {/* Divider */}
@@ -151,12 +144,14 @@ export default function LoginPage() {
           />
         </form>
 
-        {/* Register Link */}
+        {/* Footer */}
         <FormFooterComponent
           question={"Don't have an account?"}
           linkText={"Sign Up"}
           onLinkClick={handleRegisterRedirect}
         />
+        </div>
+        
       </div>
     </div>
   );
