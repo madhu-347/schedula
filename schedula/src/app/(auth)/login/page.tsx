@@ -31,7 +31,7 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-
+    console.log("logging in...");
     try {
       // Authenticate user using auth.ts
       const user = loginUser(formData.email, formData.password);
@@ -135,7 +135,7 @@ export default function LoginPage() {
           {/* Sign In Button */}
           <ButtonComponent
             text={isLoading ? "Signing In..." : "Sign In"}
-            onClick={() => {}}
+            type={"submit"}
             disabled={isLoading}
             className="w-full py-3 mt-2 bg-cyan-400 hover:bg-cyan-500 text-white font-semibold rounded-xl transition-colors duration-200"
           />

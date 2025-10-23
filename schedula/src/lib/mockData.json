@@ -2,35 +2,6 @@
   "doctors": [
     {
       "id": 1,
-      "name": "Dr. Prakash das",
-      "specialty": "Sr. Psychologist",
-      "status": "Available today",
-      "bio": "As Psychologist Dr das practices about 7+ years...",
-      "time": "09:30 AM-07:00 PM",
-      "imageUrl": "/male-doctor-avatar.png" 
-    },
-    {
-      "id": 2,
-      "name": "Dr. Priya Sharma",
-      "specialty": "Cardiologist",
-      "status": "Available today",
-      "bio": "Dr. Sharma is a leading expert in cardiac care with 10+ years...",
-      "time": "10:00 AM-05:00 PM",
-      "imageUrl": "/male-doctor-avatar.png" 
-    },
-    {
-      "id": 3,
-      "name": "Dr. Anil Kumar",
-      "specialty": "Dermatologist",
-      "status": "Available tomorrow",
-      "bio": "Specializes in all skin-related ailments and cosmetic procedures...",
-      "time": "11:00 AM-06:00 PM",
-      "imageUrl": "/male-doctor-avatar.png" 
-    }
-  ],
-  "doctors": [
-    {
-      "id": 1,
       "email": "prakashdas@schedula.com",
       "password": "password123",
       "name": "Dr. Prakash das",
