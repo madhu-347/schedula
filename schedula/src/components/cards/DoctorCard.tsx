@@ -1,10 +1,10 @@
 "use client";
 
 import Image from 'next/image';
-import { Heart } from 'lucide-react';
+import { Heart, Clock } from 'lucide-react'; // Make sure Clock is imported
 import Link from 'next/link';
-import { useRouter } from 'next/navigation'; // <-- 1. Import useRouter
-import { useState } from 'react'; // <-- 1. Import useState for loading state
+import { useRouter } from 'next/navigation'; // Needed for handleCardClick
+import { useState } from 'react'; // Needed for isNavigating
 
 type DoctorCardProps = {
   doctor: {
@@ -21,86 +21,86 @@ type DoctorCardProps = {
 };
 
 export default function DoctorCard({ doctor, onToggleLike }: DoctorCardProps) {
-  const router = useRouter(); // <-- 2. Initialize router
-  const [isNavigating, setIsNavigating] = useState(false); // <-- 2. Add loading state
+  const router = useRouter(); // Initialize router
+  const [isNavigating, setIsNavigating] = useState(false); // Add loading state
 
+  // Define handleLikeClick
   const handleLikeClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     onToggleLike(doctor.id);
   };
 
-  // --- 3. NEW Click Handler for the Link ---
+  // Define handleCardClick
   const handleCardClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    e.preventDefault(); // Stop the link from navigating immediately
-    setIsNavigating(true); // Set loading state (optional: add visual feedback)
+    e.preventDefault();
+    setIsNavigating(true);
 
-    // Wait for 200 milliseconds (0.2 seconds)
     setTimeout(() => {
-      router.push(`/doctor/${doctor.id}`);
-      // No need to setIsNavigating(false) as we are leaving the page
+      router.push(`/user/doctor/${doctor.id}`); // Use the correct path with /user/
     }, 200);
   };
-  // --- End NEW Handler ---
 
   return (
     <Link
-      href={`/doctor/${doctor.id}`}
+      href={`/user/doctor/${doctor.id}`} // Use the correct path with /user/
       className="block"
-      onClick={handleCardClick}
+      onClick={handleCardClick} // Attach the click handler
     >
-      {/* Added rounded-2xl, adjusted padding, margin */}
       <div
-        className={`bg-white rounded-2xl shadow-sm p-4 mb-4 flex transition-all duration-200 border border-gray-100 ${ // CHANGE: Added rounded-2xl, border
-          isNavigating ? 'opacity-70 scale-98' : 'hover:shadow-md hover:border-gray-200' // Added hover border
+        className={`bg-white rounded-2xl shadow-sm p-4 mb-4 flex transition-all duration-200 border border-gray-100 ${
+          isNavigating ? 'opacity-70 scale-98' : 'hover:shadow-md hover:border-gray-200'
         }`}
       >
-        {/* Adjusted image size and rounding */}
-        <Image
-          src={doctor.imageUrl}
-          alt={doctor.name}
-          width={80} // CHANGE: 96 to 80
-          height={80} // CHANGE: 96 to 80
-          className="rounded-xl w-20 h-20 object-cover" // CHANGE: rounded-lg to rounded-xl, w/h-24 to w/h-20
-        />
-        <div className="ml-4 flex-1">
+        {/* Use conditional rendering for the image */}
+        {doctor.imageUrl ? (
+           <Image
+             src={doctor.imageUrl}
+             alt={doctor.name || 'Doctor image'}
+             width={80}
+             height={80}
+             className="rounded-xl w-20 h-20 object-cover flex-shrink-0" // Added flex-shrink-0
+           />
+         ) : (
+           <div className="rounded-xl w-20 h-20 bg-gray-200 flex items-center justify-center text-gray-400 flex-shrink-0">Img</div>
+         )}
+
+        <div className="ml-4 flex-1 min-w-0"> {/* Added min-w-0 */}
           <div className="flex justify-between items-start">
-            <div>
-              {/* Adjusted font size/margins */}
-              <h3 className="font-bold text-md mb-0.5">{doctor.name}</h3> {/* CHANGE: text-lg to text-md, added mb-0.5 */}
-              <p className="text-sm font-medium text-cyan-600">
-                {doctor.specialty}
-              </p>
+            <div className="flex-1 mr-2"> {/* Added flex-1 and margin */}
+              <h3 className="font-bold text-md mb-0.5 truncate">{doctor.name}</h3> {/* Added truncate */}
+              <p className="text-sm font-medium text-cyan-600 truncate">{doctor.specialty}</p> {/* Added truncate */}
             </div>
 
+            {/* SINGLE CORRECT HEART ICON */}
             <Heart
-              size={18} // CHANGE: size 20 to 18
-              onClick={handleLikeClick}
-              className={`cursor-pointer transition-all duration-150 z-10 relative ${
-                doctor.is_favorited ? 'text-red-500 fill-red-500' : 'text-gray-300 hover:text-red-300' // Added hover effect
+              size={18}
+              onClick={handleLikeClick} // Use correct handler
+              className={`cursor-pointer transition-all duration-150 z-10 relative flex-shrink-0 ${ // Added flex-shrink-0
+                doctor.is_favorited ? 'text-red-500 fill-red-500' : 'text-gray-300 hover:text-red-300'
               }`}
             />
+            {/* REMOVED DUPLICATE HEART ICON */}
           </div>
-          {/* Adjusted status styling */}
-          <p className="text-xs font-semibold text-green-600 mt-1 inline-flex items-center gap-1"> {/* CHANGE: text-sm to text-xs, added inline-flex etc */}
-             <span className="w-1.5 h-1.5 bg-green-500 rounded-full inline-block"></span> {/* Added green dot */}
+
+          {/* Correct Status styling */}
+          <p className="text-xs font-semibold text-green-600 mt-1 inline-flex items-center gap-1">
+             <span className="w-1.5 h-1.5 bg-green-500 rounded-full inline-block"></span>
              {doctor.status}
           </p>
-          {/* Adjusted bio styling */}
-          <p className="text-xs text-gray-500 my-1.5 line-clamp-2"> {/* CHANGE: my-2 to my-1.5, added line-clamp */}
+          {/* Correct Bio styling */}
+          <p className="text-xs text-gray-500 my-1.5 line-clamp-2">
             {doctor.bio}
           </p>
 
-          {/* Adjusted time styling */}
-          <span className="bg-gray-100 text-gray-600 text-xs font-medium px-2 py-0.5 rounded-full inline-flex items-center gap-1"> {/* CHANGE: adjusted padding, text color, added icon */}
-             <Clock size={12} className="text-gray-400"/> {/* Added Clock icon */}
+          {/* Correct Time styling */}
+          <span className="bg-gray-100 text-gray-600 text-xs font-medium px-2 py-0.5 rounded-full inline-flex items-center gap-1">
+             <Clock size={12} className="text-gray-400"/>
              {doctor.time}
           </span>
+           {/* Make sure this closing div is correct */}
         </div>
       </div>
-    </Link>
+    </Link> // Make sure Link closes correctly
   );
-}
-
-// Add Clock to imports if not already there
-import { Clock } from 'lucide-react';
+} // Make sure function closes correctly

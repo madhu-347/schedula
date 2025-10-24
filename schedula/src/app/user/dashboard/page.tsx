@@ -2,11 +2,11 @@
 
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
-import { Bell, Search, MapPin, X } from "lucide-react"; // Import X
+import Link from "next/link"; // Single correct import for Link
+import { Bell, Search, MapPin, X } from "lucide-react"; // Make sure X is imported
 import DoctorCard from "@/components/cards/DoctorCard"; // Use the imported card
 
-// --- Define Types (Fixes 'any') ---
-// Type for data coming from /api/doctors
+// --- TYPE DEFINITIONS ---
 type ApiDoctor = {
   id: number;
   name: string;
@@ -15,22 +15,21 @@ type ApiDoctor = {
   bio: string;
   time: string;
   imageUrl: string;
-  // Add other fields from mockData if needed by DoctorCard
+  // Add other fields from mockData if needed by DoctorCard type
 };
 
-// Type for our page's state, which adds the 'is_favorited' flag
 type Doctor = ApiDoctor & {
   is_favorited: boolean;
 };
 
-// Type for user data from localStorage
 type User = {
-  id: number; // Assuming user ID exists, adjust if needed
-  email: string;
+  id?: number; // Make ID optional as it might not be in mockData.users
+  email?: string; // Make email optional if not always present
+  mobile?: string; // Add mobile if it exists
   name: string;
   location?: string; // Optional location
 };
-// --- End Types ---
+// --- END TYPE DEFINITIONS ---
 
 
 export default function DashboardPage() {
@@ -40,7 +39,8 @@ export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null);
   const [allDoctors, setAllDoctors] = useState<Doctor[]>([]); // State for doctors fetched from API
   const [isLoading, setIsLoading] = useState(true); // Loading state for API fetch
-  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false); // State for notification panel
+  // Use 'showNotifications' from the merged code for consistency
+  const [showNotifications, setShowNotifications] = useState(false);
   // --- End State Variables ---
 
   // --- Fetch User from localStorage ---
@@ -59,10 +59,11 @@ export default function DashboardPage() {
     const fetchDoctors = async () => {
       setIsLoading(true);
       try {
-        const response = await fetch('/api/doctors'); // Fetch from API
+        const response = await fetch('/api/doctors');
         if (!response.ok) throw new Error('Failed to fetch doctors');
         const data = await response.json();
 
+        // Use correct ApiDoctor type here
         const doctorsWithFavorite: Doctor[] = data.doctors.map((doc: ApiDoctor) => ({
           ...doc,
           is_favorited: false, // Initialize as not favorited
@@ -75,13 +76,12 @@ export default function DashboardPage() {
         setIsLoading(false);
       }
     };
-
     fetchDoctors();
   }, []); // Run only once on mount
   // --- End Fetch Doctors ---
 
 
-  // --- Handle Like Toggle ---
+  // --- Handle Like Toggle (Correct Logic) ---
   const handleToggleLike = (id: number) => {
     setAllDoctors(prevDoctors =>
       prevDoctors.map(doctor =>
@@ -98,14 +98,15 @@ export default function DashboardPage() {
   // --- Filtering Logic ---
   const specialties = [
     "all",
-    // Use Set on fetched doctors
     ...new Set(allDoctors.map((doctor) => doctor.specialty)),
   ];
 
-  const filteredDoctors = allDoctors.filter((doctor) => {
+  // Use correct Doctor type here
+  const filteredDoctors = allDoctors.filter((doctor: Doctor) => {
+    const lowerSearchTerm = searchTerm.toLowerCase();
     const matchesSearch =
-      doctor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      doctor.specialty.toLowerCase().includes(searchTerm.toLowerCase());
+      doctor.name.toLowerCase().includes(lowerSearchTerm) ||
+      doctor.specialty.toLowerCase().includes(lowerSearchTerm);
     const matchesSpecialty =
       selectedSpecialty === "all" || doctor.specialty === selectedSpecialty;
     return matchesSearch && matchesSpecialty;
@@ -113,153 +114,169 @@ export default function DashboardPage() {
   // --- End Filtering Logic ---
 
   // --- Notification Panel Toggle ---
-   const toggleNotifications = () => {
-    setIsNotificationsOpen(!isNotificationsOpen);
-  };
+  // We'll use setShowNotifications directly in the onClick handlers below
   // --- End Notification Panel Toggle ---
 
 
   // --- Render UI ---
-  // --- Render UI ---
   return (
-    <main className="min-h-screen bg-linear-to-b from-gray-50 to-gray-100 relative overflow-x-hidden">
+    // Added relative for absolute positioning context
+    <div className="min-h-screen bg-linear-to-b from-gray-50 to-gray-100 relative">
       {/* Enhanced Header */}
-      <header className="bg-white shadow-sm sticky top-0 z-30">
-        <div className="p-5 max-w-md mx-auto">
-          <div className="flex justify-between items-center">
-            {/* ... (Header content remains the same) ... */}
-            <div className="flex items-center gap-3">
+      <header className="bg-white shadow-sm sticky top-0 z-10">
+        {/* Adjusted padding and added max-w-7xl mx-auto for responsiveness */}
+        <div className="px-4 py-4 sm:px-6 md:px-8 lg:px-12 xl:px-20">
+          <div className="max-w-7xl mx-auto flex justify-between items-center">
+            <div className="flex items-center gap-2 sm:gap-3">
               <div className="relative">
                 <Image
                   src="/user-profile-pic.png" // Use consistent image
                   alt="User Profile"
                   width={48}
                   height={48}
-                  className="rounded-full w-12 h-12 object-cover ring-2 ring-cyan-100"
+                  className="rounded-full w-10 h-10 sm:w-12 sm:h-12 object-cover ring-2 ring-cyan-100"
                 />
+                 {/* Removed green online dot */}
               </div>
               <div>
-                <h1 className="text-lg font-bold text-gray-900">
+                <h1 className="text-base sm:text-lg font-bold text-gray-900">
                   Hello, {user?.name ? user.name.split(' ')[0] : "User"} 👋
                 </h1>
                 <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
                   <MapPin className="inline w-3 h-3" />
-                  {user?.location || "Dombivali, Mumbai"}
+                  <span className="hidden sm:inline">{user?.location || "Dombivali, Mumbai"}</span>
+                  <span className="sm:hidden">{user?.location?.split(',')[0] || "Dombivali"}</span>
                 </p>
               </div>
             </div>
-            <button className="relative p-3 hover:bg-gray-100 rounded-full transition-colors" onClick={toggleNotifications}>
-              <Bell className="w-6 h-6 text-gray-700" />
-              <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 rounded-full ring-2 ring-white"></span>
-            </button>
+            {/* Corrected Notification Button */}
+            <button
+              onClick={() => setShowNotifications(true)} // Use state setter directly
+              className="relative p-2 sm:p-3 hover:bg-gray-100 rounded-full transition-colors cursor-pointer" // Correct classes
+            >
+              <Bell className="w-5 h-5 sm:w-6 sm:h-6 text-gray-700" />
+              <span className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 w-2 h-2 sm:w-2.5 sm:h-2.5 bg-red-500 rounded-full ring-2 ring-white"></span>
+            </button> {/* Ensured button is closed */}
           </div>
         </div>
       </header>
 
-      {/* Main Content */}
-      <div className="p-5 max-w-md mx-auto pb-24">
-        {/* Welcome Banner - Reduced padding */}
-        <div className="bg-linear-to-br from-cyan-500 to-cyan-600 rounded-2xl shadow-lg p-4 mb-5 text-white"> {/* CHANGE: p-6 to p-4, mb-6 to mb-5 */}
-          <h2 className="text-xl font-bold mb-1">Find Your Perfect Doctor</h2> {/* CHANGE: text-2xl to text-xl, mb-2 to mb-1 */}
-          <p className="text-cyan-50 text-sm">
-            Book appointments with top-rated healthcare professionals
-          </p>
-        </div>
-
-        {/* Search Section - Added padding and curve */}
-        <div className="bg-white rounded-2xl shadow-md p-4 mb-5 border border-gray-100"> {/* CHANGE: p-5 to p-4, mb-6 to mb-5 */}
-          <div className="relative mb-4">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 z-10" /> {/* Added z-10 */}
-            <input
-              type="text"
-              placeholder="Search doctors by name or specialty..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              // CHANGE: Adjusted padding and border, added focus shadow
-              className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-cyan-400 focus:bg-white focus:ring-2 focus:ring-cyan-200 transition-all text-gray-900 placeholder:text-gray-400"
-            />
-          </div>
-
-          {/* Specialty Filter - Adjusted spacing */}
-          <div className="flex flex-wrap gap-2"> {/* No change needed here, gap-2 looks good */}
-            {specialties.map((specialty) => (
-              <button
-                key={specialty}
-                onClick={() => setSelectedSpecialty(specialty)}
-                 // CHANGE: Adjusted padding, border, and added subtle shadow on hover/active
-                className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all border ${
-                  selectedSpecialty === specialty
-                    ? "bg-cyan-500 border-cyan-500 text-white shadow-sm"
-                    : "bg-gray-100 border-gray-200 text-gray-700 hover:bg-gray-200 hover:border-gray-300 active:bg-cyan-50 active:text-cyan-700 active:border-cyan-200"
-                }`}
-              >
-                {specialty === "all" ? "All Specialties" : specialty}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Results Header */}
-        <div className="flex justify-between items-center mb-4"> {/* CHANGE: mb-5 to mb-4 */}
-          <h2 className="text-lg font-bold text-gray-900"> {/* CHANGE: text-xl to text-lg */}
-            {filteredDoctors.length} Doctor
-            {filteredDoctors.length !== 1 ? "s" : ""} Found
-          </h2>
-          {/* Optional: Add a 'See All' link if needed later */}
-        </div>
-
-        {/* Doctor List */}
-        <div>
-          {isLoading ? (
-             <p className="text-center text-gray-500 py-10">Loading doctors...</p>
-          ) : filteredDoctors.length > 0 ? (
-            // The DoctorCard component itself will be updated next
-            filteredDoctors.map((doctor) => (
-              <DoctorCard
-                key={doctor.id}
-                doctor={doctor}
-                onToggleLike={handleToggleLike}
-              />
-            ))
-          ) : (
-            // No doctors found message - Added padding
-            <div className="bg-white rounded-2xl shadow-md p-6 text-center border border-gray-100"> {/* CHANGE: p-12 to p-6 */}
-              <div className="bg-gray-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3"> {/* CHANGE: w/h-20 to w/h-16, mb-4 to mb-3 */}
-                <Search className="w-8 h-8 text-gray-400" /> {/* CHANGE: w/h-10 to w/h-8 */}
-              </div>
-              <h3 className="text-lg font-bold text-gray-900 mb-1"> {/* CHANGE: text-xl to text-lg, mb-2 to mb-1 */}
-                No doctors found
-              </h3>
-              <p className="text-gray-600 text-sm"> {/* Added text-sm */}
-                Try adjusting your search criteria or filters
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
-
-       {/* --- Notification Panel (No changes needed) --- */}
-       <div
-        className={`fixed top-0 right-0 h-full w-full max-w-sm bg-white shadow-xl z-50 transform transition-transform duration-300 ease-in-out ${
-          isNotificationsOpen ? 'translate-x-0' : 'translate-x-full'
+      {/* Notifications Panel */}
+      <div
+        // Use showNotifications state
+        className={`fixed top-4 right-4 w-[90%] max-w-[300px] h-80 bg-white border border-gray-200 rounded-2xl shadow-2xl z-40 overflow-hidden transform transition-transform duration-300 ease-in-out ${
+          showNotifications
+            ? "translate-x-0 pointer-events-auto"
+            : "translate-x-[120%] pointer-events-none"
         }`}
       >
-        <div className="p-4 border-b border-gray-200 flex justify-between items-center">
-          <h2 className="text-lg font-semibold">Notifications</h2>
-          <button onClick={toggleNotifications} className="p-2 text-gray-500 hover:text-gray-800">
-            <X size={24} />
+        <div className="flex items-center justify-between p-4 border-b border-gray-100 flex-shrink-0">
+          <h2 className="text-base font-semibold text-gray-900">Notifications</h2>
+          <button
+            onClick={() => setShowNotifications(false)} // Use state setter
+            className="p-2 rounded-full hover:bg-gray-100 cursor-pointer flex-shrink-0"
+            aria-label="Close notifications"
+          >
+            <X className="w-5 h-5 text-gray-700" />
           </button>
         </div>
-        <div className="p-4 text-center text-gray-500">
-          No Notifications for now
+        <div className="p-4 overflow-y-auto flex-1">
+          <div className="text-sm text-gray-600 text-center">No notifications now</div>
         </div>
       </div>
-      {isNotificationsOpen && (
+      {/* Overlay */}
+      {showNotifications && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-40"
-          onClick={toggleNotifications}
+          className="fixed inset-0 bg-black bg-opacity-30 z-30"
+          onClick={() => setShowNotifications(false)} // Use state setter
         ></div>
       )}
-    </main>
+
+
+      {/* Main Content */}
+      {/* Adjusted padding and added max-w-7xl mx-auto */}
+      <div className="px-4 py-4 sm:px-6 sm:py-5 md:px-8 lg:px-12 pb-24"> {/* Added pb-24 */}
+        <div className="max-w-7xl mx-auto">
+          {/* Welcome Banner */}
+          <div className="bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6 mb-4 sm:mb-6 text-white">
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-1 sm:mb-2">
+              Find Your Perfect Doctor
+            </h2>
+            <p className="text-cyan-50 text-xs sm:text-sm">
+              Book appointments with top-rated healthcare professionals
+            </p>
+          </div>
+
+          {/* Search Section */}
+          <div className="bg-white rounded-xl sm:rounded-2xl shadow-md p-4 sm:p-5 mb-4 sm:mb-6 border border-gray-100">
+            <div className="relative mb-3 sm:mb-4">
+              <Search className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 sm:w-5 sm:h-5" />
+              <input
+                type="text"
+                placeholder="Search doctors..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 sm:pl-12 pr-3 sm:pr-4 py-2.5 sm:py-3.5 bg-gray-50 border-2 border-gray-200 rounded-lg sm:rounded-xl focus:outline-none focus:border-cyan-400 focus:bg-white transition-all text-sm sm:text-base text-gray-900 placeholder:text-gray-400"
+              />
+            </div>
+
+            {/* Specialty Filter */}
+            <div className="flex flex-wrap gap-2">
+              {specialties.map((specialty) => (
+                <button
+                  key={specialty}
+                  onClick={() => setSelectedSpecialty(specialty)}
+                  className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-semibold transition-all border ${
+                    selectedSpecialty === specialty
+                      ? "bg-cyan-500 border-cyan-500 text-white shadow-sm"
+                      : "bg-gray-100 border-gray-200 text-gray-700 hover:bg-gray-200 hover:border-gray-300"
+                  }`}
+                >
+                  {specialty === "all" ? "All Specialties" : specialty}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Results Header */}
+          <div className="flex justify-between items-center mb-4 sm:mb-5">
+            <h2 className="text-lg sm:text-xl font-bold text-gray-900">
+              {filteredDoctors.length} Doctor
+              {filteredDoctors.length !== 1 ? "s" : ""} Found
+            </h2>
+          </div>
+
+          {/* Doctor List */}
+          <div className="space-y-3 sm:space-y-4">
+            {isLoading ? (
+              <p className="text-center text-gray-500 py-10">Loading doctors...</p>
+            ) : filteredDoctors.length > 0 ? (
+              // Use correct Doctor type and pass correct props
+              filteredDoctors.map((doctor: Doctor) => (
+                  <DoctorCard
+                    key={doctor.id}
+                    doctor={doctor}
+                    onToggleLike={handleToggleLike} // Pass correct handler
+                  />
+                  // Removed extra Link wrapper
+              ))
+            ) : (
+              // No doctors found message
+              <div className="bg-white rounded-xl sm:rounded-2xl shadow-md p-8 sm:p-12 text-center border border-gray-100">
+                <div className="bg-gray-100 w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
+                  <Search className="w-8 h-8 sm:w-10 sm:h-10 text-gray-400" />
+                </div>
+                <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">
+                  No doctors found
+                </h3>
+                <p className="text-sm sm:text-base text-gray-600">
+                  Try adjusting your search criteria or filters
+                </p>
+              </div>
+            )}
+          </div>
+        </div> {/* Close max-w-7xl div */}
+      </div> {/* Close main content padding div */}
+    </div> // Close root div for component
   );
 }
