@@ -84,14 +84,16 @@ const AppointmentReviewPage = () => {
             <h2 className="text-base md:text-lg font-semibold text-foreground">
               Add Patient Details
             </h2>
-            <Button
-              variant="outline"
-              onClick={handleAddPatientDetails}
-              className="w-full md:w-auto"
-            >
-              <Plus className="w-4 h-4" />
-              Add Patient Details
-            </Button>
+            <Link href="/user/appointment/patient-details">
+              <Button
+                variant="outline"
+                onClick={handleAddPatientDetails}
+                className="w-full md:w-auto"
+              >
+                <Plus className="w-4 h-4" />
+                Add Patient Details
+              </Button>
+            </Link>
           </div>
 
           {/* View My Appointment Button */}
