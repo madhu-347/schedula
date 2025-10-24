@@ -6,7 +6,8 @@ import { useRouter } from "next/navigation";
 import { DoctorInfoCard } from "@/components/cards/DoctorReview";
 import { AppointmentDetailsCard } from "@/components/cards/AppointmentDetails";
 import { Button } from "@/components/ui/Button";
-import { toast } from "@/hooks/useToast"; // or use your toast implementation
+import { toast } from "@/hooks/useToast";
+import Link from "next/link";
 
 const AppointmentReviewPage = () => {
   const router = useRouter();
@@ -42,23 +43,21 @@ const AppointmentReviewPage = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Mobile Header */}
-      <header className="bg-card border border-gray-300 px-4 py-4 md:px-6 md:py-6">
-        <div className="max-w-4xl mx-auto flex items-center gap-3">
-          <button
-            onClick={() => router.push("/user/dashboard")}
-            className="p-2 hover:bg-secondary rounded-lg transition-colors"
-            aria-label="Go back"
+      <header className="bg-cyan-500 text-white px-4 py-6 rounded-b-3xl md:rounded-b-md shadow-md">
+        <div className="max-w-3xl mx-auto px-5 flex items-center gap-3">
+          <Link
+            href="/user/dashboard"
+            className="p-2 -ml-2 rounded-full hover:bg-cyan-600/30 cursor-pointer"
           >
             <ArrowLeft className="w-5 h-5" />
-          </button>
-          <h1 className="text-xl md:text-2xl lg:text-3xl font-semibold text-foreground">
-            Appointment Scheduled
-          </h1>
+          </Link>
+          <h1 className="text-2xl font-semibold">Appointment Scheduled</h1>
         </div>
       </header>
+
       {/* Main Content */}
-      <main className="px-4 py-6 md:px-6 md:py-8">
-        <div className="max-w-4xl mx-auto space-y-5 md:space-y-6">
+      <main className="px-4 py-6 md:px-6 md:py-6">
+        <div className="max-w-3xl mx-auto space-y-4 md:space-y-5">
           {/* Doctor Info Card */}
           <DoctorInfoCard
             name="Dr. Kumar Das"
@@ -96,7 +95,7 @@ const AppointmentReviewPage = () => {
           </div>
 
           {/* View My Appointment Button */}
-          <div className="md:mt-8 flex justify-center">
+          <div className="mt-3 md:mt-8 flex justify-center">
             <Button
               onClick={handleViewAppointments}
               className="w-full rounded-lg py-6 text-base font-semibold md:w-auto md:px-12"
