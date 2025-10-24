@@ -45,7 +45,7 @@ const AppointmentReviewPage = () => {
       <header className="bg-card border border-gray-300 px-4 py-4 md:px-6 md:py-6">
         <div className="max-w-4xl mx-auto flex items-center gap-3">
           <button
-            onClick={() => router.back()}
+            onClick={() => router.push("/user/dashboard")}
             className="p-2 hover:bg-secondary rounded-lg transition-colors"
             aria-label="Go back"
           >
