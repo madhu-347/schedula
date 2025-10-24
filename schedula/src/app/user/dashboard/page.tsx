@@ -6,7 +6,7 @@ import Link from "next/link"; // Single correct import for Link
 import { Bell, Search, MapPin, X } from "lucide-react"; // Make sure X is imported
 import DoctorCard from "@/components/cards/DoctorCard"; // Use the imported card
 
-// --- TYPE DEFINITIONS ---
+// --- ADD TYPE DEFINITIONS HERE ---
 type ApiDoctor = {
   id: number;
   name: string;
@@ -81,7 +81,7 @@ export default function DashboardPage() {
   // --- End Fetch Doctors ---
 
 
-  // --- Handle Like Toggle (Correct Logic) ---
+  // --- Handle Like Toggle (Keep ONLY this version) ---
   const handleToggleLike = (id: number) => {
     setAllDoctors(prevDoctors =>
       prevDoctors.map(doctor =>
@@ -93,6 +93,9 @@ export default function DashboardPage() {
     console.log(`Toggled like for doctor ID: ${id}`);
   };
   // --- End Handle Like Toggle ---
+
+  // --- DELETE THE DUPLICATE handleToggleLike FUNCTION ---
+  // The incorrect one using setIsLiked should be removed
 
 
   // --- Filtering Logic ---
@@ -114,7 +117,7 @@ export default function DashboardPage() {
   // --- End Filtering Logic ---
 
   // --- Notification Panel Toggle ---
-  // We'll use setShowNotifications directly in the onClick handlers below
+  // Use setShowNotifications directly in onClick
   // --- End Notification Panel Toggle ---
 
 
@@ -193,9 +196,9 @@ export default function DashboardPage() {
       )}
 
 
-      {/* Main Content */}
-      {/* Adjusted padding and added max-w-7xl mx-auto */}
-      <div className="px-4 py-4 sm:px-6 sm:py-5 md:px-8 lg:px-12 pb-24"> {/* Added pb-24 */}
+      {/* Main Content - SINGLE CORRECT VERSION */}
+      {/* Added pb-24 for bottom nav space */}
+      <div className="px-4 py-4 sm:px-6 sm:py-5 md:px-8 lg:px-12 pb-24">
         <div className="max-w-7xl mx-auto">
           {/* Welcome Banner */}
           <div className="bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6 mb-4 sm:mb-6 text-white">
@@ -210,7 +213,7 @@ export default function DashboardPage() {
           {/* Search Section */}
           <div className="bg-white rounded-xl sm:rounded-2xl shadow-md p-4 sm:p-5 mb-4 sm:mb-6 border border-gray-100">
             <div className="relative mb-3 sm:mb-4">
-              <Search className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 sm:w-5 sm:h-5" />
+              <Search className="absolute left-3 sm:left-4 top-1.2 transform -translate-y-1/2 text-gray-400 w-4 h-4 sm:w-5 sm:h-5" />
               <input
                 type="text"
                 placeholder="Search doctors..."
@@ -277,6 +280,7 @@ export default function DashboardPage() {
           </div>
         </div> {/* Close max-w-7xl div */}
       </div> {/* Close main content padding div */}
+       {/* REMOVED DUPLICATE MAIN CONTENT BLOCK */}
     </div> // Close root div for component
   );
 }
