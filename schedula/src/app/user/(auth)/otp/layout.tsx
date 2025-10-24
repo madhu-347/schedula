@@ -3,9 +3,9 @@ import { PropsWithChildren } from "react";
 
 export default function Layout({ children }: PropsWithChildren) {
   return (
-    <body>
+    <div className="min-h-screen flex bg-white">
       {children}
       <Toaster position="top-center" />
-    </body>
+    </div>
   );
 }
