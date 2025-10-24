@@ -2,13 +2,8 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { DividerWithText } from "@/components/auth/DividerWithText";
-import { SocialLoginButtonComponent } from "@/components/auth/SocialLoginButton";
-import { FormFooterComponent } from "@/components/auth/FormFooter";
-import { LogoComponent } from "@/components/auth/Logo";
 import { Button } from "@/components/ui/Button";
 import { InputFieldComponent } from "@/components/ui/InputField";
-import { HeadingComponent } from "@/components/ui/Heading";
 import mockData from "@/lib/mockData.json";
 
 export default function LoginPage() {
@@ -28,6 +23,15 @@ export default function LoginPage() {
       }));
     };
 
+    // OTP Generator
+    const generateOtp = (length = 4) => {
+      let otp = "";
+      for (let i = 0; i < length; i++) {
+        otp += Math.floor(Math.random() * 10); // digits 0–9
+      }
+      return otp;
+};
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -40,8 +44,18 @@ export default function LoginPage() {
 
       if (user) {
         console.log("✅ User found:", user);
-        localStorage.setItem("user", JSON.stringify(user));
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+
+        // Store pending user (temporary until OTP verified)
+        localStorage.setItem("pendingUser", JSON.stringify(user));
+
+        // Generate OTP
+        const generatedOtp = generateOtp(4);
+        localStorage.setItem("generatedOtp", generatedOtp);
+        localStorage.setItem("otpExpiry", (Date.now() + 2 * 60 * 1000).toString()); // expires in 2 mins
+
+        console.log("📩 Generated OTP:", generatedOtp);
+
+        // Redirect to OTP verification
         router.push("/user/otp");
       } else {
         alert("❌ Invalid email or mobile. Please try again.");
@@ -59,20 +73,7 @@ export default function LoginPage() {
   const handleForgotPassword = () => console.log("Forgot password clicked");
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row items-center justify-center p-4">
-      <div className="flex-1 rounded-3xl bg-white shadow-lg w-full max-w-md px-8">
-        <div className="py-8">
-          {/* Logo */}
-          <div className="flex justify-center mb-6">
-            <LogoComponent imageUrl="/logo.png" />
-          </div>
-
-          {/* Heading */}
-          <HeadingComponent text="Welcome Back" />
-          <p className="text-center text-gray-500 mb-6">
-            Please enter your details to continue
-          </p>
-
+        <div className="py-16">
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Email / Mobile */}
@@ -132,26 +133,8 @@ export default function LoginPage() {
             >
               {isLoading ? "Signing In..." : "Sign In"}
             </Button>
-
-            {/* Divider */}
-            <DividerWithText text="Or continue with" />
-
-            {/* Google Login */}
-            <SocialLoginButtonComponent
-              text="Continue with Google"
-              onClick={handleGoogleLogin}
-              iconUrl="/google.jpeg"
-            />
           </form>
-
-          {/* Footer */}
-          <FormFooterComponent
-            question="Don't have an account?"
-            linkText="Sign Up"
-            onLinkClick={handleRegisterRedirect}
-          />
         </div>
-      </div>
-    </div>
+
   );
 }

@@ -2,172 +2,146 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-
-// ✅ Helper to generate random 4-digit OTP
-const generateOtp = (length = 4) => {
-  let otp = "";
-  for (let i = 0; i < length; i++) {
-    otp += Math.floor(Math.random() * 10); // digits 0–9
-  }
-  return otp;
-};
+import AuthBanner from "@/components/auth/AuthBanner";
+import { toast } from "react-hot-toast";
 
 export default function OtpPage() {
   const router = useRouter();
-  const [otp, setOtp] = useState(["", "", "", ""]);
-  const [timer, setTimer] = useState(58);
-  const [resendEnabled, setResendEnabled] = useState(false);
-  const [generatedOtp, setGeneratedOtp] = useState<string | null>(null);
-  const [user, setUser] = useState<any>(null);
+  const [enteredOtp, setEnteredOtp] = useState("");
+  const [timer, setTimer] = useState(120); // 2 mins
+  const [otpVisible, setOtpVisible] = useState<string | null>(null);
 
-  // ✅ Load user info and generate OTP on mount
+
   useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      const parsedUser = JSON.parse(storedUser);
-      setUser(parsedUser);
-
-      const otp = generateOtp();
-      setGeneratedOtp(otp);
-      localStorage.setItem("otp", otp);
-      console.log(`📩 OTP for ${parsedUser.email || parsedUser.mobile}: ${otp}`);
+  const pendingUser = localStorage.getItem("pendingUser");
+  if (!pendingUser) {
+    toast.error("No pending user found. Please log in again.");
+    router.push("/user/login");
+  }
+}, [router]);
+  // Show OTP when the page loads (for testing/demo)
+  useEffect(() => {
+    const otp = localStorage.getItem("generatedOtp");
+    const expiry = Number(localStorage.getItem("otpExpiry"));
+    if (otp && expiry && Date.now() < expiry) {
+      setOtpVisible(otp);
+      // toast.success(`Your OTP is ${otp}`, {
+      //   duration: 4000,
+      //   position: "top-center",
+      // });
     } else {
-      router.push("/user/login");
+      toast.error("OTP expired! Please login again.");
+      router.push("/user/dashboard");
     }
   }, [router]);
 
-  // ✅ Countdown timer
+  // Countdown timer
   useEffect(() => {
-    if (timer > 0) {
-      const countdown = setTimeout(() => setTimer(timer - 1), 1000);
-      return () => clearTimeout(countdown);
-    } else {
-      setResendEnabled(true);
-    }
+    if (timer <= 0) return;
+    const countdown = setInterval(() => setTimer((prev) => prev - 1), 1000);
+    return () => clearInterval(countdown);
   }, [timer]);
 
-  // ✅ Handle OTP input changes
-  const handleChange = (value: string, index: number) => {
-    if (!/^\d*$/.test(value)) return; // Only digits
-    const newOtp = [...otp];
-    newOtp[index] = value;
-    setOtp(newOtp);
+  // Verify OTP
+  const handleVerifyOtp = () => {
+    const storedOtp = localStorage.getItem("generatedOtp");
+    const otpExpiry = Number(localStorage.getItem("otpExpiry"));
+    const pendingUser = localStorage.getItem("pendingUser");
 
-    // Auto focus next input
-    if (value && index < otp.length - 1) {
-      const nextInput = document.getElementById(`otp-${index + 1}`);
-      nextInput?.focus();
+    if (!storedOtp || !otpExpiry || Date.now() > otpExpiry) {
+      toast.error("OTP expired! Please login again.");
+      router.push("/user/login");
+      return;
     }
-  };
 
-  // ✅ Handle OTP verification
-  const handleVerify = () => {
-    const enteredOtp = otp.join("");
-    const storedOtp = localStorage.getItem("otp");
+    if (enteredOtp === storedOtp && pendingUser) {
+      const user = JSON.parse(pendingUser);
+      const expiryTime = Date.now() + 30 * 60 * 1000; // 30 mins session
+      localStorage.setItem("user", JSON.stringify(user));
+      localStorage.setItem("userExpiry", expiryTime.toString());
 
-    if (enteredOtp === storedOtp) {
-      alert("✅ OTP Verified Successfully!");
-      localStorage.setItem("otp", storedOtp || "");
+      // Clean up
+      localStorage.removeItem("pendingUser");
+      localStorage.removeItem("generatedOtp");
+      localStorage.removeItem("otpExpiry");
+
+      toast.success("OTP Verified Successfully 🎉");
       router.push("/user/dashboard");
     } else {
-      alert("❌ Incorrect OTP. Please try again.");
-      setOtp(["", "", "", ""]);
+      toast.error("Invalid OTP. Please try again.");
     }
   };
 
-  // ✅ Handle resend
-  const handleResend = () => {
-    const newOtp = generateOtp();
-    setGeneratedOtp(newOtp);
-    localStorage.setItem("otp", newOtp);
-    console.log(`🔄 Resent OTP: ${newOtp}`);
+  // Resend OTP
+  const handleResendOtp = () => {
+    const newOtp = Math.floor(1000 + Math.random() * 9000).toString();
+    localStorage.setItem("generatedOtp", newOtp);
+    localStorage.setItem("otpExpiry", (Date.now() + 2 * 60 * 1000).toString());
+    setTimer(120);
+    setOtpVisible(newOtp);
 
-    setTimer(58);
-    setResendEnabled(false);
-    setOtp(["", "", "", ""]);
+    // toast.success(`New OTP: ${newOtp}`, {
+    //   duration: 4000,
+    //   position: "top-center",
+    // });
   };
 
-  const isOtpComplete = otp.every((digit) => digit !== "");
-
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center bg-linear-to-r from-cyan-500 to-cyan-600  px-6 text-black">
-      <div className="w-full max-w-sm bg-white shadow-md rounded-2xl p-8">
-        {/* Back Button */}
-        <button
-          onClick={() => router.push("/user/login")}
-          className="text-gray-600 text-sm mb-6 hover:text-cyan-500 transition"
-        >
-          ← Back
-        </button>
+    <div className="min-h-screen flex flex-col md:flex-row bg-white">
+      {/* LEFT SIDE BANNER */}
+      <AuthBanner />
 
-        {/* Header */}
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">
-          OTP Verification
-        </h1>
-        <p className="text-gray-600 text-sm mb-8">
-          Code has been sent to{" "}
-          <span className="font-medium text-gray-900">
-            {user?.mobile ? `+91 ${user.mobile}` : user?.email}
-          </span>
+      {/* RIGHT SIDE OTP SECTION */}
+      <div className="flex-1 flex md:w-1/3 flex-col justify-center items-center px-8 py-12">
+        <h2 className="text-2xl font-bold text-gray-800 mb-4">Enter OTP</h2>
+        <p className="text-gray-500 mb-6 text-center">
+          Please enter the 4-digit OTP sent to your registered email / mobile.
         </p>
 
-        {/* OTP Inputs */}
-        <div className="flex justify-between mb-6">
-          {otp.map((digit, index) => (
-            <input
-              key={index}
-              id={`otp-${index}`}
-              type="text"
-              maxLength={1}
-              value={digit}
-              onChange={(e) => handleChange(e.target.value, index)}
-              className="w-14 h-14 border border-gray-300 rounded-lg text-center text-xl font-semibold focus:outline-none focus:ring-2 focus:ring-[#00bcd4] bg-gray-50"
-            />
-          ))}
-        </div>
-
-        {/* Timer + Resend */}
-        <div className="text-center text-gray-500 text-sm mb-6">
-          Resend code in{" "}
-          {resendEnabled ? (
-            <button
-              onClick={handleResend}
-              className="text-[#00bcd4] font-semibold hover:underline"
-            >
-              Resend
-            </button>
-          ) : (
-            <span className="text-[#00bcd4] font-semibold">{timer}s</span>
-          )}
-        </div>
+        {/* Input Field */}
+        <input
+          type="text"
+          maxLength={4}
+          value={enteredOtp}
+          onChange={(e) => setEnteredOtp(e.target.value)}
+          className="text-center tracking-widest text-xl border border-gray-300 rounded-lg p-3 w-full focus:outline-none focus:ring-2 focus:ring-cyan-400"
+          placeholder="----"
+        />
 
         {/* Verify Button */}
         <button
-          onClick={handleVerify}
-          disabled={!isOtpComplete}
-          className={`w-full py-3 rounded-lg font-semibold transition duration-300 ${
-            isOtpComplete
-              ? "bg-[#00bcd4] text-white hover:bg-[#4fc3f7]"
-              : "bg-gray-300 text-gray-500 cursor-not-allowed"
-          }`}
+          onClick={handleVerifyOtp}
+          className="w-full mt-6 bg-cyan-500 hover:bg-cyan-600 text-white font-semibold py-3 rounded-lg transition"
         >
           Verify OTP
         </button>
 
-        {/* Footer */}
-        <p className="text-center text-sm text-gray-400 mt-6">
-          Didn’t receive the code?{" "}
-          <span
-            onClick={resendEnabled ? handleResend : undefined}
-            className={`font-medium ${
-              resendEnabled
-                ? "text-[#00bcd4] hover:underline cursor-pointer"
-                : "text-gray-400 cursor-not-allowed"
-            }`}
-          >
-            {resendEnabled ? "Resend Now" : "Wait..."}
-          </span>
-        </p>
+        {/* Resend Timer */}
+        <div className="mt-4 text-sm text-gray-600 text-center">
+          {timer > 0 ? (
+            <p>Resend OTP in {timer}s</p>
+          ) : (
+            <button
+              onClick={handleResendOtp}
+              className="text-cyan-600 font-medium hover:underline"
+            >
+              Resend OTP
+            </button>
+          )}
+        </div>
+
+        {/* Optional — Show OTP inline for debugging/demo */}
+        {otpVisible && (
+          <div className="mt-4 text-cyan-700 bg-cyan-50 border border-cyan-200 px-4 py-2 rounded-md text-sm text-center flex items-center justify-center gap-2">
+            OTP: <strong>{otpVisible}</strong>
+            <button
+              onClick={() => navigator.clipboard.writeText(otpVisible)}
+              className="text-xs text-cyan-600 underline hover:text-cyan-800"
+            >
+              Copy
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

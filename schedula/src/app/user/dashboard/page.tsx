@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+// Update the path below to the correct relative path where ProtectedRoute exists
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -55,6 +57,7 @@ export default function DashboardPage() {
   };
 
   return (
+    <ProtectedRoute>
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
       {/* Enhanced Header */}
       <header className="bg-white shadow-sm sticky top-0 z-10">
@@ -167,5 +170,6 @@ export default function DashboardPage() {
         </div>
       </div>
     </div>
+    </ProtectedRoute>
   );
 }

@@ -2,15 +2,8 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
-import { DividerWithText } from "@/components/auth/DividerWithText";
-import { LinkComponent } from "@/components/ui/Link";
-import { SocialLoginButtonComponent } from "@/components/auth/SocialLoginButton";
-import { FormFooterComponent } from "@/components/auth/FormFooter";
-import { LogoComponent } from "@/components/auth/Logo";
 import { Button } from "@/components/ui/Button";
 import { InputFieldComponent } from "@/components/ui/InputField";
-import { HeadingComponent } from "@/components/ui/Heading";
 import { createUser } from "@/lib/auth";
 
 export default function RegisterPage() {
@@ -78,23 +71,15 @@ export default function RegisterPage() {
   };
 
   const handleLoginRedirect = () => {
-    router.push("/login");
+    router.push("/user/login");
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4 text-black">
-      <div className="bg-white rounded-3xl shadow-sm w-full max-w-md p-8">
-        {/* Logo */}
-        <LogoComponent imageUrl="/logo.png" />
-
-        {/* Title */}
-        <HeadingComponent text="Create an Account" />
-
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="">
+        <form onSubmit={handleSubmit} className="space-y-2">
           {/* Full Name */}
           <div>
-            <label className="block text-sm font-medium mb-2">Full Name</label>
+            <label className="block text-sm font-medium mb-1">Full Name</label>
             <InputFieldComponent
               type="text"
               placeholder="Enter your full name"
@@ -171,30 +156,7 @@ export default function RegisterPage() {
           >
             {isLoading ? "Creating Account..." : "Sign Up"}
           </Button>
-
-          {/* Divider */}
-          <DividerWithText text="Or sign up With" />
-
-          {/* Google Sign Up */}
-          <SocialLoginButtonComponent
-            text={"Continue with Google"}
-            onClick={handleGoogleSignUp}
-            iconUrl={"/google.jpeg"}
-          />
         </form>
-        {/* Login Link */}
-        <FormFooterComponent
-          question={"Already Have an Account?"}
-          linkText={"Login"}
-          onLinkClick={handleLoginRedirect}
-        />
-        {/* <div className="text-center mt-8 text-sm text-gray-500">
-          Already have an account?{" "}
-          <a href="#" className="text-cyan-400 font-medium hover:underline">
-            Login
-          </a>
-        </div> */}
       </div>
-    </div>
   );
 }
