@@ -34,7 +34,7 @@ export default function LoginPage() {
     console.log("🔐 Checking mock user credentials...");
 
     try {
-      const user = mockData.doctors.find(
+      const user = mockData.users.find(
         (u) => u.email === formData.email || u.phone === formData.email
       );
 
