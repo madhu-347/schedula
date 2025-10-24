@@ -10,7 +10,6 @@ export default function DashboardLayout({
     // content from being hidden behind the fixed bottom nav
     <div className="pb-20"> 
       {children}
-      <BottomNav />
     </div>
   );
 }

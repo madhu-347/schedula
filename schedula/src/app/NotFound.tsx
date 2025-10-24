@@ -17,7 +17,7 @@ const NotFound = () => {
           Page Not Found
         </h2>
         <p className="mb-8 text-lg text-gray-600">
-          Sorry, we couldn't find the page you're looking for.
+          Sorry, we couldnt find the page youre looking for.
         </p>
         <div className="space-y-4">
           <ButtonComponent text="Go Home" onClick={handleGoHome} />
