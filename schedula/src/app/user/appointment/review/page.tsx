@@ -1,28 +1,54 @@
 "use client";
 
-import React from "react";
-import { ArrowLeft, Plus, Calendar } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { ArrowLeft, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { DoctorInfoCard } from "@/components/cards/DoctorReview";
 import { AppointmentDetailsCard } from "@/components/cards/AppointmentDetails";
 import { Button } from "@/components/ui/Button";
 import { toast } from "@/hooks/useToast";
 import Link from "next/link";
+import DoctorCard from "@/components/cards/DoctorCard";
+
+interface DoctorData {
+  id: number;
+  name: string;
+  firstName: string;
+  lastName: string;
+  specialty: string;
+  email: string;
+  phone: string;
+  status: string;
+  time: string;
+  bio: string;
+  imageUrl?: string;
+  profilePicture?: string;
+}
 
 const AppointmentReviewPage = () => {
   const router = useRouter();
+  const [doctor, setDoctor] = useState<DoctorData | null>(null);
+
+  useEffect(() => {
+    try {
+      const storedDoctor = localStorage.getItem("selectedDoctor");
+      if (storedDoctor) {
+        const parsedDoctor = JSON.parse(storedDoctor);
+        setDoctor(parsedDoctor);
+      } else {
+        toast({
+          title: "No Doctor Selected",
+          description: "Please select a doctor before reviewing the appointment.",
+          variant: "destructive",
+        });
+        router.push("/user/dashboard");
+      }
+    } catch (error) {
+      console.error("Error reading doctor data:", error);
+    }
+  }, [router]);
 
   const handleAddToCalendar = () => {
-    // Here you would integrate with Google Calendar API
-    const event = {
-      title: "Appointment with Dr. Kumar Das",
-      description: "Cardiology consultation",
-      location: "Dombivali Clinic",
-      startTime: "2023-10-27T19:30:00",
-      duration: "30", // 30 minutes
-    };
-
-    // Show success toast
     toast({
       title: "Added to Calendar",
       description: "Appointment has been added to your calendar.",
@@ -31,43 +57,52 @@ const AppointmentReviewPage = () => {
   };
 
   const handleAddPatientDetails = () => {
-    // Navigate to patient details form
     router.push("/user/appointment/patient-details");
   };
 
   const handleViewAppointments = () => {
-    // Navigate to appointments list
     router.push("/user/dashboard/appointments");
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Mobile Header */}
-      <header className="bg-cyan-500 text-white px-4 py-6 rounded-b-3xl md:rounded-b-md shadow-md">
-        <div className="max-w-3xl mx-auto px-5 flex items-center gap-3">
-          <Link
-            href="/user/dashboard"
-            className="p-2 -ml-2 rounded-full hover:bg-cyan-600/30 cursor-pointer"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </Link>
-          <h1 className="text-2xl font-semibold">Appointment Scheduled</h1>
+      {/* Header */}
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
+        <div className="max-w-3xl mx-auto px-5 py-4">
+          <div className="flex items-center gap-3">
+            {doctor ? (<Link
+              href={`/user/appointment/${doctor.id}`}
+              className="p-2 -ml-2 rounded-full hover:bg-cyan-600/30 cursor-pointer"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </Link>)
+            : null}
+            <h1 className="text-xl font-semibold text-gray-900">
+              Appointment Scheduled
+            </h1>
+          </div>
         </div>
       </header>
 
       {/* Main Content */}
       <main className="px-4 py-6 md:px-6 md:py-6">
-        <div className="max-w-3xl mx-auto space-y-4 md:space-y-5">
-          {/* Doctor Info Card */}
-          <DoctorInfoCard
-            name="Dr. Kumar Das"
-            specialty="Cardiologist"
-            location="Dombivali"
-            qualification="MBBS, MD (Internal Medicine)"
-            imageUrl="/male-doctor.png"
-          />
+        <div className="max-w-3xl mx-auto space-y-5">
+          {/* Doctor Info */}
+          {doctor ? (
+            <DoctorInfoCard
+              name={doctor.name || `${doctor.firstName} ${doctor.lastName}`}
+              specialty={doctor.specialty}
+              location={doctor.status} // using "Available today" field here
+              qualification={doctor.phone}
+              imageUrl={doctor.profilePicture || doctor.imageUrl || "/male-doctor.png"}
+            />
+          ) : (
+            <div className="text-center text-gray-500 py-10">
+              Loading doctor details...
+            </div>
+          )}
 
-          {/* Appointment Details Card */}
+          {/* Appointment Details */}
           <AppointmentDetailsCard
             appointmentNumber="#34"
             status="Active"
@@ -76,7 +111,7 @@ const AppointmentReviewPage = () => {
             type="In-person"
             duration="30 minutes"
             fee="₹1000"
-            clinicAddress="123 Healthcare Avenue, Dombivali East, Mumbai - 421201"
+            clinicAddress="Wellora Health Center, Chennai"
           />
 
           {/* Add Patient Details Section */}

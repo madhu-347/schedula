@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+// Update the path below to the correct relative path where ProtectedRoute exists
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import Image from "next/image";
 import Link from "next/link"; // Single correct import for Link
 import { Bell, Search, MapPin, X } from "lucide-react"; // Make sure X is imported
@@ -123,8 +125,8 @@ export default function DashboardPage() {
 
   // --- Render UI ---
   return (
-    // Added relative for absolute positioning context
-    <div className="min-h-screen bg-linear-to-b from-gray-50 to-gray-100 relative">
+    <ProtectedRoute>
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
       {/* Enhanced Header */}
       <header className="bg-white shadow-sm sticky top-0 z-10">
         {/* Adjusted padding and added max-w-7xl mx-auto for responsiveness */}
@@ -278,9 +280,9 @@ export default function DashboardPage() {
               </div>
             )}
           </div>
-        </div> {/* Close max-w-7xl div */}
-      </div> {/* Close main content padding div */}
-       {/* REMOVED DUPLICATE MAIN CONTENT BLOCK */}
-    </div> // Close root div for component
+        </div>
+      </div>
+    </div>
+    </ProtectedRoute>
   );
 }
