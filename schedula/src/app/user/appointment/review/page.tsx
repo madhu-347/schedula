@@ -1,7 +1,7 @@
 "use client";
 
-import React from "react";
-import { ArrowLeft, Plus, Calendar } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { ArrowLeft, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { DoctorInfoCard } from "@/components/cards/DoctorReview";
 import { AppointmentDetailsCard } from "@/components/cards/AppointmentDetails";
@@ -9,20 +9,46 @@ import { Button } from "@/components/ui/Button";
 import { toast } from "@/hooks/useToast";
 import Link from "next/link";
 
+interface Appointment {
+  doctorName: string;
+  specialty: string;
+  date: string;
+  timeSlot: string;
+  location?: string;
+  qualification?: string;
+  fee?: string;
+}
+
 const AppointmentReviewPage = () => {
   const router = useRouter();
+  const [appointment, setAppointment] = useState<Appointment | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Simulate a short delay for smoother UX
+    const timer = setTimeout(() => {
+      const storedAppointment = localStorage.getItem("appointment");
+      if (storedAppointment) {
+        setAppointment(JSON.parse(storedAppointment));
+      }
+      setLoading(false);
+    }, 600);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleAddToCalendar = () => {
-    // Here you would integrate with Google Calendar API
+    if (!appointment) return;
+
+    // Example event creation logic (can integrate with Google Calendar later)
     const event = {
-      title: "Appointment with Dr. Kumar Das",
-      description: "Cardiology consultation",
-      location: "Dombivali Clinic",
-      startTime: "2023-10-27T19:30:00",
-      duration: "30", // 30 minutes
+      title: `Appointment with ${appointment.doctorName}`,
+      description: `${appointment.specialty} consultation`,
+      location: appointment.location || "Clinic",
+      startTime: appointment.date,
+      duration: "30", // in minutes
     };
 
-    // Show success toast
     toast({
       title: "Added to Calendar",
       description: "Appointment has been added to your calendar.",
@@ -31,18 +57,35 @@ const AppointmentReviewPage = () => {
   };
 
   const handleAddPatientDetails = () => {
-    // Navigate to patient details form
     router.push("/user/appointment/patient-details");
   };
 
   const handleViewAppointments = () => {
-    // Navigate to appointments list
-    router.push("/user/dashboard/appointments");
+    router.push("/user/dashboard/appointment");
   };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-screen bg-gray-50">
+        <div className="flex flex-col items-center space-y-3">
+          <div className="w-10 h-10 border-4 border-[#46C2DE] border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-gray-600 text-sm">Loading appointment details...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!appointment) {
+    return (
+      <div className="flex justify-center items-center h-screen text-gray-500 text-lg">
+        No appointment details found.
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Mobile Header */}
+      {/* Header */}
       <header className="bg-cyan-500 text-white px-4 py-6 rounded-b-3xl md:rounded-b-md shadow-md">
         <div className="max-w-3xl mx-auto px-5 flex items-center gap-3">
           <Link
@@ -60,10 +103,10 @@ const AppointmentReviewPage = () => {
         <div className="max-w-3xl mx-auto space-y-4 md:space-y-5">
           {/* Doctor Info Card */}
           <DoctorInfoCard
-            name="Dr. Kumar Das"
-            specialty="Cardiologist"
-            location="Dombivali"
-            qualification="MBBS, MD (Internal Medicine)"
+            name={appointment.doctorName}
+            specialty={appointment.specialty}
+            location={appointment.location || "Dombivli East"}
+            qualification={appointment.qualification || "MBBS, MD (Psychology)"}
             imageUrl="/male-doctor.png"
           />
 
@@ -71,12 +114,12 @@ const AppointmentReviewPage = () => {
           <AppointmentDetailsCard
             appointmentNumber="#34"
             status="Active"
-            reportingTime="Oct 27, 2023 7:30 PM"
+            reportingTime={`${appointment.date} ${appointment.timeSlot}`}
             onAddToCalendar={handleAddToCalendar}
             type="In-person"
             duration="30 minutes"
-            fee="₹1000"
-            clinicAddress="123 Healthcare Avenue, Dombivali East, Mumbai - 421201"
+            fee={appointment.fee || "₹1000"}
+            clinicAddress={appointment.location || "123 Healthcare Avenue, Dombivli East, Mumbai - 421201"}
           />
 
           {/* Add Patient Details Section */}
@@ -97,14 +140,14 @@ const AppointmentReviewPage = () => {
           </div>
 
           {/* View My Appointment Button */}
-          <div className="mt-3 md:mt-8 flex justify-center">
+          {/* <div className="mt-3 md:mt-8 flex justify-center">
             <Button
               onClick={handleViewAppointments}
               className="w-full rounded-lg py-6 text-base font-semibold md:w-auto md:px-12"
             >
               View My Appointment
             </Button>
-          </div>
+          </div> */}
         </div>
       </main>
     </div>

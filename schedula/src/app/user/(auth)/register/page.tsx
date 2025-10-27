@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { InputFieldComponent } from "@/components/ui/InputField";
 import { createUser } from "@/lib/auth";
+import AuthBanner from "@/components/auth/AuthBanner";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -75,7 +76,19 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="">
+    <div className="min-h-screen flex flex-col md:flex-row bg-white overflow-hidden">
+         <AuthBanner />
+            {/* RIGHT SIDE FORM SECTION */}
+          <div className="flex-1 flex md:w-1/3 flex-col justify-center items-center p-2 px-8 py-12">
+          <div className="flex justify-center space-x-10 mb-10 border-b border-gray-200 w-full max-w-md">
+             <button
+            onClick={handleLoginRedirect}
+            className="cursor-pointer">
+            Login
+          </button>
+          <div className="text-cyan-500 border-b-2 border-cyan-500">Register</div>
+          </div>
+        <div className="">
         <form onSubmit={handleSubmit} className="space-y-2">
           {/* Full Name */}
           <div>
@@ -158,5 +171,12 @@ export default function RegisterPage() {
           </Button>
         </form>
       </div>
+          </div>
+    </div>
+   
   );
 }
+
+
+
+ 

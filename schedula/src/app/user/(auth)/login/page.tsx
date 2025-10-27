@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { InputFieldComponent } from "@/components/ui/InputField";
 import mockData from "@/lib/mockData.json";
+import AuthBanner from "@/components/auth/AuthBanner";
+import RegisterForm from "../register/page";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -35,7 +37,6 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    console.log("🔐 Checking mock user credentials...");
 
     try {
       const user = mockData.users.find(
@@ -43,7 +44,7 @@ export default function LoginPage() {
       );
 
       if (user) {
-        console.log("✅ User found:", user);
+        console.log("User found:", user);
 
         // Store pending user (temporary until OTP verified)
         localStorage.setItem("pendingUser", JSON.stringify(user));
@@ -53,7 +54,7 @@ export default function LoginPage() {
         localStorage.setItem("generatedOtp", generatedOtp);
         localStorage.setItem("otpExpiry", (Date.now() + 2 * 60 * 1000).toString()); // expires in 2 mins
 
-        console.log("📩 Generated OTP:", generatedOtp);
+        console.log("Generated OTP:", generatedOtp);
 
         // Redirect to OTP verification
         router.push("/user/otp");
@@ -68,12 +69,23 @@ export default function LoginPage() {
     }
   };
 
-  const handleGoogleLogin = () => console.log("Google login clicked");
   const handleRegisterRedirect = () => router.push("/user/register");
   const handleForgotPassword = () => console.log("Forgot password clicked");
 
   return (
-        <div className="py-16">
+        <div className="min-h-screen flex flex-col md:flex-row bg-white overflow-hidden">
+               <AuthBanner />
+        {/* RIGHT SIDE FORM SECTION */}
+        <div className="flex-1 flex md:w-1/3 flex-col justify-center items-center px-8 py-12">
+        <div className="flex justify-center space-x-10 mb-10 border-b border-gray-200 w-full max-w-md">
+          <div className="text-cyan-500 border-b-2 border-cyan-500">Login</div>
+          <button
+            onClick={handleRegisterRedirect}
+            className="cursor-pointer">
+            Register
+          </button>
+        </div>
+          <div className="py-16">
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Email / Mobile */}
@@ -112,13 +124,13 @@ export default function LoginPage() {
                   onChange={(e) => setRemember(e.target.checked)}
                   className="w-4 h-4 accent-cyan-400"
                 />
-                <label htmlFor="remember" className="text-sm text-gray-600">
+                <label htmlFor="remember" className="text-xs text-gray-600">
                   Remember Me
                 </label>
               </div>
               <button
                 type="button"
-                className="text-sm text-pink-500 hover:underline"
+                className="text-xs text-pink-500 hover:underline"
                 onClick={handleForgotPassword}
               >
                 Forgot Password?
@@ -135,6 +147,10 @@ export default function LoginPage() {
             </Button>
           </form>
         </div>
+        </div>
+          
+        </div>
+        
 
   );
 }

@@ -8,30 +8,28 @@ import { toast } from "react-hot-toast";
 export default function OtpPage() {
   const router = useRouter();
   const [enteredOtp, setEnteredOtp] = useState("");
-  const [timer, setTimer] = useState(120); // 2 mins
+  const [timer, setTimer] = useState(120);
   const [otpVisible, setOtpVisible] = useState<string | null>(null);
+  
 
-
+  // Check for pending user
   useEffect(() => {
-  const pendingUser = localStorage.getItem("pendingUser");
-  if (!pendingUser) {
-    toast.error("No pending user found. Please log in again.");
-    router.push("/user/login");
-  }
-}, [router]);
-  // Show OTP when the page loads (for testing/demo)
+    const pendingUser = localStorage.getItem("pendingUser");
+    if (!pendingUser) {
+      toast.error("No pending user found. Please log in again.");
+      router.push("/user/login");
+    }
+  }, [router]);
+
+  // Load OTP from localStorage
   useEffect(() => {
     const otp = localStorage.getItem("generatedOtp");
     const expiry = Number(localStorage.getItem("otpExpiry"));
     if (otp && expiry && Date.now() < expiry) {
       setOtpVisible(otp);
-      // toast.success(`Your OTP is ${otp}`, {
-      //   duration: 4000,
-      //   position: "top-center",
-      // });
     } else {
       toast.error("OTP expired! Please login again.");
-      router.push("/user/dashboard");
+      router.push("/user/login");
     }
   }, [router]);
 
@@ -56,20 +54,19 @@ export default function OtpPage() {
 
     if (enteredOtp === storedOtp && pendingUser) {
       const user = JSON.parse(pendingUser);
-      const expiryTime = Date.now() + 30 * 60 * 1000; // 30 mins session
+      const expiryTime = Date.now() + 30 * 60 * 1000; // 30 mins
       localStorage.setItem("user", JSON.stringify(user));
       localStorage.setItem("userExpiry", expiryTime.toString());
-
-      // Clean up
       localStorage.removeItem("pendingUser");
       localStorage.removeItem("generatedOtp");
       localStorage.removeItem("otpExpiry");
-
       toast.success("OTP Verified Successfully 🎉");
+    setTimeout(() => {
       router.push("/user/dashboard");
-    } else {
-      toast.error("Invalid OTP. Please try again.");
-    }
+    }, 1500); // 1.5 seconds delay
+  } else {
+    toast.error("Invalid OTP. Please try again.");
+  }
   };
 
   // Resend OTP
@@ -79,69 +76,74 @@ export default function OtpPage() {
     localStorage.setItem("otpExpiry", (Date.now() + 2 * 60 * 1000).toString());
     setTimer(120);
     setOtpVisible(newOtp);
-
-    // toast.success(`New OTP: ${newOtp}`, {
-    //   duration: 4000,
-    //   position: "top-center",
-    // });
+    toast.success("New OTP sent successfully!");
   };
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row bg-white">
-      {/* LEFT SIDE BANNER */}
-      <AuthBanner />
+    <div className="min-h-screen flex flex-col md:flex-row bg-white overflow-hidden w-full">
+      {/* Left side banner */}
+        <AuthBanner />
 
-      {/* RIGHT SIDE OTP SECTION */}
-      <div className="flex-1 flex md:w-1/3 flex-col justify-center items-center px-8 py-12">
-        <h2 className="text-2xl font-bold text-gray-800 mb-4">Enter OTP</h2>
-        <p className="text-gray-500 mb-6 text-center">
-          Please enter the 4-digit OTP sent to your registered email / mobile.
-        </p>
+      {/* Right side OTP card */}
+      <div className="flex-1 flex md:w-1/3 justify-center items-center">
+        <div className="max-w-sm w-full p-6 md:p-8 bg-white">
+          <h2 className="text-2xl font-semibold text-gray-800 mb-2">
+            Enter OTP
+          </h2>
+          <p className="text-gray-500 mb-6">
+            Please enter the 4-digit OTP sent to your registered email / mobile.
+          </p>
 
-        {/* Input Field */}
-        <input
-          type="text"
-          maxLength={4}
-          value={enteredOtp}
-          onChange={(e) => setEnteredOtp(e.target.value)}
-          className="text-center tracking-widest text-xl border border-gray-300 rounded-lg p-3 w-full focus:outline-none focus:ring-2 focus:ring-cyan-400"
-          placeholder="----"
-        />
+          {/* OTP input */}
+          <input
+            type="text"
+            maxLength={4}
+            value={enteredOtp}
+            onChange={(e) =>
+              setEnteredOtp(e.target.value.replace(/[^0-9]/g, ""))
+            }
+            className="w-full border border-gray-300 rounded-lg px-4 py-3 text-center text-xl tracking-[0.6em] focus:outline-none focus:ring-2 focus:ring-cyan-400 transition"
+            placeholder="----"
+          />
 
-        {/* Verify Button */}
-        <button
-          onClick={handleVerifyOtp}
-          className="w-full mt-6 bg-cyan-500 hover:bg-cyan-600 text-white font-semibold py-3 rounded-lg transition"
-        >
-          Verify OTP
-        </button>
+          {/* Verify button */}
+          <button
+            onClick={handleVerifyOtp}
+            className="w-full mt-6 bg-cyan-500 hover:bg-cyan-600 text-white font-semibold py-3 rounded-lg transition"
+          >
+            Verify OTP
+          </button>
 
-        {/* Resend Timer */}
-        <div className="mt-4 text-sm text-gray-600 text-center">
-          {timer > 0 ? (
-            <p>Resend OTP in {timer}s</p>
-          ) : (
-            <button
-              onClick={handleResendOtp}
-              className="text-cyan-600 font-medium hover:underline"
-            >
-              Resend OTP
-            </button>
+          {/* Resend section */}
+          <div className="mt-4 text-sm text-gray-600 text-center">
+            {timer > 0 ? (
+              <p>
+                Resend OTP in{" "}
+                <span className="font-semibold text-gray-800">{timer}s</span>
+              </p>
+            ) : (
+              <button
+                onClick={handleResendOtp}
+                className="text-cyan-600 font-medium hover:underline"
+              >
+                Resend OTP
+              </button>
+            )}
+          </div>
+
+          {/* Show OTP (for demo / testing) */}
+          {otpVisible && (
+            <div className="mt-5 bg-cyan-50 border border-cyan-200 text-cyan-700 px-4 py-2 rounded-md text-sm flex justify-center items-center gap-2">
+              OTP: <strong>{otpVisible}</strong>
+              <button
+                onClick={() => navigator.clipboard.writeText(otpVisible)}
+                className="text-xs text-cyan-600 underline hover:text-cyan-800"
+              >
+                Copy
+              </button>
+            </div>
           )}
         </div>
-
-        {/* Optional — Show OTP inline for debugging/demo */}
-        {otpVisible && (
-          <div className="mt-4 text-cyan-700 bg-cyan-50 border border-cyan-200 px-4 py-2 rounded-md text-sm text-center flex items-center justify-center gap-2">
-            OTP: <strong>{otpVisible}</strong>
-            <button
-              onClick={() => navigator.clipboard.writeText(otpVisible)}
-              className="text-xs text-cyan-600 underline hover:text-cyan-800"
-            >
-              Copy
-            </button>
-          </div>
-        )}
       </div>
     </div>
   );

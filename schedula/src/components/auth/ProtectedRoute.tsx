@@ -25,7 +25,7 @@ export default function ProtectedRoute({
 
     if (!user) {
       // redirect to login if no user found
-      router.replace("/user/(auth)/login");
+      router.replace("/user/login");
     } else {
       setIsLoading(false);
     }
