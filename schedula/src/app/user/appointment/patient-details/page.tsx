@@ -1,12 +1,14 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
+import { Appointment } from "@/lib/types/appointment";
 
 export default function PatientDetailsPage() {
   const router = useRouter();
+
   const [formData, setFormData] = useState({
     fullName: "",
     age: "",
@@ -20,6 +22,9 @@ export default function PatientDetailsPage() {
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [showDropdown, setShowDropdown] = useState(false);
   const [showGenderDropdown, setShowGenderDropdown] = useState(false);
+  const [currentAppointmentIndex, setCurrentAppointmentIndex] = useState<
+    number | null
+  >(null);
 
   const relationshipOptions = [
     "Self",
@@ -34,6 +39,30 @@ export default function PatientDetailsPage() {
   ];
 
   const genderOptions = ["Male", "Female", "Other"];
+
+  // Load the most recent appointment that needs patient details
+  useEffect(() => {
+    const appointmentsStr = localStorage.getItem("appointments");
+    if (!appointmentsStr) {
+      router.push("/user/dashboard");
+      return;
+    }
+
+    const appointments: Appointment[] = JSON.parse(appointmentsStr);
+
+    // Find the most recent appointment without patient details
+    const indexWithoutDetails = appointments.findIndex(
+      (apt) => !apt.patientDetails
+    );
+
+    if (indexWithoutDetails === -1) {
+      // All appointments have patient details, redirect
+      router.push("/user/dashboard");
+      return;
+    }
+
+    setCurrentAppointmentIndex(indexWithoutDetails);
+  }, [router]);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -126,30 +155,87 @@ export default function PatientDetailsPage() {
       return;
     }
 
-    // Save to localStorage
-    localStorage.setItem("patientDetails", JSON.stringify(formData));
+    if (currentAppointmentIndex === null) {
+      alert("No appointment found. Please book an appointment first.");
+      router.push("/user/dashboard");
+      return;
+    }
 
-    // Navigate to appointment review page
-    router.push("/user/appointment/book");
+    // Get existing appointments from localStorage
+    const appointmentsStr = localStorage.getItem("appointments");
+    if (!appointmentsStr) {
+      alert("No appointments found.");
+      router.push("/user/dashboard");
+      return;
+    }
+
+    const appointments: Appointment[] = JSON.parse(appointmentsStr);
+
+    // Create patient details object
+    const patientDetails = {
+      fullName: formData.fullName.trim(),
+      age: parseInt(formData.age),
+      gender: formData.gender as "Male" | "Female" | "Other",
+      phone: formData.mobileNumber,
+      weight: formData.weight ? parseInt(formData.weight) : undefined,
+      problem: formData.problem.trim() || undefined,
+      relationship: formData.relationship as
+        | "Self"
+        | "Son"
+        | "Daughter"
+        | "Brother"
+        | "Sister"
+        | "Father"
+        | "Mother"
+        | "Spouse"
+        | "Other",
+    };
+
+    // Update the appointment with patient details
+    appointments[currentAppointmentIndex] = {
+      ...appointments[currentAppointmentIndex],
+      patientDetails,
+    };
+
+    // Save updated appointments back to localStorage
+    localStorage.setItem("appointments", JSON.stringify(appointments));
+
+    // Store the completed appointment for confirmation page
+    localStorage.setItem(
+      "currentAppointment",
+      JSON.stringify(appointments[currentAppointmentIndex])
+    );
+
+    // Navigate to appointment confirmation page
+    router.push("/user/appointment/confirmation");
   };
+
+  // Show loading state while checking for appointments
+  if (currentAppointmentIndex === null) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-gray-500">Loading...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
-        <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
-          <div className="max-w-3xl mx-auto px-5 py-4">
-            <div className="flex items-center gap-3">
-              <Link
-                href={`/user/appointment/review`}
-                className="p-2 -ml-2 rounded-full hover:bg-cyan-600/30 cursor-pointer"
-              >
-                <ArrowLeft className="w-5 h-5" />
-              </Link>
-              <h1 className="text-xl font-semibold text-gray-900">
-                Patient Details
-              </h1>
-            </div>
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
+        <div className="max-w-3xl mx-auto px-5 py-4">
+          <div className="flex items-center gap-3">
+            <Link
+              href="/user/dashboard"
+              className="p-2 -ml-2 rounded-full hover:bg-cyan-600/30 cursor-pointer"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </Link>
+            <h1 className="text-xl font-semibold text-gray-900">
+              Patient Details
+            </h1>
           </div>
+        </div>
       </header>
 
       {/* Form */}
@@ -373,7 +459,7 @@ export default function PatientDetailsPage() {
                 onClick={handleSave}
                 disabled={!isFormValid()}
               >
-                Save
+                Save & Continue
               </Button>
             </div>
           </div>

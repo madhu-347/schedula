@@ -12,23 +12,25 @@ export default function ProtectedRoute({
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-  const handleBeforeUnload = () => {
-    localStorage.removeItem("user");
-    localStorage.removeItem("userExpiry");
-  };
-
-  window.addEventListener("beforeunload", handleBeforeUnload);
-  return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-}, []);
-  useEffect(() => {
-    const user = typeof window !== "undefined" ? localStorage.getItem("user") : null;
+    const user =
+      typeof window !== "undefined" ? localStorage.getItem("user") : null;
+    const userExpiry =
+      typeof window !== "undefined" ? localStorage.getItem("userExpiry") : null;
 
     if (!user) {
-      // redirect to login if no user found
       router.replace("/user/login");
-    } else {
-      setIsLoading(false);
+      return;
     }
+
+    // Check if session has expired
+    if (userExpiry && Date.now() > parseInt(userExpiry)) {
+      localStorage.removeItem("user");
+      localStorage.removeItem("userExpiry");
+      router.replace("/user/login");
+      return;
+    }
+
+    setIsLoading(false);
   }, [router]);
 
   if (isLoading) {

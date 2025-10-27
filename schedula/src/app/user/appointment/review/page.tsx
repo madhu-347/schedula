@@ -38,7 +38,8 @@ const AppointmentReviewPage = () => {
       } else {
         toast({
           title: "No Doctor Selected",
-          description: "Please select a doctor before reviewing the appointment.",
+          description:
+            "Please select a doctor before reviewing the appointment.",
           variant: "destructive",
         });
         router.push("/user/dashboard");
@@ -61,7 +62,7 @@ const AppointmentReviewPage = () => {
   };
 
   const handleViewAppointments = () => {
-    router.push("/user/dashboard/appointments");
+    router.push("/user/appointment");
   };
 
   return (
@@ -70,13 +71,14 @@ const AppointmentReviewPage = () => {
       <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div className="max-w-3xl mx-auto px-5 py-4">
           <div className="flex items-center gap-3">
-            {doctor ? (<Link
-              href={`/user/appointment/${doctor.id}`}
-              className="p-2 -ml-2 rounded-full hover:bg-cyan-600/30 cursor-pointer"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </Link>)
-            : null}
+            {doctor ? (
+              <Link
+                href={`/user/appointment/${doctor.id}`}
+                className="p-2 -ml-2 rounded-full hover:bg-cyan-600/30 cursor-pointer"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </Link>
+            ) : null}
             <h1 className="text-xl font-semibold text-gray-900">
               Appointment Scheduled
             </h1>
@@ -94,7 +96,9 @@ const AppointmentReviewPage = () => {
               specialty={doctor.specialty}
               location={doctor.status} // using "Available today" field here
               qualification={doctor.phone}
-              imageUrl={doctor.profilePicture || doctor.imageUrl || "/male-doctor.png"}
+              imageUrl={
+                doctor.profilePicture || doctor.imageUrl || "/male-doctor.png"
+              }
             />
           ) : (
             <div className="text-center text-gray-500 py-10">
