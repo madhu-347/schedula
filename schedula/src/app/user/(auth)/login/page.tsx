@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { InputFieldComponent } from "@/components/ui/InputField";
 import mockData from "@/lib/mockData.json";
 import AuthBanner from "@/components/auth/AuthBanner";
-import RegisterForm from "../register/page";
+import AuthHeader from "@/components/auth/AuthHeader";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -25,14 +25,13 @@ export default function LoginPage() {
       }));
     };
 
-    // OTP Generator
-    const generateOtp = (length = 4) => {
-      let otp = "";
-      for (let i = 0; i < length; i++) {
-        otp += Math.floor(Math.random() * 10); // digits 0–9
-      }
-      return otp;
-};
+  const generateOtp = (length = 4) => {
+    let otp = "";
+    for (let i = 0; i < length; i++) {
+      otp += Math.floor(Math.random() * 10);
+    }
+    return otp;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,19 +43,15 @@ export default function LoginPage() {
       );
 
       if (user) {
-        console.log("User found:", user);
-
-        // Store pending user (temporary until OTP verified)
         localStorage.setItem("pendingUser", JSON.stringify(user));
 
-        // Generate OTP
         const generatedOtp = generateOtp(4);
         localStorage.setItem("generatedOtp", generatedOtp);
-        localStorage.setItem("otpExpiry", (Date.now() + 2 * 60 * 1000).toString()); // expires in 2 mins
+        localStorage.setItem(
+          "otpExpiry",
+          (Date.now() + 2 * 60 * 1000).toString()
+        );
 
-        console.log("Generated OTP:", generatedOtp);
-
-        // Redirect to OTP verification
         router.push("/user/otp");
       } else {
         alert("❌ Invalid email or mobile. Please try again.");
@@ -73,22 +68,22 @@ export default function LoginPage() {
   const handleForgotPassword = () => console.log("Forgot password clicked");
 
   return (
-        <div className="min-h-screen flex flex-col md:flex-row bg-white overflow-hidden">
-               <AuthBanner />
-        {/* RIGHT SIDE FORM SECTION */}
-        <div className="flex-1 flex md:w-1/3 flex-col justify-center items-center px-8 py-12">
-        <div className="flex justify-center space-x-10 mb-10 border-b border-gray-200 w-full max-w-md">
-          <div className="text-cyan-500 border-b-2 border-cyan-500">Login</div>
-          <button
-            onClick={handleRegisterRedirect}
-            className="cursor-pointer">
-            Register
-          </button>
-        </div>
-          <div className="py-16">
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Email / Mobile */}
+    <div className="min-h-screen flex flex-col bg-white overflow-hidden">
+      {/* HEADER */}
+      <AuthHeader />
+
+      {/* MAIN CONTENT */}
+      <div className="flex flex-col md:flex-row flex-1">
+        {/* LEFT SIDE */}
+        <AuthBanner />
+
+        {/* RIGHT SIDE FORM */}
+        <div className="flex-1 flex flex-col justify-center items-center px-8 py-12">
+          <div className="flex justify-center space-x-10 mb-10 w-full max-w-md">
+           
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4 w-full max-w-md">
             <div>
               <label className="block text-sm font-medium mb-2">
                 Email / Mobile
@@ -97,24 +92,22 @@ export default function LoginPage() {
                 type="text"
                 placeholder="Enter your email or mobile"
                 value={formData.email}
-                required={true}
+                required
                 onChange={handleInputChange("email")}
               />
             </div>
 
-            {/* Password */}
             <div>
               <label className="block text-sm font-medium mb-2">Password</label>
               <InputFieldComponent
                 type="password"
                 placeholder="Enter your password"
                 value={formData.password}
-                required={true}
+                required
                 onChange={handleInputChange("password")}
               />
             </div>
 
-            {/* Remember Me & Forgot Password */}
             <div className="flex justify-between items-center pt-2">
               <div className="flex items-center gap-2">
                 <input
@@ -137,7 +130,6 @@ export default function LoginPage() {
               </button>
             </div>
 
-            {/* Sign In Button - Using shadcn Button */}
             <Button
               type="submit"
               disabled={isLoading}
@@ -147,10 +139,7 @@ export default function LoginPage() {
             </Button>
           </form>
         </div>
-        </div>
-          
-        </div>
-        
-
+      </div>
+    </div>
   );
 }

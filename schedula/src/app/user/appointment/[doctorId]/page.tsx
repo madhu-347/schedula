@@ -89,6 +89,7 @@ export default function AppointmentPage() {
   }, [days, selectedDate]);
 
   const handleBookAppointment = () => {
+      localStorage.setItem("selectedDoctor", JSON.stringify(doctor));
     if (!selectedSlot) {
       alert("Please select a time slot before booking!");
       return;

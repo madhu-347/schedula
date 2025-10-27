@@ -8,47 +8,47 @@ import { AppointmentDetailsCard } from "@/components/cards/AppointmentDetails";
 import { Button } from "@/components/ui/Button";
 import { toast } from "@/hooks/useToast";
 import Link from "next/link";
+import DoctorCard from "@/components/cards/DoctorCard";
 
-interface Appointment {
-  doctorName: string;
+interface DoctorData {
+  id: number;
+  name: string;
+  firstName: string;
+  lastName: string;
   specialty: string;
-  date: string;
-  timeSlot: string;
-  location?: string;
-  qualification?: string;
-  fee?: string;
+  email: string;
+  phone: string;
+  status: string;
+  time: string;
+  bio: string;
+  imageUrl?: string;
+  profilePicture?: string;
 }
 
 const AppointmentReviewPage = () => {
   const router = useRouter();
-  const [appointment, setAppointment] = useState<Appointment | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [doctor, setDoctor] = useState<DoctorData | null>(null);
 
   useEffect(() => {
-    // Simulate a short delay for smoother UX
-    const timer = setTimeout(() => {
-      const storedAppointment = localStorage.getItem("appointment");
-      if (storedAppointment) {
-        setAppointment(JSON.parse(storedAppointment));
+    try {
+      const storedDoctor = localStorage.getItem("selectedDoctor");
+      if (storedDoctor) {
+        const parsedDoctor = JSON.parse(storedDoctor);
+        setDoctor(parsedDoctor);
+      } else {
+        toast({
+          title: "No Doctor Selected",
+          description: "Please select a doctor before reviewing the appointment.",
+          variant: "destructive",
+        });
+        router.push("/user/dashboard");
       }
-      setLoading(false);
-    }, 600);
-
-    return () => clearTimeout(timer);
-  }, []);
+    } catch (error) {
+      console.error("Error reading doctor data:", error);
+    }
+  }, [router]);
 
   const handleAddToCalendar = () => {
-    if (!appointment) return;
-
-    // Example event creation logic (can integrate with Google Calendar later)
-    const event = {
-      title: `Appointment with ${appointment.doctorName}`,
-      description: `${appointment.specialty} consultation`,
-      location: appointment.location || "Clinic",
-      startTime: appointment.date,
-      duration: "30", // in minutes
-    };
-
     toast({
       title: "Added to Calendar",
       description: "Appointment has been added to your calendar.",
@@ -61,65 +61,57 @@ const AppointmentReviewPage = () => {
   };
 
   const handleViewAppointments = () => {
-    router.push("/user/dashboard/appointment");
+    router.push("/user/dashboard/appointments");
   };
-
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-screen bg-gray-50">
-        <div className="flex flex-col items-center space-y-3">
-          <div className="w-10 h-10 border-4 border-[#46C2DE] border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-gray-600 text-sm">Loading appointment details...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!appointment) {
-    return (
-      <div className="flex justify-center items-center h-screen text-gray-500 text-lg">
-        No appointment details found.
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-cyan-500 text-white px-4 py-6 rounded-b-3xl md:rounded-b-md shadow-md">
-        <div className="max-w-3xl mx-auto px-5 flex items-center gap-3">
-          <Link
-            href="/user/dashboard"
-            className="p-2 -ml-2 rounded-full hover:bg-cyan-600/30 cursor-pointer"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </Link>
-          <h1 className="text-2xl font-semibold">Appointment Scheduled</h1>
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
+        <div className="max-w-3xl mx-auto px-5 py-4">
+          <div className="flex items-center gap-3">
+            {doctor ? (<Link
+              href={`/user/appointment/${doctor.id}`}
+              className="p-2 -ml-2 rounded-full hover:bg-cyan-600/30 cursor-pointer"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </Link>)
+            : null}
+            <h1 className="text-xl font-semibold text-gray-900">
+              Appointment Scheduled
+            </h1>
+          </div>
         </div>
       </header>
 
       {/* Main Content */}
       <main className="px-4 py-6 md:px-6 md:py-6">
-        <div className="max-w-3xl mx-auto space-y-4 md:space-y-5">
-          {/* Doctor Info Card */}
-          <DoctorInfoCard
-            name={appointment.doctorName}
-            specialty={appointment.specialty}
-            location={appointment.location || "Dombivli East"}
-            qualification={appointment.qualification || "MBBS, MD (Psychology)"}
-            imageUrl="/male-doctor.png"
-          />
+        <div className="max-w-3xl mx-auto space-y-5">
+          {/* Doctor Info */}
+          {doctor ? (
+            <DoctorInfoCard
+              name={doctor.name || `${doctor.firstName} ${doctor.lastName}`}
+              specialty={doctor.specialty}
+              location={doctor.status} // using "Available today" field here
+              qualification={doctor.phone}
+              imageUrl={doctor.profilePicture || doctor.imageUrl || "/male-doctor.png"}
+            />
+          ) : (
+            <div className="text-center text-gray-500 py-10">
+              Loading doctor details...
+            </div>
+          )}
 
-          {/* Appointment Details Card */}
+          {/* Appointment Details */}
           <AppointmentDetailsCard
             appointmentNumber="#34"
             status="Active"
-            reportingTime={`${appointment.date} ${appointment.timeSlot}`}
+            reportingTime="Oct 27, 2023 7:30 PM"
             onAddToCalendar={handleAddToCalendar}
             type="In-person"
             duration="30 minutes"
-            fee={appointment.fee || "₹1000"}
-            clinicAddress={appointment.location || "123 Healthcare Avenue, Dombivli East, Mumbai - 421201"}
+            fee="₹1000"
+            clinicAddress="Wellora Health Center, Chennai"
           />
 
           {/* Add Patient Details Section */}
@@ -140,14 +132,14 @@ const AppointmentReviewPage = () => {
           </div>
 
           {/* View My Appointment Button */}
-          {/* <div className="mt-3 md:mt-8 flex justify-center">
+          <div className="mt-3 md:mt-8 flex justify-center">
             <Button
               onClick={handleViewAppointments}
               className="w-full rounded-lg py-6 text-base font-semibold md:w-auto md:px-12"
             >
               View My Appointment
             </Button>
-          </div> */}
+          </div>
         </div>
       </main>
     </div>
