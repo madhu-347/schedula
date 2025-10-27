@@ -7,26 +7,8 @@ import Image from "next/image";
 import { ArrowLeft, Calendar } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
-
-interface Doctor {
-  id: number;
-  name: string;
-  specialty: string;
-  profilePicture?: string;
-  qualification?: string;
-  fellowship?: string;
-}
-
-interface Appointment {
-  tokenNo: string;
-  doctorName: string;
-  specialty: string;
-  day: string;
-  date: string;
-  timeSlot: string;
-  status: string;
-  paymentStatus: string;
-}
+import { Appointment } from "@/lib/types/appointment";
+import { Doctor } from "@/lib/types/doctor";
 
 interface DayInfo {
   fullDate: string;
@@ -101,10 +83,19 @@ export default function AppointmentPage() {
 
   const days = generateNextFiveDays();
 
-  const saveAppointment = (appointment: Appointment) => {
+  const saveAppointment = (
+    appointment: Omit<Appointment, "id" | "patientDetails">
+  ) => {
     const existing = localStorage.getItem("appointments");
     const appointments: Appointment[] = existing ? JSON.parse(existing) : [];
-    appointments.push(appointment);
+
+    // Create appointment without patientDetails (will be added later)
+    const newAppointment = {
+      id: Date.now(), // Generate unique ID
+      ...appointment,
+    };
+
+    appointments.push(newAppointment as Appointment);
     localStorage.setItem("appointments", JSON.stringify(appointments));
   };
 
@@ -131,13 +122,14 @@ export default function AppointmentPage() {
       return;
     }
 
-    localStorage.setItem("selectedDoctor", JSON.stringify(doctor));
-
     const selectedDay = days.find((d) => d.fullDate === selectedDate);
 
-    const appointment: Appointment = {
+    // Create appointment with doctor image included
+    const appointment: Omit<Appointment, "id" | "patientDetails"> = {
       tokenNo: `TKN-${Math.floor(Math.random() * 10000)}`,
       doctorName: doctor.name,
+      doctorImage:
+        doctor.profilePicture || doctor.imageUrl || "/male-doctor-avatar.png", // Include doctor image
       specialty: doctor.specialty,
       day: selectedDay?.dayName || "",
       date: `${selectedDay?.monthName} ${
@@ -145,11 +137,13 @@ export default function AppointmentPage() {
       }, ${new Date().getFullYear()}`,
       timeSlot: selectedSlot,
       status: "Upcoming",
-      paymentStatus: "Not Paid",
+      paymentStatus: "Not paid",
     };
 
     saveAppointment(appointment);
-    router.push("/user/appointment/review");
+
+    // Navigate to patient details page to collect patient information
+    router.push("/user/appointment/patient-details");
   };
 
   if (!doctor) {
@@ -195,7 +189,11 @@ export default function AppointmentPage() {
               </p>
             </div>
             <Image
-              src={doctor.profilePicture || "/male-doctor-avatar.png"}
+              src={
+                doctor.profilePicture ||
+                doctor.imageUrl ||
+                "/male-doctor-avatar.png"
+              }
               alt={doctor.name}
               width={80}
               height={80}
@@ -293,7 +291,9 @@ export default function AppointmentPage() {
               !selectedSlot && "opacity-50 cursor-not-allowed"
             }`}
           >
-            {selectedSlot ? "Book Appointment" : "Select a Time Slot"}
+            {selectedSlot
+              ? "Continue to Patient Details"
+              : "Select a Time Slot"}
           </Button>
         </div>
       </main>
