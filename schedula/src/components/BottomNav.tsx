@@ -1,28 +1,61 @@
 "use client";
 
-import { Search, LayoutGrid, FileText, User } from 'lucide-react'; // Make sure all icons used are imported
-import Link from 'next/link';
+import { Search, Calendar, FileText, User } from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 export default function BottomNav() {
+  const pathname = usePathname(); // ✅ Get current page URL
+
   return (
-    // Centered using left-1/2 translate-x, explicit height h-16, fixed width max-w-md
-    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 max-w-md w-full h-16 bg-white border-t border-gray-200 flex justify-around items-center z-40">
-      <Link href="/user/dashboard" className="flex flex-col items-center text-cyan-600 px-2 pt-1 pb-1"> {/* Example active style */}
-        <Search size={24} />
-        <span className="text-xs mt-0.5">Find Doctor</span>
+    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-4 py-3 flex justify-around">
+      {/* Find a Doctor */}
+      <Link href={"/user/dashboard"}>
+        <button
+          className={`flex flex-col items-center gap-1 rounded-xl px-3 py-1 transition-all duration-200 hover:scale-110 active:scale-95 
+          ${
+            pathname === "/user/dashboard" ? "text-cyan-500" : "text-gray-600"
+          }`}
+        >
+          <Search className="w-6 h-6" />
+          <span className="text-xs">Find a Doctor</span>
+        </button>
       </Link>
-      <Link href="#" className="flex flex-col items-center text-gray-500 px-2 pt-1 pb-1">
-         <LayoutGrid size={24} />
-        <span className="text-xs mt-0.5">Appointments</span>
+
+      {/* Appointments */}
+      <Link href={"/user/appointment"}>
+        <button
+          className={`flex flex-col items-center gap-1 rounded-xl px-3 py-1 transition-all duration-200 hover:scale-110 active:scale-95 
+          ${
+            pathname === "/user/appointment" ? "text-cyan-500" : "text-gray-600"
+          }`}
+        >
+          <Calendar className="w-6 h-6" />
+          <span className="text-xs">Appointments</span>
+        </button>
       </Link>
-      <Link href="#" className="flex flex-col items-center text-gray-500 px-2 pt-1 pb-1">
-         <FileText size={24} />
-        <span className="text-xs mt-0.5">Records</span>
+
+      {/* Records */}
+      <Link href={"/user/records"}>
+        <button
+          className={`flex flex-col items-center gap-1 rounded-xl px-3 py-1 transition-all duration-200 hover:scale-110 active:scale-95 
+          ${pathname === "/user/records" ? "text-cyan-500" : "text-gray-600"}`}
+        >
+          <FileText className="w-6 h-6" />
+          <span className="text-xs">Records</span>
+        </button>
       </Link>
-      <Link href="#" className="flex flex-col items-center text-gray-500 px-2 pt-1 pb-1">
-         <User size={24} />
-        <span className="text-xs mt-0.5">Profile</span>
+
+      {/* Profile */}
+      <Link href={"/user/profile"}>
+        <button
+          className={`flex flex-col items-center gap-1 rounded-xl px-3 py-1 transition-all duration-200 hover:scale-110 active:scale-95 
+          ${pathname === "/user/profile" ? "text-cyan-500" : "text-gray-600"}`}
+        >
+          <User className="w-6 h-6" />
+          <span className="text-xs">Profile</span>
+        </button>
       </Link>
-    </nav>
+    </div>
   );
 }

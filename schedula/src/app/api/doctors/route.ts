@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
     const id = searchParams.get('id'); // Look for '?id=...'
 
     const { doctors } = mockData;
-
+    
     if (id) {
       // --- THIS IS THE NEW LOGIC ---
       // If an ID is provided, find that one doctor

@@ -152,7 +152,7 @@ export default function AppointmentDetailPage() {
       {/* Floating Action Button (FAB) for Chat */}
       <Link
         href={`/user/chat/${doctor.id}`}
-        className="fixed bottom-6 right-5 md:bottom-8 md:right-8 z-30 p-4 bg-cyan-500 text-white rounded-full shadow-lg hover:bg-cyan-600 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 transition-transform hover:scale-105"
+        className="fixed bottom-3 right-5 md:bottom-4 md:right-8 z-30 p-4 bg-cyan-500 text-white rounded-full shadow-lg hover:bg-cyan-600 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 transition-transform hover:scale-105"
         aria-label="Start chat with doctor"
       >
         <MessageCircle size={24} /> {/* Chat Icon */}

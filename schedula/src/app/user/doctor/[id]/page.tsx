@@ -39,7 +39,7 @@ export default function AppointmentDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="min-h-screen flex flex-col">
       {/* Header */}
       <header className="bg-cyan-500 text-white pt-6 pb-5 rounded-b-3xl md:rounded-b-md shadow-md">
         <div className="max-w-3xl mx-auto px-5 flex items-center gap-3">
@@ -59,7 +59,7 @@ export default function AppointmentDetailPage() {
               <h2 className="text-lg font-bold leading-tight">{doctor.name}</h2>
               <p className="text-sm text-gray-500">{doctor.specialty}</p>
               <p className="text-sm text-cyan-600 font-medium mt-1">
-                MBBS ,MS (Surgeon)
+                MBBS, MS (Surgeon)
               </p>
               <p className="text-xs text-gray-500 mt-0.5">
                 Fellow of Sanskara netralaya, chennai
@@ -139,32 +139,33 @@ export default function AppointmentDetailPage() {
       {/* Floating CTA button (no background bar) */}
       {/* Floating CTA buttons (Chat and Book) */}
       {/* ADJUSTED: bottom-20 to clear nav bar, added flex gap */}
-      <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-30 w-full max-w-md bg-white border-t border-gray-100 p-3 pb-4 shadow-inner"> {/* Constrain width like nav bar */}
-        <div className="flex gap-3 justify-center"> {/* Use flex and gap */}
-
+      <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-30 w-full max-w-lg px-4">
+        <div className="flex gap-4">
           {/* Chat Button */}
-          <Link href={`/user/chat/${doctor.id}`} className="flex-1" passHref>
-            <Button
-              variant="outline" // Secondary style
-              size="lg"
-              className="w-full text-cyan-600 border-cyan-600 hover:bg-cyan-50/50" // Example styling
-            >
-              Chat Now
-            </Button>
-          </Link>
+          <div className="flex-1">
+            <Link href={`/user/chat/${doctor.id}`} className="flex-1" passHref>
+              <Button
+                variant="outline" // Secondary style
+                size="lg"
+                className="w-full text-cyan-600 border-cyan-600 hover:bg-cyan-50/50" // Example styling
+              >
+                Chat Now
+              </Button>
+            </Link>
+          </div>
 
           {/* Book Appointment Button */}
-          {/* Ensure this route exists or update href */}
-          <Link href={`/user/appointment/${doctor.id}`} className="flex-1" passHref>
+          <div className="flex-1">
             <Button
-              variant="default" // Primary style
+              asChild
               size="lg"
-              className="w-full bg-cyan-500 hover:bg-cyan-600" // Example styling
+              className="w-full bg-cyan-500 hover:bg-cyan-600 text-white rounded-xl shadow-lg transition-transform hover:scale-105"
             >
-              Book Appointment
+              <Link href={`/user/doctor/${doctor.id}/book`}>
+                Book Appointment
+              </Link>
             </Button>
-          </Link>
-
+          </div>
         </div>
       </div>
     </div>

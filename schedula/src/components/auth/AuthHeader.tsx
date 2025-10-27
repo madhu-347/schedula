@@ -31,13 +31,13 @@ export default function AuthHeader({ activeLink, userType = 'user' }: AuthHeader
       <div className="flex items-center justify-between max-w-7xl mx-auto px-6 py-4">
         {/* Wellora Logo - Link to landing page */}
         <Link href="/">
-          <h1 className="text-2xl font-bold bg-gradient-to-r from-[#46C2DE] to-[#000000] bg-clip-text text-transparent cursor-pointer">
+          <h1 className="text-2xl font-bold bg-linear-to-r from-[#46C2DE] to-[#000000] bg-clip-text text-transparent cursor-pointer">
             Wellora
           </h1>
         </Link>
 
         {/* Navigation using Link components */}
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-6 mr-15">
           <Link href={`${basePath}/login`} passHref>
              <span className={getLinkClassName(`${basePath}/login`)}>
                 Login
