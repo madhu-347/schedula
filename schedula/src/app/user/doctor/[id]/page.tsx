@@ -137,17 +137,34 @@ export default function AppointmentDetailPage() {
       </main>
 
       {/* Floating CTA button (no background bar) */}
-      <div className="fixed bottom-10 left-0 right-0 z-30 pointer-events-none">
-        <div className="max-w-3xl mx-auto px-5">
-          <Link href={`/user/appointment/${doctor.id}`}>
+      {/* Floating CTA buttons (Chat and Book) */}
+      {/* ADJUSTED: bottom-20 to clear nav bar, added flex gap */}
+      <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-30 w-full max-w-md bg-white border-t border-gray-100 p-3 pb-4 shadow-inner"> {/* Constrain width like nav bar */}
+        <div className="flex gap-3 justify-center"> {/* Use flex and gap */}
+
+          {/* Chat Button */}
+          <Link href={`/user/chat/${doctor.id}`} className="flex-1" passHref>
             <Button
-              variant="default"
+              variant="outline" // Secondary style
               size="lg"
-              className="pointer-events-auto w-full cursor-pointer"
+              className="w-full text-cyan-600 border-cyan-600 hover:bg-cyan-50/50" // Example styling
+            >
+              Chat Now
+            </Button>
+          </Link>
+
+          {/* Book Appointment Button */}
+          {/* Ensure this route exists or update href */}
+          <Link href={`/user/appointment/${doctor.id}`} className="flex-1" passHref>
+            <Button
+              variant="default" // Primary style
+              size="lg"
+              className="w-full bg-cyan-500 hover:bg-cyan-600" // Example styling
             >
               Book Appointment
             </Button>
           </Link>
+
         </div>
       </div>
     </div>

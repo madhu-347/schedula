@@ -13,15 +13,14 @@ const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
 });
-
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
-  title: "Wellora - Your Health, Our Priority",
-  description: "Book appointments with top doctors easily and manage your health seamlessly with Wellora.",
+  title: "Schedula",
+  description: "Doctor Appointment Scheduling",
 };
 
 export default function RootLayout({
@@ -31,10 +30,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      {/* REMOVED pb-16 */}
       <body
         className={`${geistSans.variable} ${poppins.variable} ${geistMono.variable} antialiased`}
       >
         {children}
+        {/* No BottomNav component */}
       </body>
     </html>
   );
