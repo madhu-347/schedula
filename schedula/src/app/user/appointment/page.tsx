@@ -14,8 +14,6 @@ import { Appointment } from "@/lib/types/appointment";
 
 type TabType = "Upcoming" | "Completed" | "Canceled";
 
-// Mock data - replace with your actual import
-
 const AppointmentsPage: React.FC = () => {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabType>("Upcoming");
@@ -60,6 +58,7 @@ const AppointmentsPage: React.FC = () => {
     const storedAppointments = localStorage.getItem("appointments");
     if (storedAppointments) {
       const appointments: Appointment[] = JSON.parse(storedAppointments);
+      console.log("appointment data : ", appointments);
       setAppointments(appointments);
     }
   };
