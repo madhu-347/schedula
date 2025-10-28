@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { CalendarDays, Users, Settings } from "lucide-react"; 
+import Link from "next/link";
 
 // Define a basic type for the logged-in user/doctor from localStorage
 type AccountInfo = {
@@ -91,10 +93,22 @@ export default function DoctorDashboardPage() {
                     </p>
                     {/* Placeholder for future components */}
                     <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                             <h3 className="font-medium text-gray-700 mb-2">Upcoming Appointments</h3>
-                             <p className="text-sm text-gray-500">No appointments scheduled yet.</p>
+                    <Link
+                        href="/doctor/appointments"
+                        className="bg-gray-50 hover:bg-cyan-50 p-5 rounded-lg border border-gray-200 transition group"
+                        >
+                        <div className="flex items-center gap-3 mb-3">
+                            <div className="p-2 bg-cyan-100 rounded-full">
+                            <Users className="w-5 h-5 text-[#46C2DE]" />
+                            </div>
+                            <h3 className="font-semibold text-gray-800 group-hover:text-[#46C2DE] transition">
+                            Appointments
+                            </h3>
                         </div>
+                        <p className="text-sm text-gray-600">
+                            View and manage all your appointments in one place.
+                        </p>
+                    </Link>
                          <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
                              <h3 className="font-medium text-gray-700 mb-2">Patient List</h3>
                              <p className="text-sm text-gray-500">View and manage patients.</p>
