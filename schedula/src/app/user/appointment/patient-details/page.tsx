@@ -207,7 +207,7 @@ export default function PatientDetailsPage() {
     );
 
     // Navigate to appointment confirmation page
-    router.push("/user/appointment/confirmation");
+    router.push("/user/appointment");
   };
 
   // Show loading state while checking for appointments

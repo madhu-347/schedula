@@ -142,8 +142,7 @@ export default function AppointmentPage() {
 
     saveAppointment(appointment);
 
-    // Navigate to patient details page to collect patient information
-    router.push("/user/appointment/patient-details");
+    router.push("/user/appointment/review");
   };
 
   if (!doctor) {

@@ -142,30 +142,29 @@ export default function AppointmentDetailPage() {
       <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-30 w-full max-w-lg px-4">
         <div className="flex gap-4">
           {/* Chat Button */}
-          <div className="flex-1">
-            <Link href={`/user/chat/${doctor.id}`} className="flex-1" passHref>
-              <Button
-                variant="outline" // Secondary style
-                size="lg"
-                className="w-full text-cyan-600 border-cyan-600 hover:bg-cyan-50/50" // Example styling
-              >
-                Chat Now
-              </Button>
-            </Link>
-          </div>
+          <Link href={`/user/chat/${doctor.id}`} className="flex-1" passHref>
+            <Button
+              variant="outline"
+              size="lg"
+              className="w-full text-cyan-600 border-cyan-500 hover:bg-cyan-50/70 rounded-xl shadow-sm transition-transform hover:scale-105"
+            >
+              Chat Now
+            </Button>
+          </Link>
 
           {/* Book Appointment Button */}
-          <div className="flex-1">
+          <Link
+            href={`/user/doctor/${doctor.id}/book`}
+            className="flex-1"
+            passHref
+          >
             <Button
-              asChild
               size="lg"
               className="w-full bg-cyan-500 hover:bg-cyan-600 text-white rounded-xl shadow-lg transition-transform hover:scale-105"
             >
-              <Link href={`/user/doctor/${doctor.id}/book`}>
-                Book Appointment
-              </Link>
+              Book Appointment
             </Button>
-          </div>
+          </Link>
         </div>
       </div>
     </div>

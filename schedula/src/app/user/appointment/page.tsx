@@ -1,16 +1,13 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { ChevronLeft, MoreVertical, Building2, ArrowLeft } from "lucide-react";
+import { ChevronLeft, MoreVertical, Building2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import Image from "next/image";
-import Link from "next/link";
 import BottomNav from "@/components/BottomNav";
 import { Appointment } from "@/lib/types/appointment";
-
-// Type definitions
 
 type TabType = "Upcoming" | "Completed" | "Canceled";
 
@@ -19,29 +16,26 @@ const AppointmentsPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>("Upcoming");
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
-  const [showViewModal, setShowViewModal] = useState<Appointment | null>(null);
-  const [showRescheduleModal, setShowRescheduleModal] =
-    useState<Appointment | null>(null);
 
   const filteredAppointments = appointments.filter(
     (apt) => apt.status === activeTab
   );
 
   const handleMakePayment = (id: number): void => {
-    setAppointments(
-      appointments.map((apt) =>
-        apt.id === id ? { ...apt, payment: "Paid" } : apt
-      )
+    const updatedAppointments = appointments.map((apt) =>
+      apt.id === id ? { ...apt, paymentStatus: "Paid" as const } : apt
     );
+    setAppointments(updatedAppointments);
+    localStorage.setItem("appointments", JSON.stringify(updatedAppointments));
     setOpenMenuId(null);
   };
 
   const handleCancelAppointment = (id: number): void => {
-    setAppointments(
-      appointments.map((apt) =>
-        apt.id === id ? { ...apt, status: "Canceled" as const } : apt
-      )
+    const updatedAppointments = appointments.map((apt) =>
+      apt.id === id ? { ...apt, status: "Canceled" as const } : apt
     );
+    setAppointments(updatedAppointments);
+    localStorage.setItem("appointments", JSON.stringify(updatedAppointments));
     setOpenMenuId(null);
   };
 
@@ -50,21 +44,43 @@ const AppointmentsPage: React.FC = () => {
   };
 
   const formatDate = (dateString: string): string => {
-    const today = new Date().toISOString().split("T")[0];
-    return dateString === today ? "Today" : dateString;
+    const today = new Date();
+    const appointmentDate = new Date(dateString);
+    
+    if (
+      today.getDate() === appointmentDate.getDate() &&
+      today.getMonth() === appointmentDate.getMonth() &&
+      today.getFullYear() === appointmentDate.getFullYear()
+    ) {
+      return "Today";
+    }
+    return dateString;
   };
 
-  const fecthAppointments = () => {
-    const storedAppointments = localStorage.getItem("appointments");
-    if (storedAppointments) {
-      const appointments: Appointment[] = JSON.parse(storedAppointments);
-      console.log("appointment data : ", appointments);
-      setAppointments(appointments);
+  const fetchAppointments = () => {
+    try {
+      const storedAppointments = localStorage.getItem("appointments");
+      if (storedAppointments) {
+        const parsedAppointments: Appointment[] = JSON.parse(storedAppointments);
+        console.log("Appointment data:", parsedAppointments);
+        setAppointments(parsedAppointments);
+      }
+    } catch (error) {
+      console.error("Error fetching appointments:", error);
     }
   };
 
   useEffect(() => {
-    fecthAppointments();
+    fetchAppointments();
+  }, []);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => setOpenMenuId(null);
+    if (openMenuId !== null) {
+      document.addEventListener("click", handleClickOutside);
+      return () => document.removeEventListener("click", handleClickOutside);
+    }
   }, [openMenuId]);
 
   return (
@@ -79,7 +95,6 @@ const AppointmentsPage: React.FC = () => {
             >
               <ChevronLeft className="w-6 h-6" />
             </button>
-
             <h1 className="text-xl font-semibold text-gray-900">
               Appointment Scheduled
             </h1>
@@ -137,7 +152,7 @@ const AppointmentsPage: React.FC = () => {
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg"
               >
-                {/* Clipboard 1 (tilted left) */}
+                {/* Clipboard 1 */}
                 <g transform="translate(120, 140) rotate(-15)">
                   <rect
                     x="0"
@@ -160,7 +175,7 @@ const AppointmentsPage: React.FC = () => {
                   <circle cx="50" cy="10" r="4" fill="white" />
                   <circle cx="70" cy="10" r="4" fill="white" />
                 </g>
-                {/* Clipboard 2 (tilted right, in front) */}
+                {/* Clipboard 2 */}
                 <g transform="translate(180, 150) rotate(10)">
                   <rect
                     x="0"
@@ -206,13 +221,21 @@ const AppointmentsPage: React.FC = () => {
                 <div className="flex gap-4">
                   {/* Doctor Image */}
                   <div className="relative shrink-0">
-                    <Image
-                      src={appointment.doctorImage}
-                      alt={appointment.doctorName}
-                      width={96}
-                      height={96}
-                      className="w-24 h-24 rounded-2xl object-cover ring-2 ring-gray-100"
-                    />
+                    {appointment.doctorImage ? (
+                      <Image
+                        src={appointment.doctorImage}
+                        alt={appointment.doctorName}
+                        width={96}
+                        height={96}
+                        className="w-24 h-24 rounded-2xl object-cover ring-2 ring-gray-100"
+                      />
+                    ) : (
+                      <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-cyan-100 to-cyan-200 flex items-center justify-center ring-2 ring-gray-100">
+                        <span className="text-3xl font-bold text-cyan-600">
+                          {appointment.doctorName.charAt(0)}
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Appointment Details */}
@@ -242,7 +265,7 @@ const AppointmentsPage: React.FC = () => {
                           <div className="absolute right-0 top-8 bg-white border border-gray-200 rounded-xl shadow-lg z-20 py-1 w-40">
                             <button
                               onClick={() => {
-                                router.push(`/appointment/${appointment.id}`);
+                                router.push(`/user/appointment/${appointment.id}`);
                               }}
                               className="w-full px-4 py-2.5 text-left text-sm font-medium hover:bg-gray-50 transition-colors"
                             >
@@ -252,7 +275,7 @@ const AppointmentsPage: React.FC = () => {
                               <>
                                 <button
                                   onClick={() => {
-                                    setShowRescheduleModal(appointment);
+                                    console.log("Reschedule clicked");
                                     setOpenMenuId(null);
                                   }}
                                   className="w-full px-4 py-2.5 text-left text-sm font-medium hover:bg-gray-50 transition-colors"
@@ -312,7 +335,6 @@ const AppointmentsPage: React.FC = () => {
                         Reduce your waiting time and visiting time by paying the
                         consulting fee upfront
                       </p>
-
                       <Button
                         onClick={() => handleMakePayment(appointment.id)}
                         className="w-full sm:w-auto"
@@ -327,146 +349,6 @@ const AppointmentsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* View Modal */}
-      {/* {showViewModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <Card className="p-6 max-w-md w-full">
-            <h2 className="text-2xl font-bold mb-4 text-gray-900">
-              Appointment Details
-            </h2>
-            <div className="space-y-4">
-              <div className="flex gap-4 pb-4 border-b">
-                <Image
-                  src={showViewModal.doctorImage}
-                  alt={showViewModal.doctorName}
-                  width={80}
-                  height={80}
-                  className="w-20 h-20 rounded-xl object-cover ring-2 ring-gray-100"
-                />
-                <div>
-                  <h3 className="font-bold text-lg text-gray-900">
-                    {showViewModal.doctorName}
-                  </h3>
-                  {showViewModal.specialty && (
-                    <p className="text-sm text-cyan-600 font-medium">
-                      {showViewModal.specialty}
-                    </p>
-                  )}
-                  <p className="text-sm text-gray-600 mt-1">
-                    Token no: #{showViewModal.tokenNo}
-                  </p>
-                </div>
-              </div>
-              <div className="space-y-3">
-                <div>
-                  <p className="text-sm text-gray-500">Date</p>
-                  <p className="font-semibold text-gray-900">
-                    {showViewModal.date}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Time</p>
-                  <p className="font-semibold text-gray-900">
-                    {showViewModal.time}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Payment Status</p>
-                  <p
-                    className={`font-semibold ${
-                      showViewModal.payment === "Paid"
-                        ? "text-green-600"
-                        : "text-red-600"
-                    }`}
-                  >
-                    {showViewModal.payment}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Status</p>
-                  <p className="font-semibold text-gray-900 capitalize">
-                    {showViewModal.status}
-                  </p>
-                </div>
-                {showViewModal.location && (
-                  <div>
-                    <p className="text-sm text-gray-500">Location</p>
-                    <p className="font-semibold text-gray-900">
-                      {showViewModal.location}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-            <Button
-              onClick={() => setShowViewModal(null)}
-              className="w-full mt-6"
-            >
-              Close
-            </Button>
-          </Card>
-        </div>
-      )} */}
-
-      {/* Reschedule Modal */}
-      {/* {showRescheduleModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <Card className="p-6 max-w-md w-full">
-            <h2 className="text-2xl font-bold mb-4 text-gray-900">
-              Reschedule Appointment
-            </h2>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  New Date
-                </label>
-                <input
-                  type="date"
-                  defaultValue={showRescheduleModal.date}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-cyan-400 transition-colors"
-                  id="reschedule-date"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  New Time
-                </label>
-                <input
-                  type="time"
-                  defaultValue="12:30"
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-cyan-400 transition-colors"
-                  id="reschedule-time"
-                />
-              </div>
-            </div>
-            <div className="flex gap-3 mt-6">
-              <Button
-                variant="outline"
-                onClick={() => setShowRescheduleModal(null)}
-                className="flex-1"
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={() => {
-                  const dateInput = document.getElementById(
-                    "reschedule-date"
-                  ) as HTMLInputElement;
-                  const timeInput = document.getElementById(
-                    "reschedule-time"
-                  ) as HTMLInputElement;
-                  const newDate = dateInput.value;
-                  const newTime = timeInput.value;
-                  handleReschedule(showRescheduleModal.id, newDate, newTime);
-                }}
-                className="flex-1"
-              >
-                Confirm
-              </Button>
-            </div>
-          </Card>
-        </div>
-      )} */}
       <BottomNav />
     </div>
   );

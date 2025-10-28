@@ -127,80 +127,117 @@ export default function RegisterPage() {
 
         {/* RIGHT SIDE FORM */}
         <div className="flex-1 flex flex-col justify-center items-center px-8 py-12">
-
           {/* --- NEW: User/Doctor Toggle Buttons --- */}
           <div className="flex justify-center space-x-2 border border-gray-200 rounded-lg p-1 mb-8 w-full max-w-sm">
-             <button
-                onClick={() => setRegisterMode('user')}
-                className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-                    registerMode === 'user' ? 'bg-cyan-500 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100'
-                }`}
-             >
-                User
-             </button>
-             <button
-                onClick={() => setRegisterMode('doctor')} // This will trigger the useEffect redirect
-                 className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-                    registerMode === 'doctor' ? 'bg-cyan-500 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100'
-                }`}
-             >
-                Doctor
-             </button>
+            <button
+              onClick={() => setRegisterMode("user")}
+              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                registerMode === "user"
+                  ? "bg-cyan-500 text-white shadow-sm"
+                  : "text-gray-600 hover:bg-gray-100"
+              }`}
+            >
+              User
+            </button>
+            <button
+              onClick={() => setRegisterMode("doctor")} // This will trigger the useEffect redirect
+              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                registerMode === "doctor"
+                  ? "bg-cyan-500 text-white shadow-sm"
+                  : "text-gray-600 hover:bg-gray-100"
+              }`}
+            >
+              Doctor
+            </button>
           </div>
           {/* --- END NEW: Toggle Buttons --- */}
 
           {/* Only show the user form if mode is 'user' */}
-          {registerMode === 'user' && (
+          {registerMode === "user" && (
             <>
-              <h2 className="text-2xl font-semibold text-gray-800 mb-6 text-center">Create Account</h2>
-              <form onSubmit={handleSubmit} className="space-y-4 w-full max-w-md">
+              <h2 className="text-2xl font-semibold text-gray-800 mb-6 text-center">
+                Create Account
+              </h2>
+              <form
+                onSubmit={handleSubmit}
+                className="space-y-4 w-full max-w-md"
+              >
                 {/* Full Name */}
                 <div>
-                  <label className="block text-sm font-medium mb-1">Full Name</label>
+                  <label className="block text-sm font-medium mb-1">
+                    Full Name
+                  </label>
                   <InputFieldComponent
-                    type="text" placeholder="Enter your full name" value={formData.fullName}
-                    required onChange={handleInputChange("fullName")}
+                    type="text"
+                    placeholder="Enter your full name"
+                    value={formData.fullName}
+                    required
+                    onChange={handleInputChange("fullName")}
                   />
                 </div>
 
                 {/* Email */}
                 <div>
-                  <label className="block text-sm font-medium mb-1">Email</label>
+                  <label className="block text-sm font-medium mb-1">
+                    Email
+                  </label>
                   <InputFieldComponent
-                    type="email" placeholder="Enter your email" value={formData.email}
-                    required onChange={handleInputChange("email")}
+                    type="email"
+                    placeholder="Enter your email"
+                    value={formData.email}
+                    required
+                    onChange={handleInputChange("email")}
                   />
                 </div>
 
-                 {/* Mobile Number */}
+                {/* Mobile Number */}
                 <div>
-                   <label className="block text-sm font-medium mb-1">Mobile Number</label> {/* Adjusted margin */}
-                   <InputFieldComponent
-                     type="tel" placeholder="Enter 10-digit mobile" value={formData.mobile}
-                     required onChange={handleInputChange("mobile")} maxLength={10}
-                   />
-                   {mobileError && <p className="text-red-500 text-xs mt-1">{mobileError}</p>}
+                  <label className="block text-sm font-medium mb-1">
+                    Mobile Number
+                  </label>{" "}
+                  {/* Adjusted margin */}
+                  <InputFieldComponent
+                    type="tel"
+                    placeholder="Enter 10-digit mobile"
+                    value={formData.mobile}
+                    required
+                    onChange={handleInputChange("mobile")}
+                    maxLength={10} // ✅ Valid now
+                  />
+                  {mobileError && (
+                    <p className="text-red-500 text-xs mt-1">{mobileError}</p>
+                  )}
                 </div>
 
                 {/* Password */}
                 <div>
-                  <label className="block text-sm font-medium mb-1">Password</label>
+                  <label className="block text-sm font-medium mb-1">
+                    Password
+                  </label>
                   <InputFieldComponent
-                    type="password" placeholder="Create a password" value={formData.password}
-                    required onChange={handleInputChange("password")}
+                    type="password"
+                    placeholder="Create a password"
+                    value={formData.password}
+                    required
+                    onChange={handleInputChange("password")}
                   />
                 </div>
 
                 {/* Terms & Conditions */}
                 <div className="flex items-center gap-2 pt-2">
                   <input
-                    type="checkbox" id="terms" checked={agreedToTerms}
+                    type="checkbox"
+                    id="terms"
+                    checked={agreedToTerms}
                     onChange={(e) => setAgreedToTerms(e.target.checked)}
                     className="w-4 h-4 accent-cyan-400"
                   />
                   <label htmlFor="terms" className="text-sm text-gray-600">
                     I agree to the{" "}
-                    <a href="#" className="text-pink-500 hover:underline"> Terms & Conditions </a>
+                    <a href="#" className="text-pink-500 hover:underline">
+                      {" "}
+                      Terms & Conditions{" "}
+                    </a>
                   </label>
                 </div>
 
@@ -216,17 +253,22 @@ export default function RegisterPage() {
 
               {/* Link to Login */}
               <p className="text-center text-sm text-gray-600 mt-6">
-                Already have an account?{' '}
-                <button onClick={handleLoginRedirect} className="font-medium text-cyan-600 hover:underline">
+                Already have an account?{" "}
+                <button
+                  onClick={handleLoginRedirect}
+                  className="font-medium text-cyan-600 hover:underline"
+                >
                   Login Here
                 </button>
               </p>
             </>
           )}
-           {/* Placeholder if mode is doctor before redirect */}
-           {registerMode === 'doctor' && (
-               <p className="text-gray-500">Redirecting to doctor registration...</p>
-           )}
+          {/* Placeholder if mode is doctor before redirect */}
+          {registerMode === "doctor" && (
+            <p className="text-gray-500">
+              Redirecting to doctor registration...
+            </p>
+          )}
         </div>
       </div>
     </div>

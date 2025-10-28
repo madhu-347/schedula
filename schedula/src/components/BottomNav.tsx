@@ -8,7 +8,7 @@ export default function BottomNav() {
   const pathname = usePathname(); // ✅ Get current page URL
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-4 py-3 flex justify-around">
+    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-5 py-2 flex justify-around">
       {/* Find a Doctor */}
       <Link href={"/user/dashboard"}>
         <button

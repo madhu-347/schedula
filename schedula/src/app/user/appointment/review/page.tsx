@@ -109,7 +109,7 @@ const AppointmentReviewPage = () => {
           {/* Appointment Details */}
           <AppointmentDetailsCard
             appointmentNumber="#34"
-            status="Active"
+            status="Upcoming"
             reportingTime="Oct 27, 2023 7:30 PM"
             onAddToCalendar={handleAddToCalendar}
             type="In-person"

@@ -30,12 +30,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      {/* REMOVED pb-16 */}
       <body
-        className={`${geistSans.variable} ${poppins.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${poppins.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col`}
       >
         {children}
-        {/* No BottomNav component */}
       </body>
     </html>
   );

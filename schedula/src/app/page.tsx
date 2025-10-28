@@ -4,11 +4,7 @@ import { motion, Variants } from "framer-motion";
 // import { motion } from "framer-motion";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
-import {
-  CalendarDays,
-  Clock,
-  HeartPulse,
-} from "lucide-react";
+import { CalendarDays, Clock, HeartPulse } from "lucide-react";
 
 // Animation variants
 const fadeUp: Variants = {
@@ -36,7 +32,7 @@ export default function LandingPage() {
     <div className="min-h-screen flex flex-col bg-white text-gray-800">
       {/* NAVBAR */}
       <motion.header
-        className="flex justify-between items-center px-6 md:px-16 py-4 border-b bg-white/80 backdrop-blur-md sticky top-0 z-50"
+        className="flex justify-between items-center px-6 md:px-16 py-4 border-b border-gray-100 bg-white/80 backdrop-blur-md sticky top-0 z-50"
         initial={{ y: -50, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.6 }}
@@ -65,7 +61,7 @@ export default function LandingPage() {
             </Button>
           </Link>
           <Link href="/user/register">
-            <Button className="bg-[#46C2DE] hover:bg-[#3ab6d2] text-white">
+            <Button className="bg-[#46C2DE] text-white hover:bg-transparent hover:text-[#46C2DE] hover:border-[#46C2DE] border-2 border-transparent transition-all duration-200">
               Register
             </Button>
           </Link>

@@ -1,5 +1,5 @@
 import { useRouter } from "next/navigation";
-import { ButtonComponent } from "@/components/ui/Button";
+import { Button } from "@/components/ui/Button";
 import { LinkComponent } from "@/components/ui/Link";
 
 const NotFound = () => {
@@ -20,8 +20,10 @@ const NotFound = () => {
           Sorry, we couldnt find the page youre looking for.
         </p>
         <div className="space-y-4">
-          <ButtonComponent text="Go Home" onClick={handleGoHome} />
-          <div className="text-sm text-gray-500">
+          <Button className="text-sm text-gray-500" onClick={handleGoHome}>
+            Go Home
+          </Button>
+          <div className="">
             or <LinkComponent text="go back" onClick={() => router.back()} />
           </div>
         </div>
