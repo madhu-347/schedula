@@ -1,139 +1,195 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { ArrowLeft, CalendarDays, Clock, User, Video, CheckCircle2, XCircle } from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
+import {
+  ArrowLeft,
+  CalendarDays,
+  Clock,
+  User,
+  Video,
+  CheckCircle2,
+  XCircle,
+} from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import Link from "next/link";
 
-interface Appointment {
-  id: number;
+interface AppointmentUI {
+  id: number | string;
   patientName: string;
   type: "In-person" | "Online";
   date: string;
   time: string;
-  status: "Upcoming" | "Completed" | "Cancelled";
-  problem: string;
+  status: "Upcoming" | "Completed" | "Canceled" | string;
+  problem?: string;
+  raw?: any; // original object if you need it later
 }
 
 export default function DoctorAppointmentsPage() {
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [activeTab, setActiveTab] = useState<"Upcoming" | "Completed" | "Cancelled">("Upcoming");
+  const [appointments, setAppointments] = useState<AppointmentUI[]>([]);
+  const [activeTab, setActiveTab] = useState<
+    "Upcoming" | "Completed" | "Canceled"
+  >("Upcoming");
+  const [doctorName, setDoctorName] = useState<string | null>(null);
+  const STORAGE_KEY = "appointments";
 
-  // Fetch appointment data from localStorage (simulating backend)
-  useEffect(() => {
-    const stored = localStorage.getItem("doctorAppointments");
-    if (stored) {
-      setAppointments(JSON.parse(stored));
-    } else {
-      // Example static data (temporary)
-      const sample = [
-         {
-    id: 1,
-    patientName: "Ananya Sharma",
-    type: "Online",
-    date: "Oct 30, 2025",
-    time: "10:00 AM",
-    status: "Upcoming",
-    problem: "Skin allergy consultation",
-  },
-  {
-    id: 2,
-    patientName: "Ravi Kumar",
-    type: "In-person",
-    date: "Oct 25, 2025",
-    time: "2:30 PM",
-    status: "Completed",
-    problem: "Migraine headache check-up",
-  },
-  {
-    id: 3,
-    patientName: "Priya Verma",
-    type: "Online",
-    date: "Oct 27, 2025",
-    time: "11:45 AM",
-    status: "Upcoming",
-    problem: "Anxiety and stress management",
-  },
-  {
-    id: 4,
-    patientName: "Rahul Menon",
-    type: "In-person",
-    date: "Oct 22, 2025",
-    time: "3:00 PM",
-    status: "Cancelled",
-    problem: "Follow-up for back pain",
-  },
-  {
-    id: 5,
-    patientName: "Divya Patel",
-    type: "Online",
-    date: "Oct 31, 2025",
-    time: "5:30 PM",
-    status: "Upcoming",
-    problem: "Diet consultation for PCOS",
-  },
-  {
-    id: 6,
-    patientName: "Mohit Sinha",
-    type: "In-person",
-    date: "Oct 19, 2025",
-    time: "9:00 AM",
-    status: "Completed",
-    problem: "Routine general check-up",
-  },
-  {
-    id: 7,
-    patientName: "Sanya Gupta",
-    type: "Online",
-    date: "Nov 1, 2025",
-    time: "1:15 PM",
-    status: "Upcoming",
-    problem: "Sleep pattern analysis",
-  },
-  {
-    id: 8,
-    patientName: "Neeraj Bansal",
-    type: "In-person",
-    date: "Oct 24, 2025",
-    time: "4:00 PM",
-    status: "Cancelled",
-    problem: "Physiotherapy follow-up",
-  },
-      ];
-      setAppointments(sample);
-      localStorage.setItem("doctorAppointments", JSON.stringify(sample));
+  // Transform a stored appointment object (your JSON) into AppointmentUI
+  const transformStoredToUI = (item: any): AppointmentUI => {
+    const patientName =
+      item?.patientDetails?.fullName ||
+      item?.patientDetails?.name ||
+      item?.tokenNo ||
+      item?.patientName ||
+      "Patient";
+
+    // decide type: if patientDetails exists -> In-person, otherwise Online (adjust if you have explicit type)
+    const type = item?.patientDetails ? "In-person" : "Online";
+
+    // prefer your stored "date" and "timeSlot"
+    const date = item?.date ?? item?.appointmentDate ?? "";
+    // Some stored objects use "timeSlot" like "12:30 PM - 01:00 PM" — for UI we use the whole slot
+    const time = item?.timeSlot ?? item?.time ?? "";
+
+    const status = item?.status ?? "Upcoming";
+    const problem = item?.patientDetails?.problem ?? item?.problem ?? "";
+
+    return {
+      id: item?.id ?? `${item?.doctorName}-${item?.tokenNo ?? Math.random()}`,
+      patientName,
+      type,
+      date,
+      time,
+      status,
+      problem,
+      raw: item,
+    };
+  };
+
+  // Read and filter appointments from localStorage -> only for logged-in doctor
+  const loadAppointments = () => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) {
+        setAppointments([]);
+        return;
+      }
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) {
+        // if single object stored
+        const arr = parsed ? [parsed] : [];
+        processAndSet(arr);
+      } else {
+        processAndSet(parsed);
+      }
+    } catch (e) {
+      console.error("Failed to read/parse appointments from localStorage", e);
+      setAppointments([]);
     }
+  };
+
+  // Filters for current logged-in doctor (match by doctorName === user.name)
+  const processAndSet = (arr: any[]) => {
+    // read user (doctor) from localStorage
+    try {
+      const userStr = localStorage.getItem("user");
+      const expiryStr = localStorage.getItem("userExpiry");
+      const expiry = expiryStr ? Number(expiryStr) : 0;
+      if (!userStr || !expiry || Date.now() >= expiry) {
+        // not logged in or expired — clear doctorName and appointments
+        setDoctorName(null);
+        setAppointments([]);
+        return;
+      }
+      const user = JSON.parse(userStr);
+      if (!user || user.type !== "doctor") {
+        setDoctorName(null);
+        setAppointments([]);
+        return;
+      }
+      const name = user.name;
+      setDoctorName(name);
+
+      // filter by doctorName match
+      const filtered = arr.filter(
+        (a) => String(a?.doctorName ?? "").trim() === String(name).trim()
+      );
+
+      // transform
+      const transformed = filtered.map(transformStoredToUI);
+
+      // optional: sort by date/time if needed — currently leave order as-is or you can implement sorting
+      setAppointments(transformed);
+    } catch (err) {
+      console.error("Error processing appointments", err);
+      setAppointments([]);
+    }
+  };
+
+  // load on mount
+  useEffect(() => {
+    loadAppointments();
+
+    // same-tab event: dispatch when you update appointments in the scheduling flow
+    const onAppointmentUpdated = () => {
+      loadAppointments();
+    };
+
+    // cross-tab storage event
+    const onStorage = (e: StorageEvent) => {
+      if (!e.key) return;
+      if (e.key === STORAGE_KEY) {
+        loadAppointments();
+      }
+    };
+
+    window.addEventListener("appointment:updated", onAppointmentUpdated);
+    window.addEventListener("storage", onStorage);
+
+    return () => {
+      window.removeEventListener("appointment:updated", onAppointmentUpdated);
+      window.removeEventListener("storage", onStorage);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const filteredAppointments = appointments.filter(
-    (a) => a.status === activeTab
+  // filtered appointments for active tab
+  const filteredAppointments = useMemo(
+    () =>
+      appointments.filter((a) => {
+        // normalize status comparison
+        const s = String(a.status || "").trim();
+        return s === activeTab;
+      }),
+    [appointments, activeTab]
   );
 
   return (
     <div className="min-h-screen bg-gray-50 ">
-          {/* Header */}
-        <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
-          <div className="max-w-4xl mx-auto px-6 py-4">
-            <div className="flex items-center gap-3">
-              <Link
-                href={`/doctor/dashboard`}
-                className="p-2 -ml-2 rounded-full hover:bg-cyan-600/30 cursor-pointer"
-              >
-                <ArrowLeft className="w-5 h-5" />
-              </Link>
+      {/* Header */}
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
+        <div className="max-w-4xl mx-auto px-6 py-4">
+          <div className="flex items-center gap-3">
+            <Link
+              href={`/doctor/dashboard`}
+              className="p-2 -ml-2 rounded-full hover:bg-cyan-600/30 cursor-pointer"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </Link>
+            <div>
               <h1 className="text-xl font-semibold text-gray-900">
                 My Appointments
               </h1>
+              {doctorName && (
+                <p className="text-sm text-gray-500 mt-1">Doctor: {doctorName}</p>
+              )}
             </div>
           </div>
+        </div>
       </header>
 
       <div className="max-w-4xl mx-auto px-4 py-6">
-      
-
         {/* Tabs */}
         <div className="flex gap-6 border-b border-gray-200 mb-6">
-          {["Upcoming", "Completed", "Cancelled"].map((tab) => (
+          {["Upcoming", "Completed", "Canceled"].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab as any)}
@@ -162,9 +218,7 @@ export default function DoctorAppointmentsPage() {
                       <User className="w-5 h-5 text-[#46C2DE]" />
                       {a.patientName}
                     </h2>
-                    <p className="text-sm text-gray-500 mt-1">
-                      {a.problem}
-                    </p>
+                    <p className="text-sm text-gray-500 mt-1">{a.problem}</p>
                   </div>
                   <span
                     className={`text-sm px-3 py-1 rounded-full ${
@@ -204,21 +258,13 @@ export default function DoctorAppointmentsPage() {
                     <Button
                       variant="outline"
                       className="border-[#46C2DE] text-[#46C2DE] hover:bg-[#E6F7FA]"
-                      onClick={() => alert(`Viewing details for ${a.patientName}`)}
+                      onClick={() =>
+                        alert(`Viewing details for ${a.patientName}`)
+                      }
                     >
                       View Details
                     </Button>
                   )}
-                  {/* {a.status === "Cancelled" && (
-                    <Button
-                      variant="outline"
-                      className="border-red-400 text-red-500 hover:bg-red-50"
-                      onClick={() => alert("Cancelled appointment")}
-                    >
-                      <XCircle className="w-4 h-4" />
-                      Cancelled
-                    </Button>
-                  )} */}
                 </div>
               </div>
             ))}
