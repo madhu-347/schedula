@@ -13,7 +13,7 @@ const ToastViewport = React.forwardRef<
   <ToastPrimitives.Viewport
     ref={ref}
     className={cn(
-      "fixed top-0 right-0 z-[100] flex max-h-screen w-full flex-col-reverse p-4 sm:top-4 sm:right-4 sm:max-w-[420px] sm:flex-col gap-2",
+      "fixed top-0 right-0 z-100 flex max-h-screen w-full flex-col-reverse p-4 sm:top-4 sm:right-4 sm:max-w-[420px] sm:flex-col gap-2",
       className
     )}
     {...props}
@@ -115,7 +115,11 @@ const ToastDescription = React.forwardRef<
 ToastDescription.displayName = ToastPrimitives.Description.displayName;
 
 // Icon component based on variant
-const ToastIcon = ({ variant }: { variant?: string }) => {
+const ToastIcon = ({
+  variant,
+}: {
+  variant?: "default" | "destructive" | "success" | "warning" | "info" | null;
+}) => {
   const iconClass = "h-5 w-5 shrink-0";
 
   switch (variant) {

@@ -18,10 +18,11 @@ export default function UserLayout({ children }: PropsWithChildren) {
   const [user, setUser] = useState<User | null>(null);
   const [showNotifications, setShowNotifications] = useState(false);
   const router = useRouter();
-  const pathname = usePathname();
+  const pathname = usePathname() || "";
 
-  // Don't show header and bottom nav for auth pages
-  const isAuthPage = pathname?.includes("/(auth)");
+  // ✅ Hide layout for auth pages
+  const hideLayoutFor = ["/user/login", "/user/register", "/user/otp"];
+  const isAuthPage = hideLayoutFor.includes(pathname);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -29,7 +30,7 @@ export default function UserLayout({ children }: PropsWithChildren) {
     if (raw) {
       try {
         setUser(JSON.parse(raw));
-      } catch (e) {
+      } catch {
         setUser(null);
       }
     }
@@ -43,9 +44,8 @@ export default function UserLayout({ children }: PropsWithChildren) {
     router.push("/user/login");
   };
 
-  if (isAuthPage) {
-    return <>{children}</>;
-  }
+  // ✅ No header/nav for auth pages
+  if (isAuthPage) return <>{children}</>;
 
   return (
     <ProtectedRoute>
@@ -61,7 +61,7 @@ export default function UserLayout({ children }: PropsWithChildren) {
         <BottomNav />
 
         {showNotifications && (
-          <div className="fixed top-20 right-4 z-50 w-80 bg-white border border-border rounded-lg shadow-md p-4">
+          <div className="fixed top-20 right-4 z-50 w-80 bg-white border rounded-lg shadow-md p-4">
             <div className="flex justify-between items-center mb-2">
               <h4 className="font-semibold">Notifications</h4>
               <button

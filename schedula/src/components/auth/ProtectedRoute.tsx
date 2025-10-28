@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Header from "../Header";
+import BottomNav from "../BottomNav";
 
 export default function ProtectedRoute({
   children,
@@ -12,25 +14,16 @@ export default function ProtectedRoute({
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const user =
-      typeof window !== "undefined" ? localStorage.getItem("user") : null;
-    const userExpiry =
-      typeof window !== "undefined" ? localStorage.getItem("userExpiry") : null;
+    const user = localStorage.getItem("user");
+    const userExpiry = localStorage.getItem("userExpiry");
 
-    if (!user) {
-      router.replace("/user/login");
-      return;
-    }
-
-    // Check if session has expired
-    if (userExpiry && Date.now() > parseInt(userExpiry)) {
+    if (!user || (userExpiry && Date.now() > +userExpiry)) {
       localStorage.removeItem("user");
       localStorage.removeItem("userExpiry");
       router.replace("/user/login");
-      return;
+    } else {
+      setIsLoading(false);
     }
-
-    setIsLoading(false);
   }, [router]);
 
   if (isLoading) {
@@ -41,5 +34,9 @@ export default function ProtectedRoute({
     );
   }
 
-  return <>{children}</>;
+  return (
+    <>
+      {children}
+    </>
+  );
 }

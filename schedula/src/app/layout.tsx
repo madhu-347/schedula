@@ -2,6 +2,10 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Poppins } from "next/font/google";
+import { Toaster } from "react-hot-toast";
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
+import Header from "@/components/Header";
+import BottomNav from "@/components/BottomNav";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -33,6 +37,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${poppins.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col`}
       >
+        <Toaster />
         {children}
       </body>
     </html>
