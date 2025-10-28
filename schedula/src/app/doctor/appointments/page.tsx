@@ -41,12 +41,9 @@ export default function DoctorAppointmentsPage() {
       item?.patientName ||
       "Patient";
 
-    // decide type: if patientDetails exists -> In-person, otherwise Online (adjust if you have explicit type)
     const type = item?.patientDetails ? "In-person" : "Online";
 
-    // prefer your stored "date" and "timeSlot"
     const date = item?.date ?? item?.appointmentDate ?? "";
-    // Some stored objects use "timeSlot" like "12:30 PM - 01:00 PM" — for UI we use the whole slot
     const time = item?.timeSlot ?? item?.time ?? "";
 
     const status = item?.status ?? "Upcoming";
