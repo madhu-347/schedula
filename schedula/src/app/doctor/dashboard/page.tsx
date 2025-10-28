@@ -16,6 +16,7 @@ import {
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/dist/style.css";
 import { format } from "date-fns";
+import Link from "next/link";
 import {
   PieChart,
   Pie,
@@ -411,9 +412,12 @@ export default function DoctorDashboardPage() {
                   No upcoming appointments scheduled.
                 </p>
               )}
-              <button className="text-sm text-cyan-600 hover:underline mt-4 font-medium">
-                View Full Schedule
-              </button>
+                <Link
+                    href="/doctor/appointments"
+                    className="text-sm text-cyan-600 hover:underline mt-4 font-medium"
+                    >
+                    View Full Schedule
+                </Link>
             </div>
 
             {/* Recent Patient Activity (Placeholder) */}
