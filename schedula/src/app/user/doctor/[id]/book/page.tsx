@@ -167,7 +167,7 @@ export default function AppointmentPage() {
         <Heading heading="Schedule Appointment" />
 
         {/* Doctor Summary Card */}
-        <div className="max-w-3xl mx-auto px-5 mt-5">
+        <div className="max-w-3xl mx-auto px-5 mt-3">
           <div className="bg-white text-gray-900 rounded-2xl p-5 flex items-center gap-4 shadow-md">
             <div className="flex-1">
               <h2 className="text-lg font-bold leading-tight text-gray-900">

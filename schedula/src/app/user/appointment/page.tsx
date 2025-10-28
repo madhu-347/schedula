@@ -58,22 +58,29 @@ const AppointmentsPage: React.FC = () => {
     return dateString;
   };
 
-  const fetchAppointments = () => {
+  async function getAllAppointments() {
     try {
-      const storedAppointments = localStorage.getItem("appointments");
-      if (storedAppointments) {
-        const parsedAppointments: Appointment[] =
-          JSON.parse(storedAppointments);
-        console.log("Appointment data:", parsedAppointments);
-        setAppointments(parsedAppointments);
+      const response = await fetch("/api/appointment");
+      const result = await response.json();
+
+      if (result.success) {
+        console.log(`Found ${result.count} appointments`);
+        console.log(result.data);
+        const allAppointments = result?.data;
+        setAppointments(allAppointments);
+        return result.data;
+      } else {
+        console.error("Error:", result.error);
+        return [];
       }
     } catch (error) {
-      console.error("Error fetching appointments:", error);
+      console.error("Failed to fetch appointments:", error);
+      return [];
     }
-  };
+  }
 
   useEffect(() => {
-    fetchAppointments();
+    getAllAppointments();
   }, []);
 
   // Close menu when clicking outside

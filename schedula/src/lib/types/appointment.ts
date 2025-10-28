@@ -4,11 +4,16 @@ export interface Appointment {
   doctorName: string;
   doctorImage: string;
   specialty: string;
+  qualification?: string;
   day: string;
   date: string;
   timeSlot: string;
-  status: "Upcoming" | "Completed" | "Canceled";
+  problem?: string;
+  status: "Upcoming" | "Completed" | "Canceled" | "Waiting";
+  type?: "In-person" | "Online";
   paymentStatus: "Paid" | "Not paid";
+  queuePosition?: number;
+  expectedTime?: string;
   patientDetails: {
     fullName: string;
     age: number;
@@ -26,5 +31,6 @@ export interface Appointment {
       | "Mother"
       | "Spouse"
       | "Other";
+    location?: string;
   };
 }

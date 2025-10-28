@@ -18,14 +18,7 @@ export default function AppointmentDetailPage() {
   if (!doctor) {
     return (
       <div className="min-h-screen flex flex-col">
-        <header className="bg-gradient-to-br from-cyan-500 to-cyan-600 text-white p-4 rounded-b-3xl">
-          <div className="max-w-3xl mx-auto flex items-center gap-3">
-            <Link href="/user/dashboard" className="p-2 -ml-2 cursor-pointer">
-              <ArrowLeft className="w-5 h-5" />
-            </Link>
-            <h1 className="text-lg font-bold">Book Appointment</h1>
-          </div>
-        </header>
+        <Heading heading="Book Appointment"/>
         <main className="flex-1 max-w-3xl mx-auto p-6">
           <p className="text-gray-700">Doctor not found.</p>
           <Link
@@ -42,11 +35,11 @@ export default function AppointmentDetailPage() {
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       {/* Header */}
-      <header className="bg-cyan-500 text-white pt-6 pb-6 rounded-b-3xl shadow-lg">
+      <header className="bg-cyan-500 text-white pt-4 pb-4 rounded-b-3xl shadow-lg">
         <Heading heading={"Book Appointment"} />
 
         {/* Doctor Summary Card */}
-        <div className="max-w-3xl mx-auto px-5 mt-5">
+        <div className="max-w-3xl mx-auto px-5 mt-2">
           <div className="bg-white text-gray-900 rounded-2xl p-5 flex items-center gap-4 shadow-md">
             <div className="flex-1">
               <h2 className="text-lg font-bold leading-tight text-gray-900">

@@ -192,8 +192,8 @@ export default function DoctorAppointmentsPage() {
           {["Upcoming", "Completed", "Canceled"].map((tab) => (
             <button
               key={tab}
-              onClick={() => setActiveTab(tab as any)}
-              className={`pb-2 font-medium ${
+              onClick={() => setActiveTab(tab)}
+              className={`pb-2 font-medium transition-colors ${
                 activeTab === tab
                   ? "text-[#46C2DE] border-b-2 border-[#46C2DE]"
                   : "text-gray-600 hover:text-[#46C2DE]"
@@ -221,7 +221,7 @@ export default function DoctorAppointmentsPage() {
                     <p className="text-sm text-gray-500 mt-1">{a.problem}</p>
                   </div>
                   <span
-                    className={`text-sm px-3 py-1 rounded-full ${
+                    className={`text-sm px-3 py-1 rounded-full font-medium ${
                       a.status === "Upcoming"
                         ? "bg-cyan-50 text-cyan-600"
                         : a.status === "Completed"
