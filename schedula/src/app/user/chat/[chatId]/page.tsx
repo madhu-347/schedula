@@ -5,6 +5,8 @@ import { useParams } from "next/navigation";
 import Image from "next/image";
 import { ArrowLeft, Send } from "lucide-react";
 import Link from "next/link";
+import Heading from "@/components/ui/Heading";
+import { useRouter } from "next/navigation";
 
 // --- Types & Mock Data ---
 type Message = {
@@ -44,6 +46,7 @@ const mockChatData = {
 
 export default function PatientChatPage() {
   // --- State, Refs, Hooks ---
+  const router = useRouter();
   const params = useParams();
   const chatId = params?.chatId as string;
   const { doctor, patient } = mockChatData; // Use mock data
@@ -83,17 +86,17 @@ export default function PatientChatPage() {
   // --- Render UI ---
   return (
     // Main container uses flex-col, allows full height
-    <main className="min-h-screen bg-gray-100 flex flex-col h-screen">
+    <main className="min-h-screen bg-gray-100 flex flex-col h-screen pb-20">
       {/* 1. Header (Sticky) */}
-      <header className="bg-white shadow-sm sticky top-0 z-20 w-full flex-shrink-0">
+      <header className="sticky top-0 z-10 w-full shrink-0">
         {/* Use max-w-6xl for wider layout */}
-        <div className="flex items-center p-4 max-w-6xl mx-auto w-full">
-          <Link
-            href="/user/dashboard"
-            className="p-2 -ml-2 text-gray-600 hover:text-gray-900"
+        <div className="flex items-center pt-4 max-w-6xl mx-auto w-full">
+          <button
+            onClick={() => router.back()}
+            className="p-2 ml-2 text-gray-600 hover:text-gray-900"
           >
             <ArrowLeft size={24} />
-          </Link>
+          </button>
           <h1 className="text-xl font-bold ml-4 text-gray-800">Patient Chat</h1>
         </div>
       </header>
@@ -102,7 +105,7 @@ export default function PatientChatPage() {
       <div className="flex-1 overflow-hidden w-full p-4 flex flex-col md:flex-row md:gap-4 max-w-6xl mx-auto">
         {/* --- LEFT COLUMN (Patient Details) --- */}
         {/* Takes full width on mobile, half width on desktop */}
-        <div className="w-full md:w-1/2 flex-shrink-0 mb-4 md:mb-0">
+        <div className="w-full md:w-1/2 shrink-0 mb-4 md:mb-0">
           <div className="bg-white rounded-xl shadow-lg p-4 h-full sticky top-20">
             {" "}
             {/* Made patient info sticky */}

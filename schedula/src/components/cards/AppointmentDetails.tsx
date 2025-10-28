@@ -38,7 +38,7 @@ export const AppointmentDetailsCard: React.FC<AppointmentDetailsCardProps> = ({
   };
 
   return (
-    <Card className="p-6 shadow-sm bg-white">
+    <Card className="p-6 shadow-sm bg-white rounded-2xl">
       {/* Appointment Number */}
       <div className="mb-6">
         <p className="text-muted-foreground mb-1 text-gray-500">

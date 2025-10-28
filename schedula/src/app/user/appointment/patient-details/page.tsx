@@ -5,6 +5,7 @@ import { ArrowLeft, ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Appointment } from "@/lib/types/appointment";
+import Heading from "@/components/ui/Heading";
 
 export default function PatientDetailsPage() {
   const router = useRouter();
@@ -207,7 +208,7 @@ export default function PatientDetailsPage() {
     );
 
     // Navigate to appointment confirmation page
-    router.push("/user/appointment");
+    router.push("/user/appointment/summary");
   };
 
   // Show loading state while checking for appointments
@@ -220,23 +221,12 @@ export default function PatientDetailsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white pb-15">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-3xl mx-auto px-5 py-4">
-          <div className="flex items-center gap-3">
-            <Link
-              href="/user/dashboard"
-              className="p-2 -ml-2 rounded-full hover:bg-cyan-600/30 cursor-pointer"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </Link>
-            <h1 className="text-xl font-semibold text-gray-900">
-              Patient Details
-            </h1>
-          </div>
-        </div>
-      </header>
+      <div className="pt-4 mb-2">
+      <Heading heading="Patient Details" />
+
+      </div>
 
       {/* Form */}
       <main className="max-w-3xl mx-auto px-5 py-6">

@@ -9,6 +9,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Appointment } from "@/lib/types/appointment";
 import { Doctor } from "@/lib/types/doctor";
+import Heading from "@/components/ui/Heading";
 
 interface DayInfo {
   fullDate: string;
@@ -115,7 +116,10 @@ export default function AppointmentPage() {
   }, [days, selectedDate]);
 
   const handleBookAppointment = () => {
-    if (!doctor) return;
+    if (!doctor) {
+      console.log("No doctor, returning");
+      return;
+    }
 
     if (!selectedSlot) {
       alert("Please select a time slot before booking!");
@@ -157,18 +161,10 @@ export default function AppointmentPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-8">
+    <div className="min-h-screen bg-gray-50 pb-15">
       {/* Header */}
-      <header className="bg-linear-to-br from-cyan-500 to-cyan-600 text-white pt-6 pb-6 rounded-b-3xl shadow-lg">
-        <div className="max-w-3xl mx-auto px-5 flex items-center gap-3">
-          <Link
-            href={`/user/doctor/${doctor.id}`}
-            className="p-2 -ml-2 rounded-full hover:bg-white/20 transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </Link>
-          <h1 className="text-xl font-bold">Book Appointment</h1>
-        </div>
+      <header className="bg-cyan-500 text-white pt-3 pb-4 rounded-b-3xl shadow-lg">
+        <Heading heading="Schedule Appointment" />
 
         {/* Doctor Summary Card */}
         <div className="max-w-3xl mx-auto px-5 mt-5">
@@ -286,13 +282,11 @@ export default function AppointmentPage() {
           <Button
             onClick={handleBookAppointment}
             disabled={!selectedSlot}
-            className={`w-full py-6 rounded-xl font-bold shadow-lg transition-all text-base ${
+            className={`cursor-pointer w-full py-6 rounded-xl font-bold shadow-lg transition-all text-base ${
               !selectedSlot && "opacity-50 cursor-not-allowed"
             }`}
           >
-            {selectedSlot
-              ? "Continue to Patient Details"
-              : "Select a Time Slot"}
+            {selectedSlot ? "View Appointment Details" : "Select a Time Slot"}
           </Button>
         </div>
       </main>

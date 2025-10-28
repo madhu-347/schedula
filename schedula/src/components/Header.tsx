@@ -19,7 +19,7 @@ interface HeaderProps {
 
 function Header({ user, setShowNotifications, handleLogout }: HeaderProps) {
   return (
-    <header className="bg-white shadow-sm sticky top-0 z-10">
+    <header className="bg-white shadow-sm sticky top-0 z-20 border-b border-gray-100">
       <div className="px-4 py-4 sm:px-6 md:px-8 lg:px-12 xl:px-20">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <div className="flex items-center gap-2 sm:gap-3">

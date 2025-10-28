@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/Card";
 import Image from "next/image";
 import BottomNav from "@/components/BottomNav";
 import { Appointment } from "@/lib/types/appointment";
+import Heading from "@/components/ui/Heading";
 
 type TabType = "Upcoming" | "Completed" | "Canceled";
 
@@ -46,7 +47,7 @@ const AppointmentsPage: React.FC = () => {
   const formatDate = (dateString: string): string => {
     const today = new Date();
     const appointmentDate = new Date(dateString);
-    
+
     if (
       today.getDate() === appointmentDate.getDate() &&
       today.getMonth() === appointmentDate.getMonth() &&
@@ -61,7 +62,8 @@ const AppointmentsPage: React.FC = () => {
     try {
       const storedAppointments = localStorage.getItem("appointments");
       if (storedAppointments) {
-        const parsedAppointments: Appointment[] = JSON.parse(storedAppointments);
+        const parsedAppointments: Appointment[] =
+          JSON.parse(storedAppointments);
         console.log("Appointment data:", parsedAppointments);
         setAppointments(parsedAppointments);
       }
@@ -84,26 +86,14 @@ const AppointmentsPage: React.FC = () => {
   }, [openMenuId]);
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <div className="min-h-screen pb-20">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-3xl mx-auto px-5 py-4">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => router.back()}
-              className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <ChevronLeft className="w-6 h-6" />
-            </button>
-            <h1 className="text-xl font-semibold text-gray-900">
-              Appointment Scheduled
-            </h1>
-          </div>
-        </div>
-      </header>
+      <div className="pt-4 mb-2">
+        <Heading heading={"Your Appointments"} />
+      </div>
 
       {/* Tabs */}
-      <div className="bg-white px-4 border-b border-gray-200 sticky top-16 z-10">
+      <div className="bg-white px-4 border-gray-200 sticky top-20 z-10">
         <div className="max-w-3xl mx-auto flex gap-8">
           <button
             onClick={() => setActiveTab("Upcoming")}
@@ -230,7 +220,7 @@ const AppointmentsPage: React.FC = () => {
                         className="w-24 h-24 rounded-2xl object-cover ring-2 ring-gray-100"
                       />
                     ) : (
-                      <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-cyan-100 to-cyan-200 flex items-center justify-center ring-2 ring-gray-100">
+                      <div className="w-24 h-24 rounded-2xl bg-linear-to-br from-cyan-100 to-cyan-200 flex items-center justify-center ring-2 ring-gray-100">
                         <span className="text-3xl font-bold text-cyan-600">
                           {appointment.doctorName.charAt(0)}
                         </span>
@@ -262,10 +252,12 @@ const AppointmentsPage: React.FC = () => {
                           <MoreVertical className="w-5 h-5 text-gray-600" />
                         </button>
                         {openMenuId === appointment.id && (
-                          <div className="absolute right-0 top-8 bg-white border border-gray-200 rounded-xl shadow-lg z-20 py-1 w-40">
+                          <div className="absolute right-0 top-8 bg-white border border-gray-200 rounded-xl shadow-lg z-10 w-40">
                             <button
                               onClick={() => {
-                                router.push(`/user/appointment/${appointment.id}`);
+                                router.push(
+                                  `/user/appointment/${appointment.id}`
+                                );
                               }}
                               className="w-full px-4 py-2.5 text-left text-sm font-medium hover:bg-gray-50 transition-colors"
                             >
