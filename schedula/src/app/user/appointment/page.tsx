@@ -55,39 +55,28 @@ const AppointmentsPage: React.FC = () => {
     ) {
       return "Today";
     }
+
     return dateString;
   };
 
-   async function getAllAppointments() {
+  async function getAllAppointments() {
     try {
-      const userStr = localStorage.getItem("user");
-      const expiryStr = localStorage.getItem("userExpiry");
-      const expiry = expiryStr ? Number(expiryStr) : 0;
+      const response = await fetch("/api/appointment");
+      const result = await response.json();
 
-      if (!userStr || !expiry || Date.now() >= expiry) {
-        console.error("User not logged in or session expired");
-        setAppointments([]);
+      if (result.success) {
+        console.log(`Found ${result.count} appointments`);
+        console.log(result.data);
+
+        const allAppointments = result?.data;
+        setAppointments(allAppointments);
+        return result.data;
+      } else {
+        console.error("Error:", result.error);
         return [];
       }
-
-      const user = JSON.parse(userStr);
-      const userEmail = user?.email?.trim()?.toLowerCase();
-
-      const storedAppointments = JSON.parse(
-        localStorage.getItem("appointments") || "[]"
-      );
-
-      // Filter appointments that belong to this user
-      const userAppointments = storedAppointments.filter(
-        (a: any) =>
-          a?.userEmail?.trim()?.toLowerCase() === userEmail
-      );
-
-      setAppointments(userAppointments);
-      return userAppointments;
     } catch (error) {
-      console.error("Failed to fetch user appointments:", error);
-      setAppointments([]);
+      console.error("Failed to fetch appointments:", error);
       return [];
     }
   }
@@ -115,39 +104,20 @@ const AppointmentsPage: React.FC = () => {
       {/* Tabs */}
       <div className="bg-white px-4 border-gray-200 sticky top-20 z-10">
         <div className="max-w-3xl mx-auto flex gap-8">
-          <button
-            onClick={() => setActiveTab("Upcoming")}
-            className={`py-3 font-semibold relative ${
-              activeTab === "Upcoming" ? "text-cyan-500" : "text-gray-400"
-            }`}
-          >
-            Upcoming
-            {activeTab === "Upcoming" && (
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-cyan-500" />
-            )}
-          </button>
-          <button
-            onClick={() => setActiveTab("Completed")}
-            className={`py-3 font-semibold relative ${
-              activeTab === "Completed" ? "text-cyan-500" : "text-gray-400"
-            }`}
-          >
-            Completed
-            {activeTab === "Completed" && (
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-cyan-500" />
-            )}
-          </button>
-          <button
-            onClick={() => setActiveTab("Cancelled")}
-            className={`py-3 font-semibold relative ${
-              activeTab === "Cancelled" ? "text-cyan-500" : "text-gray-400"
-            }`}
-          >
-            Cancelled
-            {activeTab === "Cancelled" && (
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-cyan-500" />
-            )}
-          </button>
+          {["Upcoming", "Completed", "Cancelled"].map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab as TabType)}
+              className={`py-3 font-semibold relative ${
+                activeTab === tab ? "text-cyan-500" : "text-gray-400"
+              }`}
+            >
+              {tab}
+              {activeTab === tab && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-cyan-500" />
+              )}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -174,17 +144,11 @@ const AppointmentsPage: React.FC = () => {
                     stroke="#9CA3AF"
                     strokeWidth="2"
                   />
-                  <rect
-                    x="30"
-                    y="0"
-                    width="60"
-                    height="30"
-                    rx="6"
-                    fill="#22D3EE"
-                  />
+                  <rect x="30" y="0" width="60" height="30" rx="6" fill="#22D3EE" />
                   <circle cx="50" cy="10" r="4" fill="white" />
                   <circle cx="70" cy="10" r="4" fill="white" />
                 </g>
+
                 {/* Clipboard 2 */}
                 <g transform="translate(180, 150) rotate(10)">
                   <rect
@@ -197,18 +161,12 @@ const AppointmentsPage: React.FC = () => {
                     stroke="#6B7280"
                     strokeWidth="2"
                   />
-                  <rect
-                    x="35"
-                    y="0"
-                    width="70"
-                    height="35"
-                    rx="8"
-                    fill="#22D3EE"
-                  />
+                  <rect x="35" y="0" width="70" height="35" rx="8" fill="#22D3EE" />
                   <circle cx="60" cy="12" r="5" fill="white" />
                   <circle cx="85" cy="12" r="5" fill="white" />
                 </g>
               </svg>
+
               <h3 className="text-xl font-bold text-gray-900 mb-2">
                 You don't have an appointment yet
               </h3>
@@ -240,7 +198,7 @@ const AppointmentsPage: React.FC = () => {
                         className="w-24 h-24 rounded-2xl object-cover ring-2 ring-gray-100"
                       />
                     ) : (
-                      <div className="w-24 h-24 rounded-2xl bg-linear-to-br from-cyan-100 to-cyan-200 flex items-center justify-center ring-2 ring-gray-100">
+                      <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-cyan-100 to-cyan-200 flex items-center justify-center ring-2 ring-gray-100">
                         <span className="text-3xl font-bold text-cyan-600">
                           {appointment.doctorName.charAt(0)}
                         </span>
@@ -261,6 +219,8 @@ const AppointmentsPage: React.FC = () => {
                           </p>
                         )}
                       </div>
+
+                      {/* Menu Button */}
                       <div className="relative">
                         <button
                           onClick={(e) => {
@@ -271,14 +231,13 @@ const AppointmentsPage: React.FC = () => {
                         >
                           <MoreVertical className="w-5 h-5 text-gray-600" />
                         </button>
+
                         {openMenuId === appointment.id && (
                           <div className="absolute right-0 top-8 bg-white border border-gray-200 rounded-xl shadow-lg z-10 w-40">
                             <button
-                              onClick={() => {
-                                router.push(
-                                  `/user/appointment/${appointment.id}`
-                                );
-                              }}
+                              onClick={() =>
+                                router.push(`/user/appointment/${appointment.id}`)
+                              }
                               className="w-full px-4 py-2.5 text-left text-sm font-medium hover:bg-gray-50 transition-colors"
                             >
                               View Details
@@ -310,9 +269,7 @@ const AppointmentsPage: React.FC = () => {
                     </div>
 
                     <div className="space-y-1 text-sm text-gray-600">
-                      <p className="font-medium">
-                        Token no - #{appointment.tokenNo}
-                      </p>
+                      <p className="font-medium">Token no - #{appointment.tokenNo}</p>
                       <p>
                         {formatDate(appointment.date)} |{" "}
                         <span className="text-cyan-600 font-medium">

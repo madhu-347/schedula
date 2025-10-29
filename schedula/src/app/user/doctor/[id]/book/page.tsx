@@ -102,7 +102,7 @@ export default function AppointmentPage() {
     };
 
     // Convert to unknown first to satisfy TypeScript when casting to Appointment
-    appointments.push(newAppointment as unknown as Appointment);
+    appointments.push(newAppointment as Appointment);
     localStorage.setItem("appointments", JSON.stringify(appointments));
   };
 
