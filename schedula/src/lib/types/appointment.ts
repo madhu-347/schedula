@@ -10,6 +10,7 @@ export interface Appointment {
   timeSlot: string;
   problem?: string;
   status: "Upcoming" | "Completed" | "Cancelled" | "Waiting";
+  visitType?: "Follow-up" | "Report" | "First";
   type?: "In-person" | "Online";
   paymentStatus: "Paid" | "Not paid";
   queuePosition?: number;

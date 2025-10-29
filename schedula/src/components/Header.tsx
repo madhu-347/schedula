@@ -25,7 +25,7 @@ function Header({ user, setShowNotifications, handleLogout }: HeaderProps) {
       setLocalUser(JSON.parse(storedUser));
     }
   }, []);
-  const firstName = localUser?.name ? localUser.name.split(" ")[0] : "User";
+  const firstName = localUser?.name || "User";
 
   return (
     <header className="bg-white shadow-sm sticky top-0 z-20 border-b border-gray-100">
@@ -43,7 +43,7 @@ function Header({ user, setShowNotifications, handleLogout }: HeaderProps) {
             </div>
             <div>
               <h1 className="text-base sm:text-lg font-bold text-gray-900">
-                Hello, {firstName ? firstName : "User"} 
+                Hello, {firstName ? firstName : "User"}
               </h1>
               <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
                 <MapPin className="inline w-3 h-3" />

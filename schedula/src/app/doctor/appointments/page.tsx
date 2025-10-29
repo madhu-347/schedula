@@ -12,6 +12,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { toast } from "@/hooks/useToast";
 
 interface AppointmentUI {
   id: number | string;
@@ -27,6 +29,7 @@ interface AppointmentUI {
 type TabStatus = "Upcoming" | "Completed" | "Cancelled";
 
 export default function DoctorAppointmentsPage() {
+  const router = useRouter();
   const [appointments, setAppointments] = useState<AppointmentUI[]>([]);
   const [activeTab, setActiveTab] = useState<TabStatus>("Upcoming");
   const [doctorName, setDoctorName] = useState<string | null>(null);
@@ -85,6 +88,60 @@ export default function DoctorAppointmentsPage() {
     } catch (e) {
       console.error("Error loading appointments:", e);
       setAppointments([]);
+    }
+  };
+
+  const completeAppointment = () => {
+    if (!selectedAppointment) return;
+
+    try {
+      // Get all appointments from localStorage
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+
+      const parsed = JSON.parse(raw);
+      const arr = Array.isArray(parsed) ? parsed : [parsed];
+
+      // Find and update the appointment status
+      const updatedAppointments = arr.map((apt: any) => {
+        if (apt.id === selectedAppointment.raw.id) {
+          return { ...apt, status: "Completed" };
+        }
+        return apt;
+      });
+
+      // Save back to localStorage
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedAppointments));
+
+      // Also update currentAppointment if it's the same appointment
+      const currentAppointmentStr = localStorage.getItem("currentAppointment");
+      if (currentAppointmentStr) {
+        const currentAppointment = JSON.parse(currentAppointmentStr);
+        if (currentAppointment.id === selectedAppointment.raw.id) {
+          localStorage.setItem(
+            "currentAppointment",
+            JSON.stringify({ ...currentAppointment, status: "Completed" })
+          );
+        }
+      }
+
+      toast({
+        title: "Appointment Completed",
+        description: "The appointment has been marked as completed.",
+      });
+
+      // Reload appointments to reflect changes
+      loadAppointments();
+
+      // Close modal
+      closeModal();
+    } catch (error) {
+      console.error("Error completing appointment:", error);
+      toast({
+        title: "Error",
+        description: "Failed to complete appointment. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -409,13 +466,22 @@ export default function DoctorAppointmentsPage() {
                 )}
               </div>
 
-              <div className="flex justify-center mt-6">
+              <div className="flex justify-around mt-6 gap-3">
                 <Button
-                  className="bg-[#46C2DE] hover:bg-[#36A9C6] text-white"
+                  variant="outline"
+                  className="flex-1"
                   onClick={closeModal}
                 >
                   Close
                 </Button>
+                {selectedAppointment.status === "Upcoming" && (
+                  <Button
+                    className="flex-1 bg-green-500 hover:bg-green-600 text-white"
+                    onClick={completeAppointment}
+                  >
+                    Complete
+                  </Button>
+                )}
               </div>
             </div>
           </div>
