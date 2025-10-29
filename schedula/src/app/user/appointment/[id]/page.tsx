@@ -43,7 +43,7 @@ function AppointmentDetails() {
       const response = await fetch(`/api/appointment/${appointmentId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...appointment, status: "Canceled" }),
+        body: JSON.stringify({ ...appointment, status: "Cancelled" }),
       });
 
       if (response.ok) {
@@ -94,7 +94,7 @@ function AppointmentDetails() {
         return "text-cyan-500";
       case "Completed":
         return "text-green-500";
-      case "Canceled":
+      case "Cancelled":
         return "text-red-500";
       default:
         return "text-gray-500";

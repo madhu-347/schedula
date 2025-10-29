@@ -26,6 +26,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import mockData from "@/lib/mockData.json"; // Import mockData to get doctor details
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
 
 // --- Type Definitions ---
 type AccountInfo = {
@@ -189,7 +190,8 @@ export default function DoctorDashboardPage() {
 
   // --- Main Dashboard UI ---
   return (
-    <div className="min-h-screen bg-gray-50">
+    <ProtectedRoute>
+<div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-gradient-to-r from-cyan-500 to-teal-500 text-white shadow-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
@@ -435,6 +437,8 @@ export default function DoctorDashboardPage() {
         </div>
       </main>
     </div>
+    </ProtectedRoute>
+    
   );
 }
 

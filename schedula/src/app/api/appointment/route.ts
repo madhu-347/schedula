@@ -217,7 +217,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate status if provided
-    const validStatuses = ["Upcoming", "Completed", "Canceled", "Waiting"];
+    const validStatuses = ["Upcoming", "Completed", "Cancelled", "Waiting"];
     if (body.status && !validStatuses.includes(body.status)) {
       return NextResponse.json(
         {

@@ -9,7 +9,7 @@ export interface Appointment {
   date: string;
   timeSlot: string;
   problem?: string;
-  status: "Upcoming" | "Completed" | "Canceled" | "Waiting";
+  status: "Upcoming" | "Completed" | "Cancelled" | "Waiting";
   type?: "In-person" | "Online";
   paymentStatus: "Paid" | "Not paid";
   queuePosition?: number;

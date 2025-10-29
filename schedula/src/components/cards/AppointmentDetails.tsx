@@ -5,7 +5,7 @@ import { CalendarPlus } from "lucide-react";
 
 interface AppointmentDetailsCardProps {
   appointmentNumber: string;
-  status: "Upcoming" | "Completed" | "Canceled";
+  status: "Upcoming" | "Completed" | "Cancelled";
   reportingTime: string;
   onAddToCalendar?: () => void;
   type?: "In-person" | "Virtual";
@@ -30,7 +30,7 @@ export const AppointmentDetailsCard: React.FC<AppointmentDetailsCardProps> = ({
         return "text-green-600";
       case "Completed":
         return "text-primary";
-      case "Canceled":
+      case "Cancelled":
         return "text-red-600";
       default:
         return "text-muted-foreground";
