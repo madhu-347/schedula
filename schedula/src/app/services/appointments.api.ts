@@ -159,7 +159,7 @@ export async function updateAppointment(id: number, updates: Partial<any>) {
 }
 
 export async function cancelAppointment(id: number) {
-  const result = await updateAppointment(id, { status: "Canceled" });
+  const result = await updateAppointment(id, { status: "Cancelled" });
   if (result) {
     alert("Appointment cancelled successfully");
   }

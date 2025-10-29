@@ -8,7 +8,7 @@ import {
   User,
   Video,
   CheckCircle2,
-  XCircle,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import Link from "next/link";
@@ -19,28 +19,37 @@ interface AppointmentUI {
   type: "In-person" | "Online";
   date: string;
   time: string;
+<<<<<<< HEAD
   status: "Upcoming" | "Completed" | "Canceled";
+=======
+  status: string;
+>>>>>>> f30f9f7c7dddd33118f684aa7886d1a40f5792d6
   problem?: string;
-  raw?: any; // original object if you need it later
+  raw?: any;
 }
 
 type TabStatus = "Upcoming" | "Completed" | "Canceled";
 
 export default function DoctorAppointmentsPage() {
   const [appointments, setAppointments] = useState<AppointmentUI[]>([]);
+<<<<<<< HEAD
   const [activeTab, setActiveTab] = useState<TabStatus>("Upcoming");
+=======
+  const [activeTab, setActiveTab] = useState<
+    "Upcoming" | "Completed" | "Cancelled"
+  >("Upcoming");
+>>>>>>> f30f9f7c7dddd33118f684aa7886d1a40f5792d6
   const [doctorName, setDoctorName] = useState<string | null>(null);
+  const [selectedAppointment, setSelectedAppointment] =
+    useState<AppointmentUI | null>(null);
   const STORAGE_KEY = "appointments";
 
-  // Transform a stored appointment object (your JSON) into AppointmentUI
+  // Transform data from your localStorage JSON
   const transformStoredToUI = (item: any): AppointmentUI => {
-    const patientName =
-      item?.patientDetails?.fullName ||
-      item?.patientDetails?.name ||
-      item?.tokenNo ||
-      item?.patientName ||
-      "Patient";
+    const patientName = item?.patientDetails?.fullName || "Patient";
+    const type = item?.type === "Online" ? "Online" : "In-person";
 
+<<<<<<< HEAD
     const type: "In-person" | "Online" =
       item?.type === "Online" ? "Online" : "In-person";
 
@@ -56,72 +65,76 @@ export default function DoctorAppointmentsPage() {
     else status = "Upcoming";
 
     const problem = item?.patientDetails?.problem ?? item?.problem ?? "";
+=======
+    let status = item?.status ?? "Upcoming";
+    if (status === "Waiting") status = "Upcoming";
+    if (status.toLowerCase() === "cancelled") status = "Cancelled";
+
+    const problem = item?.patientDetails?.problem ?? "";
+>>>>>>> f30f9f7c7dddd33118f684aa7886d1a40f5792d6
 
     return {
       id: item?.id ?? `${item?.doctorName}-${item?.tokenNo ?? Math.random()}`,
       patientName,
       type,
-      date,
-      time,
+      date: item?.date ?? "",
+      time: item?.timeSlot ?? "",
       status,
       problem,
       raw: item,
     };
   };
 
-  // Read and filter appointments from localStorage -> only for logged-in doctor
+  //  Load and filter for logged-in doctor
   const loadAppointments = () => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) {
-        setAppointments([]);
-        return;
-      }
+      if (!raw) return setAppointments([]);
+
       const parsed = JSON.parse(raw);
-      if (!Array.isArray(parsed)) {
-        // if single object stored
-        const arr = parsed ? [parsed] : [];
-        processAndSet(arr);
-      } else {
-        processAndSet(parsed);
-      }
+      const arr = Array.isArray(parsed) ? parsed : [parsed];
+      processAndSet(arr);
     } catch (e) {
-      console.error("Failed to read/parse appointments from localStorage", e);
+      console.error("Error loading appointments:", e);
       setAppointments([]);
     }
   };
 
-  // Filters for current logged-in doctor (match by doctorName === user.name)
   const processAndSet = (arr: any[]) => {
-    // read user (doctor) from localStorage
     try {
       const userStr = localStorage.getItem("user");
       const expiryStr = localStorage.getItem("userExpiry");
       const expiry = expiryStr ? Number(expiryStr) : 0;
+
       if (!userStr || !expiry || Date.now() >= expiry) {
-        // not logged in or expired — clear doctorName and appointments
         setDoctorName(null);
         setAppointments([]);
         return;
       }
+
       const user = JSON.parse(userStr);
       if (!user || user.type !== "doctor") {
         setDoctorName(null);
         setAppointments([]);
         return;
       }
-      const name = user.name;
-      setDoctorName(name);
 
-      // filter by doctorName match
+      const name = user.name?.trim().toLowerCase();
+      setDoctorName(user.name);
+
+      //  Match doctorName case-insensitively
       const filtered = arr.filter(
-        (a) => String(a?.doctorName ?? "").trim() === String(name).trim()
+        (a) =>
+          a?.doctorName &&
+          a.doctorName.trim().toLowerCase() === String(name)
       );
 
-      // transform
       const transformed = filtered.map(transformStoredToUI);
+<<<<<<< HEAD
 
       // optional: sort by date/time if needed
+=======
+>>>>>>> f30f9f7c7dddd33118f684aa7886d1a40f5792d6
       setAppointments(transformed);
     } catch (err) {
       console.error("Error processing appointments", err);
@@ -129,36 +142,18 @@ export default function DoctorAppointmentsPage() {
     }
   };
 
-  // load on mount
   useEffect(() => {
     loadAppointments();
-
-    // same-tab event: dispatch when you update appointments in the scheduling flow
-    const onAppointmentUpdated = () => {
-      loadAppointments();
-    };
-
-    // cross-tab storage event
     const onStorage = (e: StorageEvent) => {
-      if (!e.key) return;
-      if (e.key === STORAGE_KEY) {
-        loadAppointments();
-      }
+      if (e.key === STORAGE_KEY) loadAppointments();
     };
-
-    window.addEventListener("appointment:updated", onAppointmentUpdated);
     window.addEventListener("storage", onStorage);
-
-    return () => {
-      window.removeEventListener("appointment:updated", onAppointmentUpdated);
-      window.removeEventListener("storage", onStorage);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => window.removeEventListener("storage", onStorage);
   }, []);
 
-  // filtered appointments for active tab
   const filteredAppointments = useMemo(
     () =>
+<<<<<<< HEAD
       appointments.filter((a) => {
         return a.status === activeTab;
       }),
@@ -169,12 +164,31 @@ export default function DoctorAppointmentsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+=======
+      appointments.filter(
+        (a) => a.status.toLowerCase() === activeTab.toLowerCase()
+      ),
+    [appointments, activeTab]
+  );
+
+  const closeModal = () => setSelectedAppointment(null);
+
+  // ESC key closes modal
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => e.key === "Escape" && closeModal();
+    window.addEventListener("keydown", handleEsc);
+    return () => window.removeEventListener("keydown", handleEsc);
+  }, []);
+
+  return (
+    <div className="min-h-screen bg-gray-50 relative">
+>>>>>>> f30f9f7c7dddd33118f684aa7886d1a40f5792d6
       {/* Header */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-6 py-4">
           <div className="flex items-center gap-3">
             <Link
-              href={`/doctor/dashboard`}
+              href="/doctor/dashboard"
               className="p-2 -ml-2 rounded-full hover:bg-cyan-600/30 cursor-pointer"
             >
               <ArrowLeft className="w-5 h-5" />
@@ -193,13 +207,17 @@ export default function DoctorAppointmentsPage() {
         </div>
       </header>
 
+      {/* Tabs */}
       <div className="max-w-4xl mx-auto px-4 py-6">
-        {/* Tabs */}
         <div className="flex gap-6 border-b border-gray-200 mb-6">
+<<<<<<< HEAD
           {tabs.map((tab) => (
+=======
+          {["Upcoming", "Completed", "Cancelled"].map((tab) => (
+>>>>>>> f30f9f7c7dddd33118f684aa7886d1a40f5792d6
             <button
               key={tab}
-              onClick={() => setActiveTab(tab)}
+              onClick={() => setActiveTab(tab as any)}
               className={`pb-2 font-medium transition-colors ${
                 activeTab === tab
                   ? "text-[#46C2DE] border-b-2 border-[#46C2DE]"
@@ -217,7 +235,7 @@ export default function DoctorAppointmentsPage() {
             {filteredAppointments.map((a) => (
               <div
                 key={a.id}
-                className="bg-white shadow-sm border border-gray-200 rounded-2xl p-5 space-y-3 transition hover:shadow-md"
+                className="bg-white shadow-sm border border-gray-200 rounded-2xl p-5 space-y-3 hover:shadow-md"
               >
                 <div className="flex justify-between items-start">
                   <div>
@@ -242,7 +260,7 @@ export default function DoctorAppointmentsPage() {
 
                 <div className="flex items-center gap-3 text-sm text-gray-600 mt-3">
                   <CalendarDays className="w-4 h-4" />
-                  {a.date}
+                  {a.raw?.day}, {a.date}
                 </div>
 
                 <div className="flex items-center gap-3 text-sm text-gray-600">
@@ -259,15 +277,12 @@ export default function DoctorAppointmentsPage() {
                   {a.type}
                 </div>
 
-                {/* Actions */}
                 <div className="flex justify-end gap-3 mt-4">
                   {a.status === "Upcoming" && (
                     <Button
                       variant="outline"
                       className="border-[#46C2DE] text-[#46C2DE] hover:bg-[#E6F7FA]"
-                      onClick={() =>
-                        alert(`Viewing details for ${a.patientName}`)
-                      }
+                      onClick={() => setSelectedAppointment(a)}
                     >
                       View Details
                     </Button>
@@ -277,11 +292,84 @@ export default function DoctorAppointmentsPage() {
             ))}
           </div>
         ) : (
-          <div className="text-center text-gray-500 py-16">
+          <p className="text-center text-gray-500 py-16">
             No {activeTab.toLowerCase()} appointments.
-          </div>
+          </p>
         )}
       </div>
+
+      {/* Modal for Patient Details */}
+      {selectedAppointment && (
+        <>
+          <div
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-20"
+            onClick={closeModal}
+          ></div>
+
+          <div className="fixed inset-0 z-30 flex items-center justify-center">
+            <div className="bg-white rounded-2xl shadow-xl w-[90%] max-w-md p-6 relative">
+              <button
+                onClick={closeModal}
+                className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              <h2 className="text-lg font-semibold text-gray-800 mb-4 text-center">
+                Appointment Details
+              </h2>
+
+              <div className="space-y-3 text-sm text-gray-700">
+                <p>
+                  <span className="font-medium">Token No:</span>{" "}
+                  {selectedAppointment.raw?.tokenNo}
+                </p>
+                <p>
+                  <span className="font-medium">Patient Name:</span>{" "}
+                  {selectedAppointment.raw?.patientDetails?.fullName}
+                </p>
+                <p>
+                  <span className="font-medium">Age:</span>{" "}
+                  {selectedAppointment.raw?.patientDetails?.age}
+                </p>
+                <p>
+                  <span className="font-medium">Gender:</span>{" "}
+                  {selectedAppointment.raw?.patientDetails?.gender}
+                </p>
+                <p>
+                  <span className="font-medium">Phone:</span>{" "}
+                  {selectedAppointment.raw?.patientDetails?.phone}
+                </p>
+                <p>
+                  <span className="font-medium">Problem:</span>{" "}
+                  {selectedAppointment.raw?.patientDetails?.problem}
+                </p>
+                <p>
+                  <span className="font-medium">Date:</span>{" "}
+                  {selectedAppointment.raw?.day}, {selectedAppointment.date}
+                </p>
+                <p>
+                  <span className="font-medium">Time Slot:</span>{" "}
+                  {selectedAppointment.raw?.timeSlot}
+                </p>
+                <p>
+                  <span className="font-medium">Payment Status:</span>{" "}
+                  {selectedAppointment.raw?.paymentStatus}
+                </p>
+              </div>
+
+              <div className="flex justify-center mt-6">
+                <Button
+                  className="bg-[#46C2DE] hover:bg-[#36A9C6] text-white"
+                  onClick={closeModal}
+                >
+                  Close
+                </Button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
