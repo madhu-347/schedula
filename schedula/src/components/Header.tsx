@@ -34,7 +34,8 @@ function Header({ user, setShowNotifications, handleLogout }: HeaderProps) {
             </div>
             <div>
               <h1 className="text-base sm:text-lg font-bold text-gray-900">
-                Hello, {user?.name ? user.name.split(" ")[0] : "User"} 👋
+                {/* Hello, {user?.name ? user.name.split(" ")[0] : "User"} 👋 */}
+                Hello, User 👋
               </h1>
               <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
                 <MapPin className="inline w-3 h-3" />
