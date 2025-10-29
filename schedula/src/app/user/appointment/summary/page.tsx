@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { toast } from "@/hooks/useToast";
 import { Appointment } from "@/lib/types/appointment";
-import Heading from "@/components/ui/Heading"
+import Heading from "@/components/ui/Heading";
 import { PatientDetails } from "@/lib/types/patientDetails";
 
 const PatientDetailsPage = () => {
@@ -14,9 +14,15 @@ const PatientDetailsPage = () => {
   const [currentAppointment, setCurrentAppointment] =
     useState<Appointment | null>(null);
   const [showVisitTypeDropdown, setShowVisitTypeDropdown] = useState(false);
-  const [selectedVisitType, setSelectedVisitType] = useState("First");
+  const [selectedVisitType, setSelectedVisitType] = useState<
+    "First" | "Report" | "Follow-up"
+  >("First");
 
-  const visitTypeOptions = ["First", "Report", "Follow-up"];
+  const visitTypeOptions: Array<"First" | "Report" | "Follow-up"> = [
+    "First",
+    "Report",
+    "Follow-up",
+  ];
 
   useEffect(() => {
     // Get the current appointment from localStorage
@@ -38,6 +44,10 @@ const PatientDetailsPage = () => {
         }
 
         setCurrentAppointment(appointment);
+        // Set the visit type from appointment if it exists
+        if (appointment.visitType) {
+          setSelectedVisitType(appointment.visitType);
+        }
       } else {
         toast({
           title: "No Appointment Found",
@@ -56,6 +66,60 @@ const PatientDetailsPage = () => {
       router.push("/user/dashboard");
     }
   }, [router]);
+
+  const handleVisitTypeChange = (
+    visitType: "First" | "Report" | "Follow-up"
+  ) => {
+    setSelectedVisitType(visitType);
+    setShowVisitTypeDropdown(false);
+
+    if (!currentAppointment) return;
+
+    try {
+      // Update current appointment with visit type
+      const updatedCurrentAppointment = {
+        ...currentAppointment,
+        visitType: visitType,
+      };
+
+      localStorage.setItem(
+        "currentAppointment",
+        JSON.stringify(updatedCurrentAppointment)
+      );
+
+      // Also update in appointments array
+      const appointmentsStr = localStorage.getItem("appointments");
+      if (appointmentsStr) {
+        const appointments: Appointment[] = JSON.parse(appointmentsStr);
+
+        // Find and update the matching appointment by id
+        const updatedAppointments = appointments.map((apt) =>
+          apt.id === currentAppointment.id
+            ? { ...apt, visitType: visitType }
+            : apt
+        );
+
+        localStorage.setItem(
+          "appointments",
+          JSON.stringify(updatedAppointments)
+        );
+      }
+
+      setCurrentAppointment(updatedCurrentAppointment);
+
+      toast({
+        title: "Visit Type Updated",
+        description: `Visit type set to ${visitType}.`,
+      });
+    } catch (error) {
+      console.error("Error updating visit type:", error);
+      toast({
+        title: "Update Failed",
+        description: "Failed to update visit type. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handlePayment = () => {
     if (!currentAppointment) return;
@@ -253,7 +317,7 @@ const PatientDetailsPage = () => {
             onClick={() => setShowVisitTypeDropdown(!showVisitTypeDropdown)}
             className="w-full bg-white rounded-2xl shadow-md p-5 border border-gray-200 flex items-center justify-between hover:border-cyan-300 transition-colors"
           >
-            <span className="text-base font-medium text-gray-00">
+            <span className="text-base font-medium text-gray-900">
               Visit Type - {selectedVisitType}
             </span>
             {showVisitTypeDropdown ? (
@@ -268,10 +332,7 @@ const PatientDetailsPage = () => {
               {visitTypeOptions.map((option, index) => (
                 <button
                   key={option}
-                  onClick={() => {
-                    setSelectedVisitType(option);
-                    setShowVisitTypeDropdown(false);
-                  }}
+                  onClick={() => handleVisitTypeChange(option)}
                   className={`w-full px-5 py-4 text-left text-base font-medium hover:bg-gray-50 transition-colors ${
                     selectedVisitType === option
                       ? "text-cyan-600 bg-cyan-50"

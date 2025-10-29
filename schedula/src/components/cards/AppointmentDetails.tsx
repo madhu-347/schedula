@@ -5,7 +5,7 @@ import { CalendarPlus } from "lucide-react";
 
 interface AppointmentDetailsCardProps {
   appointmentNumber: string;
-  status: "Upcoming" | "Completed" | "Cancelled";
+  status: "Upcoming" | "Completed" | "Cancelled" | "Waiting";
   reportingTime: string;
   onAddToCalendar?: () => void;
   type?: "In-person" | "Virtual";
