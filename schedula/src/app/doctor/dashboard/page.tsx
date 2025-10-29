@@ -11,7 +11,7 @@ import {
   UserPlus,
   Video,
   ChevronRight,
-  Star, // Added Star
+  Star,
 } from "lucide-react";
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/dist/style.css";
@@ -25,7 +25,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-import mockData from "@/lib/mockData.json"; // Import mockData to get doctor details
+import mockData from "@/lib/mockData.json";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 
 // --- Type Definitions ---
@@ -37,87 +37,274 @@ type AccountInfo = {
   specialty?: string;
 };
 
-// Assuming mockData.doctors structure based on previous context
 type MockDoctorData = {
   id: number;
   name: string;
   specialty: string;
-  // ... add other relevant fields if needed
+};
+
+type AppointmentData = {
+  id: number | string;
+  patientName: string;
+  time: string;
+  type: "In-Clinic" | "Virtual";
+  reason?: string;
+  date: string;
+  status: string;
+  doctorName?: string;
+  patientDetails?: {
+    fullName?: string;
+    problem?: string;
+  };
+  timeSlot?: string;
+  day?: string;
+};
+
+type DashboardStats = {
+  todayAppointments: number;
+  totalPatients: number;
+  pendingRequests: number;
+};
+
+type VisitTypeBreakdown = {
+  name: string;
+  value: number;
+};
+
+type FeedbackData = {
+  appointmentId: number | string;
+  doctorName: string;
+  consultingRating: number;
+  hospitalRating: number;
+  waitingTimeRating: number;
+  wouldRecommend: boolean | null;
+  feedbackText: string;
+  submittedAt: string;
+};
+
+type ReviewDisplay = {
+  id: string;
+  patientName: string;
+  rating: number;
+  comment: string;
+  date: string;
 };
 // --- End Type Definitions ---
-
-// --- Mock Data ---
-const mockDashboardData = {
-  upcomingAppointments: [
-    {
-      id: 1,
-      patientName: "Sudharkar Murti",
-      time: "09:00 AM",
-      type: "In-Clinic",
-      reason: "Follow-up Check",
-    },
-    {
-      id: 2,
-      patientName: "Anjali Rao",
-      time: "10:30 AM",
-      type: "Virtual",
-      reason: "New Consultation",
-    },
-    {
-      id: 3,
-      patientName: "John Mathew",
-      time: "11:15 AM",
-      type: "In-Clinic",
-      reason: "Routine Physical",
-    },
-  ],
-  stats: {
-    todayAppointments: 3,
-    totalPatients: 157,
-    pendingRequests: 3,
-  },
-  appointmentTypeBreakdown: [
-    { name: "In-Clinic", value: 45 },
-    { name: "Virtual", value: 25 },
-  ],
-  reviews: [
-    {
-      id: 1,
-      patientName: "Priya Kumar",
-      rating: 5,
-      comment: "Very helpful and understanding. Explained everything clearly.",
-      date: "2025-10-25",
-    },
-    {
-      id: 2,
-      patientName: "John Mathew",
-      rating: 4,
-      comment: "Good consultation, but the wait time was a bit long.",
-      date: "2025-10-24",
-    },
-    {
-      id: 3,
-      patientName: "Anjali Rao",
-      rating: 5,
-      comment: "Excellent doctor! Highly recommend.",
-      date: "2025-10-23",
-    },
-  ],
-};
-
-// --- Calendar Mock Data ---
-const appointmentDates = [
-  new Date(),
-  new Date(2025, 9, 30),
-  new Date(2025, 10, 5),
-];
-// --- End Calendar Data ---
 
 export default function DoctorDashboardPage() {
   const router = useRouter();
   const [doctorInfo, setDoctorInfo] = useState<AccountInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
+
+  // LocalStorage based states
+  const [upcomingAppointments, setUpcomingAppointments] = useState<
+    AppointmentData[]
+  >([]);
+  const [stats, setStats] = useState<DashboardStats>({
+    todayAppointments: 0,
+    totalPatients: 0,
+    pendingRequests: 0,
+  });
+  const [visitTypeBreakdown, setVisitTypeBreakdown] = useState<
+    VisitTypeBreakdown[]
+  >([]);
+  const [appointmentDates, setAppointmentDates] = useState<Date[]>([]);
+  const [reviews, setReviews] = useState<ReviewDisplay[]>([]);
+
+  const STORAGE_KEY = "appointments";
+  const FEEDBACK_KEY = "appointmentFeedback";
+
+  // --- Load Reviews from LocalStorage ---
+  const loadReviewsFromStorage = (doctorName: string) => {
+    try {
+      const feedbackStr = localStorage.getItem(FEEDBACK_KEY);
+      if (!feedbackStr) {
+        setReviews([]);
+        return;
+      }
+
+      const allFeedback: FeedbackData[] = JSON.parse(feedbackStr);
+
+      // Filter feedback for this doctor (case-insensitive)
+      const doctorFeedback = allFeedback.filter(
+        (feedback) =>
+          feedback.doctorName?.trim().toLowerCase() ===
+          doctorName.trim().toLowerCase()
+      );
+
+      // Get appointments to find patient names
+      const appointmentsStr = localStorage.getItem(STORAGE_KEY);
+      let appointments: any[] = [];
+      if (appointmentsStr) {
+        const parsed = JSON.parse(appointmentsStr);
+        appointments = Array.isArray(parsed) ? parsed : [parsed];
+      }
+
+      // Transform feedback to review format
+      const reviewsData: ReviewDisplay[] = doctorFeedback
+        .map((feedback) => {
+          // Find the appointment to get patient name
+          const appointment = appointments.find(
+            (apt) => apt.id === feedback.appointmentId
+          );
+
+          const patientName =
+            appointment?.patientDetails?.fullName || "Anonymous Patient";
+
+          const avgRating =
+            (feedback.consultingRating +
+              feedback.hospitalRating +
+              feedback.waitingTimeRating) /
+            3;
+
+          return {
+            id: `${feedback.appointmentId}-${feedback.submittedAt}`,
+            patientName,
+            rating: Math.round(avgRating),
+            comment: feedback.feedbackText,
+            date: feedback.submittedAt,
+          };
+        })
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        .slice(0, 3); // Show only top 3 most recent
+
+      setReviews(reviewsData);
+    } catch (e) {
+      console.error("Error loading reviews:", e);
+      setReviews([]);
+    }
+  };
+
+  // --- Load Appointments from LocalStorage ---
+  const loadAppointmentsFromStorage = (doctorName: string) => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) {
+        resetDashboardData();
+        return;
+      }
+
+      const parsed = JSON.parse(raw);
+      const arr = Array.isArray(parsed) ? parsed : [parsed];
+
+      // Filter appointments for this doctor (case-insensitive)
+      const doctorAppointments = arr.filter(
+        (a: any) =>
+          a?.doctorName &&
+          a.doctorName.trim().toLowerCase() === doctorName.trim().toLowerCase()
+      );
+
+      // Process appointments
+      processAppointments(doctorAppointments);
+
+      // Load reviews
+      loadReviewsFromStorage(doctorName);
+    } catch (e) {
+      console.error("Error loading appointments:", e);
+      resetDashboardData();
+    }
+  };
+
+  const resetDashboardData = () => {
+    setUpcomingAppointments([]);
+    setStats({
+      todayAppointments: 0,
+      totalPatients: 0,
+      pendingRequests: 0,
+    });
+    setVisitTypeBreakdown([]);
+    setAppointmentDates([]);
+    setReviews([]);
+  };
+
+  const processAppointments = (appointments: any[]) => {
+    const today = format(new Date(), "yyyy-MM-dd");
+
+    // Transform appointments to dashboard format
+    const transformedAppointments: AppointmentData[] = appointments
+      .filter((a) => a.status === "Upcoming" || a.status === "Waiting")
+      .map((a) => {
+        const appointmentType: "In-Clinic" | "Virtual" =
+          a.type === "Online" ? "Virtual" : "In-Clinic";
+
+        return {
+          id: a.id ?? `${a.doctorName}-${a.tokenNo ?? Math.random()}`,
+          patientName: a.patientDetails?.fullName || "Patient",
+          time: a.timeSlot || a.time || "",
+          type: appointmentType,
+          reason: a.patientDetails?.problem || a.problem || "Consultation",
+          date: a.date || "",
+          status: a.status || "Upcoming",
+          doctorName: a.doctorName,
+          patientDetails: a.patientDetails,
+          timeSlot: a.timeSlot,
+          day: a.day,
+        };
+      })
+      .sort((a, b) => {
+        // Sort by date and time
+        const dateA = new Date(`${a.date} ${a.time}`).getTime();
+        const dateB = new Date(`${b.date} ${b.time}`).getTime();
+        return dateA - dateB;
+      })
+      .slice(0, 5); // Show only top 5 upcoming
+
+    setUpcomingAppointments(transformedAppointments);
+
+    // Calculate stats
+    const todayAppointmentsCount = appointments.filter(
+      (a) =>
+        a.date === today && (a.status === "Upcoming" || a.status === "Waiting")
+    ).length;
+
+    // Count unique patients
+    const uniquePatients = new Set(
+      appointments.map((a) => a.patientDetails?.fullName || a.patientName)
+    ).size;
+
+    // Count pending/waiting appointments
+    const pendingCount = appointments.filter(
+      (a) => a.status === "Waiting"
+    ).length;
+
+    setStats({
+      todayAppointments: todayAppointmentsCount,
+      totalPatients: uniquePatients,
+      pendingRequests: pendingCount,
+    });
+
+    // Calculate visit type breakdown (First, Report, Follow-up)
+    const firstVisitCount = appointments.filter(
+      (a) => a.visitType === "First" && a.status !== "Cancelled"
+    ).length;
+    const reportVisitCount = appointments.filter(
+      (a) => a.visitType === "Report" && a.status !== "Cancelled"
+    ).length;
+    const followUpCount = appointments.filter(
+      (a) => a.visitType === "Follow-up" && a.status !== "Cancelled"
+    ).length;
+
+    setVisitTypeBreakdown([
+      { name: "First Visit", value: firstVisitCount },
+      { name: "Report", value: reportVisitCount },
+      { name: "Follow-up", value: followUpCount },
+    ]);
+
+    // Extract appointment dates for calendar
+    const dates = appointments
+      .filter((a) => a.date && a.status !== "Cancelled")
+      .map((a) => {
+        try {
+          return new Date(a.date);
+        } catch {
+          return null;
+        }
+      })
+      .filter((d): d is Date => d !== null);
+
+    setAppointmentDates(dates);
+  };
 
   // --- Authentication Check ---
   useEffect(() => {
@@ -131,28 +318,50 @@ export default function DoctorDashboardPage() {
       try {
         userData = JSON.parse(userString);
         if (userData && userData.type === "doctor") {
-          // Try to find specialty from mockData (adjust if using real API)
-          // Added type assertion for safety
           const doctorDetails = (
             (mockData.doctors as MockDoctorData[]) || []
           ).find((d) => d.id === userData?.id);
-          // eslint-disable-next-line react-hooks/set-state-in-effect
-          setDoctorInfo({ ...userData, specialty: doctorDetails?.specialty });
+
+          const doctorInfoData = {
+            ...userData,
+            specialty: doctorDetails?.specialty,
+          };
+
+          setDoctorInfo(doctorInfoData);
+
+          // Load appointments for this doctor
+          if (userData.name) {
+            loadAppointmentsFromStorage(userData.name);
+          }
+
           isValid = true;
         }
       } catch (e) {
         console.error("Error parsing user data", e);
       }
     }
+
     if (!isValid) {
-      router.push("/doctor/login"); // Redirect if not valid
+      router.push("/doctor/login");
     } else {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setIsLoading(false); // Stop loading only if valid
+      setIsLoading(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [router]); // Added router to dependency array as per ESLint suggestion
-  // --- End Auth Check ---
+  }, [router]);
+
+  // Listen for storage changes
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (
+        (e.key === STORAGE_KEY || e.key === FEEDBACK_KEY) &&
+        doctorInfo?.name
+      ) {
+        loadAppointmentsFromStorage(doctorInfo.name);
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, [doctorInfo]);
 
   // --- Logout Function ---
   const handleLogout = () => {
@@ -160,7 +369,6 @@ export default function DoctorDashboardPage() {
     localStorage.removeItem("userExpiry");
     router.push("/doctor/login");
   };
-  // --- End Logout ---
 
   // --- Loading State ---
   if (isLoading) {
@@ -170,275 +378,270 @@ export default function DoctorDashboardPage() {
       </div>
     );
   }
-  // --- End Loading State ---
 
   // --- Calendar Modifiers ---
   const appointmentDayModifier = { appointment: appointmentDates };
   const appointmentDotStyleCSS = `
-        .rdp-day_appointment { position: relative; }
-        .rdp-day_appointment::after {
-            content: ''; position: absolute; bottom: 4px; left: 50%;
-            transform: translateX(-50%); width: 6px; height: 6px;
-            border-radius: 50%; background-color: #0891b2; /* cyan-600 */
-        }
-    `;
-  // --- End Calendar Modifiers ---
+    .rdp-day_appointment { position: relative; }
+    .rdp-day_appointment::after {
+        content: ''; position: absolute; bottom: 4px; left: 50%;
+        transform: translateX(-50%); width: 6px; height: 6px;
+        border-radius: 50%; background-color: #0891b2;
+    }
+  `;
 
   // --- Pie Chart Colors ---
-  const PIE_COLORS = ["#06b6d4", "#67e8f9"]; // Cyan-500, Cyan-300
-  // --- End Pie Chart Colors ---
+  const PIE_COLORS = ["#06b6d4", "#f59e0b", "#10b981"];
 
   // --- Main Dashboard UI ---
   return (
     <ProtectedRoute>
-<div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-gradient-to-r from-cyan-500 to-teal-500 text-white shadow-md">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold">Doctor Dashboard</h1>
-            {doctorInfo && (
-              <p className="text-sm text-cyan-100 mt-1">
-                {" "}
-                {doctorInfo.name} - {doctorInfo.specialty || "Specialist"}{" "}
-              </p>
-            )}
+      <div className="min-h-screen bg-gray-50">
+        {/* Header */}
+        <header className="bg-linear-to-r from-cyan-500 to-teal-500 text-white shadow-md">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+            <div>
+              <h1 className="text-2xl font-bold">Doctor Dashboard</h1>
+              {doctorInfo && (
+                <p className="text-sm text-cyan-100 mt-1">
+                  {doctorInfo.name} - {doctorInfo.specialty || "Specialist"}
+                </p>
+              )}
+            </div>
+            <button
+              onClick={handleLogout}
+              title="Logout"
+              className="p-2 rounded-full hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-cyan-600 focus:ring-white transition-colors"
+            >
+              <LogOut size={20} />
+            </button>
           </div>
-          <button
-            onClick={handleLogout}
-            title="Logout"
-            className="p-2 rounded-full hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-cyan-600 focus:ring-white transition-colors"
-          >
-            {" "}
-            <LogOut size={20} />{" "}
-          </button>
-        </div>
-      </header>
+        </header>
 
-      {/* Main Content Area */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Added lg:items-start for grid alignment */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:items-start">
-          {/* Left Column Wrapper */}
-          <div className="lg:col-span-1 space-y-6">
-            {/* Calendar Section */}
-            <section className="bg-white p-4 rounded-lg shadow-md">
-              <style>{appointmentDotStyleCSS}</style>
-              <DayPicker
-                mode="single"
-                month={currentMonth}
-                onMonthChange={setCurrentMonth}
-                modifiers={appointmentDayModifier}
-                modifiersClassNames={{ appointment: "rdp-day_appointment" }}
-                styles={{
-                  caption_label: { fontWeight: "bold" },
-                  head_cell: { color: "#666", fontSize: "0.8rem" },
-                }}
-                footer={
-                  <p className="text-center text-sm mt-2 text-gray-500">
-                    {" "}
-                    Today is {format(new Date(), "PPP")}.{" "}
+        {/* Main Content Area */}
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:items-start">
+            {/* Left Column Wrapper */}
+            <div className="lg:col-span-1 space-y-6">
+              {/* Calendar Section */}
+              <section className="bg-white p-4 rounded-lg shadow-md">
+                <style>{appointmentDotStyleCSS}</style>
+                <DayPicker
+                  mode="single"
+                  month={currentMonth}
+                  onMonthChange={setCurrentMonth}
+                  modifiers={appointmentDayModifier}
+                  modifiersClassNames={{ appointment: "rdp-day_appointment" }}
+                  styles={{
+                    caption_label: { fontWeight: "bold" },
+                    head_cell: { color: "#666", fontSize: "0.8rem" },
+                  }}
+                  footer={
+                    <p className="text-center text-sm mt-2 text-gray-500">
+                      Today is {format(new Date(), "PPP")}.
+                    </p>
+                  }
+                  showOutsideDays
+                  className="w-full"
+                />
+              </section>
+
+              {/* Quick Actions Section */}
+              <section className="bg-white p-6 rounded-lg shadow-md">
+                <h2 className="text-lg font-semibold text-gray-700 mb-3">
+                  Quick Actions
+                </h2>
+                <div className="flex flex-wrap gap-2">
+                  <button className="text-sm bg-cyan-500 hover:bg-cyan-600 text-white px-3 py-1.5 rounded-md transition-colors">
+                    Add New Patient
+                  </button>
+                  <button className="text-sm bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-1.5 rounded-md transition-colors">
+                    Manage Availability
+                  </button>
+                </div>
+              </section>
+
+              {/* Recent Reviews Section */}
+              <section className="bg-white p-4 sm:p-6 rounded-lg shadow-md">
+                <h2 className="text-xl font-semibold text-gray-800 mb-4">
+                  Recent Reviews
+                </h2>
+                {reviews.length > 0 ? (
+                  <ul className="space-y-4">
+                    {reviews.map((review) => (
+                      <li
+                        key={review.id}
+                        className="border-b border-gray-100 pb-3 last:border-b-0 last:pb-0"
+                      >
+                        <div className="flex justify-between items-center mb-1">
+                          <span className="font-medium text-gray-700 text-sm">
+                            {review.patientName}
+                          </span>
+                          <div className="flex items-center">
+                            {[...Array(5)].map((_, i) => (
+                              <Star
+                                key={i}
+                                size={14}
+                                className={` ${
+                                  i < review.rating
+                                    ? "text-yellow-400 fill-yellow-400"
+                                    : "text-gray-300"
+                                }`}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                        <p className="text-gray-600 text-sm mb-1">
+                          {review.comment}
+                        </p>
+                        <p className="text-xs text-gray-400 text-right">
+                          {format(new Date(review.date), "PP")}
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-gray-500 text-sm">
+                    No reviews received yet.
                   </p>
-                }
-                showOutsideDays
-                // removed fixedWeeks
-                className="w-full"
-              />
-            </section>
+                )}
+                <button
+                  onClick={() => router.push("/doctor/reviews")}
+                  className="text-sm text-cyan-600 hover:underline mt-4 font-medium"
+                >
+                  View All Reviews
+                </button>
+              </section>
+            </div>
 
-            {/* Quick Actions Section */}
-            <section className="bg-white p-6 rounded-lg shadow-md">
-              <h2 className="text-lg font-semibold text-gray-700 mb-3">
-                Quick Actions
-              </h2>
-              <div className="flex flex-wrap gap-2">
-                <button className="text-sm bg-cyan-500 hover:bg-cyan-600 text-white px-3 py-1.5 rounded-md transition-colors">
-                  Add New Patient
-                </button>
-                <button className="text-sm bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-1.5 rounded-md transition-colors">
-                  Manage Availability
-                </button>
+            {/* Right Column: Stats, Pie, Appointments, Activity */}
+            <section className="lg:col-span-2 space-y-6">
+              {/* Quick Stats Row */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <StatBox
+                  title="Today's Appointments"
+                  value={stats.todayAppointments}
+                  icon={Calendar}
+                  color="text-cyan-600 bg-cyan-100"
+                />
+                <StatBox
+                  title="Total Patients"
+                  value={stats.totalPatients}
+                  icon={Users}
+                  color="text-blue-600 bg-blue-100"
+                />
+                <StatBox
+                  title="Pending Requests"
+                  value={stats.pendingRequests}
+                  icon={UserPlus}
+                  color="text-amber-600 bg-amber-100"
+                />
               </div>
-            </section>
 
-            {/* --- MOVED: Recent Reviews Section --- */}
-            <section className="bg-white p-4 sm:p-6 rounded-lg shadow-md">
-              <h2 className="text-xl font-semibold text-gray-800 mb-4">
-                Recent Reviews
-              </h2>
-              {mockDashboardData.reviews.length > 0 ? (
-                <ul className="space-y-4">
-                  {mockDashboardData.reviews.map((review) => (
-                    <li
-                      key={review.id}
-                      className="border-b border-gray-100 pb-3 last:border-b-0 last:pb-0"
-                    >
-                      <div className="flex justify-between items-center mb-1">
-                        <span className="font-medium text-gray-700 text-sm">
-                          {review.patientName}
-                        </span>
-                        <div className="flex items-center">
-                          {[...Array(5)].map((_, i) => (
-                            <Star
-                              key={i}
-                              size={14}
-                              className={` ${
-                                i < review.rating
-                                  ? "text-yellow-400 fill-yellow-400"
-                                  : "text-gray-300"
-                              }`}
+              {/* Pie Chart Section - Visit Types */}
+              <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md">
+                <h2 className="text-xl font-semibold text-gray-800 mb-4">
+                  Visit Types Distribution
+                </h2>
+                {visitTypeBreakdown.some((item) => item.value > 0) ? (
+                  <div style={{ width: "100%", height: 300 }}>
+                    <ResponsiveContainer>
+                      <PieChart>
+                        <Pie
+                          data={visitTypeBreakdown}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          outerRadius={130}
+                          fill="#8884d8"
+                          dataKey="value"
+                          nameKey="name"
+                        >
+                          {visitTypeBreakdown.map((entry, index) => (
+                            <Cell
+                              key={`cell-${index}`}
+                              fill={PIE_COLORS[index % PIE_COLORS.length]}
                             />
                           ))}
-                        </div>
-                      </div>
-                      <p className="text-gray-600 text-sm mb-1">
-                        {review.comment}
-                      </p>
-                      <p className="text-xs text-gray-400 text-right">
-                        {format(new Date(review.date), "PP")}
-                      </p>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-gray-500 text-sm">
-                  No reviews received yet.
-                </p>
-              )}
-              <button className="text-sm text-cyan-600 hover:underline mt-4 font-medium">
-                View All Reviews
-              </button>
-            </section>
-            {/* --- END MOVED --- */}
-          </div>
-
-          {/* Right Column: Stats, Pie, Appointments, Activity */}
-          <section className="lg:col-span-2 space-y-6">
-            {/* Quick Stats Row */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <StatBox
-                title="Today's Appointments"
-                value={mockDashboardData.stats.todayAppointments}
-                icon={Calendar}
-                color="text-cyan-600 bg-cyan-100"
-              />
-              <StatBox
-                title="Total Patients"
-                value={mockDashboardData.stats.totalPatients}
-                icon={Users}
-                color="text-blue-600 bg-blue-100"
-              />
-              <StatBox
-                title="Pending Requests"
-                value={mockDashboardData.stats.pendingRequests}
-                icon={UserPlus}
-                color="text-amber-600 bg-amber-100"
-              />
-            </div>
-
-            {/* Pie Chart Section */}
-            <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md">
-              <h2 className="text-xl font-semibold text-gray-800 mb-4">
-                Appointment Types (This Month)
-              </h2>
-              <div style={{ width: "100%", height: 300 }}>
-                <ResponsiveContainer>
-                  <PieChart>
-                    <Pie
-                      data={mockDashboardData.appointmentTypeBreakdown}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      outerRadius={130}
-                      fill="#8884d8"
-                      dataKey="value"
-                      nameKey="name"
-                    >
-                      {mockDashboardData.appointmentTypeBreakdown.map(
-                        (entry, index) => (
-                          <Cell
-                            key={`cell-${index}`}
-                            fill={PIE_COLORS[index % PIE_COLORS.length]}
-                          />
-                        )
-                      )}
-                    </Pie>
-                    <Tooltip formatter={(value) => `${value} appointments`} />
-                    <Legend
-                      iconType="circle"
-                      verticalAlign="bottom"
-                      height={36}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
+                        </Pie>
+                        <Tooltip
+                          formatter={(value) => `${value} appointments`}
+                        />
+                        <Legend
+                          iconType="circle"
+                          verticalAlign="bottom"
+                          height={36}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                ) : (
+                  <p className="text-gray-500 text-sm text-center py-8">
+                    No visit type data available yet.
+                  </p>
+                )}
               </div>
-            </div>
 
-            {/* Upcoming Appointments List */}
-            <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md">
-              <h2 className="text-xl font-semibold text-gray-800 mb-4">
-                Upcoming Appointments
-              </h2>
-              {mockDashboardData.upcomingAppointments.length > 0 ? (
-                <ul className="space-y-4">
-                  {mockDashboardData.upcomingAppointments.map((appt) => (
-                    <li
-                      key={appt.id}
-                      className="border border-gray-100 rounded-lg p-3 hover:bg-gray-50 transition-colors flex items-center justify-between"
-                    >
-                      <div className="flex items-center gap-3">
-                        {appt.type === "Virtual" ? (
-                          <Video className="w-5 h-5 text-purple-500 flex-shrink-0" />
-                        ) : (
-                          <Clock className="w-5 h-5 text-cyan-500 flex-shrink-0" />
-                        )}
-                        <div>
-                          {" "}
-                          <p className="font-medium text-gray-700">
-                            {appt.patientName}
-                          </p>{" "}
-                          <p className="text-xs text-gray-500">
-                            {appt.time} - {appt.reason}
-                          </p>{" "}
+              {/* Upcoming Appointments List */}
+              <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md">
+                <h2 className="text-xl font-semibold text-gray-800 mb-4">
+                  Upcoming Appointments
+                </h2>
+                {upcomingAppointments.length > 0 ? (
+                  <ul className="space-y-4">
+                    {upcomingAppointments.map((appt) => (
+                      <li
+                        key={appt.id}
+                        className="border border-gray-100 rounded-lg p-3 hover:bg-gray-50 transition-colors flex items-center justify-between"
+                      >
+                        <div className="flex items-center gap-3">
+                          {appt.type === "Virtual" ? (
+                            <Video className="w-5 h-5 text-purple-500 shrink-0" />
+                          ) : (
+                            <Clock className="w-5 h-5 text-cyan-500 shrink-0" />
+                          )}
+                          <div>
+                            <p className="font-medium text-gray-700">
+                              {appt.patientName}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {appt.time} - {appt.reason}
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                      <button className="text-cyan-600 hover:text-cyan-800 p-1">
-                        {" "}
-                        <ChevronRight size={18} />{" "}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-gray-500 text-sm">
-                  No upcoming appointments scheduled.
-                </p>
-              )}
+                        <button className="text-cyan-600 hover:text-cyan-800 p-1">
+                          <ChevronRight size={18} />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-gray-500 text-sm">
+                    No upcoming appointments scheduled.
+                  </p>
+                )}
                 <Link
-                    href="/doctor/appointments"
-                    className="text-sm text-cyan-600 hover:underline mt-4 font-medium"
-                    >
-                    View Full Schedule
+                  href="/doctor/appointments"
+                  className="text-sm text-cyan-600 hover:underline mt-4 font-medium inline-block"
+                >
+                  View Full Schedule
                 </Link>
-            </div>
+              </div>
 
-            {/* Recent Patient Activity (Placeholder) */}
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <h2 className="text-lg font-semibold text-gray-700 mb-3">
-                Recent Patient Activity
-              </h2>
-              <p className="text-gray-500 text-sm">
-                Patient activity feed goes here...
-              </p>
-            </div>
-
-            {/* --- "Quick Actions" was removed from here --- */}
-          </section>
-        </div>
-      </main>
-    </div>
+              {/* Recent Patient Activity */}
+              <div className="bg-white p-6 rounded-lg shadow-md">
+                <h2 className="text-lg font-semibold text-gray-700 mb-3">
+                  Recent Patient Activity
+                </h2>
+                <p className="text-gray-500 text-sm">
+                  Patient activity feed goes here...
+                </p>
+              </div>
+            </section>
+          </div>
+        </main>
+      </div>
     </ProtectedRoute>
-    
   );
 }
 

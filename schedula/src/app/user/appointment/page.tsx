@@ -316,6 +316,18 @@ const AppointmentsPage: React.FC = () => {
                             >
                               View Details
                             </button>
+                            {appointment.status === "Completed" && (
+                              <button
+                                onClick={() =>
+                                  router.push(
+                                    `/user/appointment/${appointment.id}/feedback`
+                                  )
+                                }
+                                className="w-full px-4 py-2.5 text-left text-sm font-medium hover:bg-gray-50 transition-colors"
+                              >
+                                Feedback
+                              </button>
+                            )}
                             {appointment.status === "Upcoming" && (
                               <button
                                 onClick={() => {
