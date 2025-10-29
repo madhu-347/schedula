@@ -88,16 +88,10 @@ export default function AppointmentPage() {
     appointment: Omit<Appointment, "id" | "patientDetails">
   ) => {
     const existing = localStorage.getItem("appointments");
-    // const loggedUser = localStorage.getItem("user");
     const appointments: Appointment[] = existing ? JSON.parse(existing) : [];
 
-    // Parse loggedUser JSON string
-    // const userObj = loggedUser ? JSON.parse(loggedUser) : null;
-
-    // Create appointment without patientDetails (will be added later)
     const newAppointment = {
       id: Date.now(), // Generate unique ID
-      // userEmail: userObj?.email ? userObj.email : "",
       ...appointment,
     };
 
@@ -139,7 +133,7 @@ export default function AppointmentPage() {
       tokenNo: `TKN-${Math.floor(Math.random() * 10000)}`,
       doctorName: doctor.name,
       doctorImage:
-        doctor.profilePicture || doctor.imageUrl || "/male-doctor-avatar.png", // Include doctor image
+        doctor.profilePicture || doctor.imageUrl || "/male-doctor-avatar.png",
       specialty: doctor.specialty,
       day: selectedDay?.dayName || "",
       date: `${selectedDay?.monthName} ${
@@ -149,20 +143,20 @@ export default function AppointmentPage() {
       status: "Upcoming",
       paymentStatus: "Not paid",
     };
- try {
-    await fetch("/api/notifications", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        doctorName: appointment.doctorName,
-        message: `New appointment booked by ${
-          appointment.patientDetails?.fullName || "a patient"
-        } on ${appointment.date} at ${appointment.timeSlot}.`,
-      }),
-    });
-  } catch (err) {
-    console.error("Failed to send notification:", err);
-  }
+
+    // Send notification to doctor
+    try {
+      await fetch("/api/notifications", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          doctorName: appointment.doctorName,
+          message: `New appointment booked on ${appointment.date} at ${appointment.timeSlot}.`,
+        }),
+      });
+    } catch (err) {
+      console.error("Failed to send notification:", err);
+    }
 
     saveAppointment(appointment);
 
