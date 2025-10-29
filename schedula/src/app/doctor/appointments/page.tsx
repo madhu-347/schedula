@@ -418,7 +418,7 @@ export default function DoctorAppointmentsPage() {
                 )}
                 <p>
                   <span className="font-medium">Patient Name:</span>{" "}
-                  {selectedAppointment.patientName}
+                  {selectedAppointment.raw?.patientDetails?.fullName}
                 </p>
                 {selectedAppointment.raw?.patientDetails?.age && (
                   <p>

@@ -27,6 +27,7 @@ import {
 } from "recharts";
 import mockData from "@/lib/mockData.json";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
+import { Appointment } from "@/lib/types/appointment";
 
 // --- Type Definitions ---
 type AccountInfo = {
@@ -41,23 +42,6 @@ type MockDoctorData = {
   id: number;
   name: string;
   specialty: string;
-};
-
-type AppointmentData = {
-  id: number | string;
-  patientName: string;
-  time: string;
-  type: "In-Clinic" | "Virtual";
-  reason?: string;
-  date: string;
-  status: string;
-  doctorName?: string;
-  patientDetails?: {
-    fullName?: string;
-    problem?: string;
-  };
-  timeSlot?: string;
-  day?: string;
 };
 
 type DashboardStats = {
@@ -87,6 +71,7 @@ type ReviewDisplay = {
   patientName: string;
   rating: number;
   comment: string;
+  feedbackText: string;
   date: string;
 };
 // --- End Type Definitions ---
@@ -99,7 +84,7 @@ export default function DoctorDashboardPage() {
 
   // LocalStorage based states
   const [upcomingAppointments, setUpcomingAppointments] = useState<
-    AppointmentData[]
+    Appointment[]
   >([]);
   const [stats, setStats] = useState<DashboardStats>({
     todayAppointments: 0,
@@ -152,17 +137,41 @@ export default function DoctorDashboardPage() {
           const patientName =
             appointment?.patientDetails?.fullName || "Anonymous Patient";
 
+          // Get feedback text or generate default comment
+          const userFeedbackText = feedback.feedbackText?.trim() || "";
+
+          // Generate a comment based on ratings (only if no user feedback text)
+          let generatedComment = "";
           const avgRating =
             (feedback.consultingRating +
               feedback.hospitalRating +
               feedback.waitingTimeRating) /
             3;
 
+          if (!userFeedbackText) {
+            if (avgRating >= 4.5) {
+              generatedComment = "Excellent doctor! Highly recommend.";
+            } else if (avgRating >= 3.5) {
+              generatedComment =
+                "Very helpful and understanding. Explained everything clearly.";
+            } else if (avgRating >= 2.5) {
+              generatedComment = "Good consultation, but could be improved.";
+            } else {
+              generatedComment = "The experience needs improvement.";
+            }
+
+            // Add specific feedback based on individual ratings
+            if (feedback.waitingTimeRating <= 2) {
+              generatedComment += " The wait time was a bit long.";
+            }
+          }
+
           return {
             id: `${feedback.appointmentId}-${feedback.submittedAt}`,
             patientName,
             rating: Math.round(avgRating),
-            comment: feedback.feedbackText,
+            comment: generatedComment,
+            feedbackText: userFeedbackText,
             date: feedback.submittedAt,
           };
         })
@@ -219,38 +228,20 @@ export default function DoctorDashboardPage() {
   };
 
   const processAppointments = (appointments: any[]) => {
-    const today = format(new Date(), "yyyy-MM-dd");
+    const today = format(new Date(), "MMM dd, yyyy");
 
-    // Transform appointments to dashboard format
-    const transformedAppointments: AppointmentData[] = appointments
+    // Filter and sort appointments
+    const upcomingAppts = appointments
       .filter((a) => a.status === "Upcoming" || a.status === "Waiting")
-      .map((a) => {
-        const appointmentType: "In-Clinic" | "Virtual" =
-          a.type === "Online" ? "Virtual" : "In-Clinic";
-
-        return {
-          id: a.id ?? `${a.doctorName}-${a.tokenNo ?? Math.random()}`,
-          patientName: a.patientDetails?.fullName || "Patient",
-          time: a.timeSlot || a.time || "",
-          type: appointmentType,
-          reason: a.patientDetails?.problem || a.problem || "Consultation",
-          date: a.date || "",
-          status: a.status || "Upcoming",
-          doctorName: a.doctorName,
-          patientDetails: a.patientDetails,
-          timeSlot: a.timeSlot,
-          day: a.day,
-        };
-      })
       .sort((a, b) => {
-        // Sort by date and time
-        const dateA = new Date(`${a.date} ${a.time}`).getTime();
-        const dateB = new Date(`${b.date} ${b.time}`).getTime();
+        // Sort by date
+        const dateA = new Date(a.date).getTime();
+        const dateB = new Date(b.date).getTime();
         return dateA - dateB;
       })
       .slice(0, 5); // Show only top 5 upcoming
 
-    setUpcomingAppointments(transformedAppointments);
+    setUpcomingAppointments(upcomingAppts);
 
     // Calculate stats
     const todayAppointmentsCount = appointments.filter(
@@ -260,7 +251,7 @@ export default function DoctorDashboardPage() {
 
     // Count unique patients
     const uniquePatients = new Set(
-      appointments.map((a) => a.patientDetails?.fullName || a.patientName)
+      appointments.map((a) => a.patientDetails?.fullName)
     ).size;
 
     // Count pending/waiting appointments
@@ -492,7 +483,7 @@ export default function DoctorDashboardPage() {
                           </div>
                         </div>
                         <p className="text-gray-600 text-sm mb-1">
-                          {review.comment}
+                          {review.feedbackText || review.comment}
                         </p>
                         <p className="text-xs text-gray-400 text-right">
                           {format(new Date(review.date), "PP")}
@@ -595,17 +586,17 @@ export default function DoctorDashboardPage() {
                         className="border border-gray-100 rounded-lg p-3 hover:bg-gray-50 transition-colors flex items-center justify-between"
                       >
                         <div className="flex items-center gap-3">
-                          {appt.type === "Virtual" ? (
+                          {appt.type === "Online" ? (
                             <Video className="w-5 h-5 text-purple-500 shrink-0" />
                           ) : (
                             <Clock className="w-5 h-5 text-cyan-500 shrink-0" />
                           )}
                           <div>
                             <p className="font-medium text-gray-700">
-                              {appt.patientName}
+                              {appt.patientDetails.fullName}
                             </p>
                             <p className="text-xs text-gray-500">
-                              {appt.time} - {appt.reason}
+                              {appt.timeSlot} - {appt.patientDetails.problem}
                             </p>
                           </div>
                         </div>
