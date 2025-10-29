@@ -88,15 +88,21 @@ export default function AppointmentPage() {
     appointment: Omit<Appointment, "id" | "patientDetails">
   ) => {
     const existing = localStorage.getItem("appointments");
+    // const loggedUser = localStorage.getItem("user");
     const appointments: Appointment[] = existing ? JSON.parse(existing) : [];
+
+    // Parse loggedUser JSON string
+    // const userObj = loggedUser ? JSON.parse(loggedUser) : null;
 
     // Create appointment without patientDetails (will be added later)
     const newAppointment = {
       id: Date.now(), // Generate unique ID
+      // userEmail: userObj?.email ? userObj.email : "",
       ...appointment,
     };
 
-    appointments.push(newAppointment as Appointment);
+    // Convert to unknown first to satisfy TypeScript when casting to Appointment
+    appointments.push(newAppointment as unknown as Appointment);
     localStorage.setItem("appointments", JSON.stringify(appointments));
   };
 

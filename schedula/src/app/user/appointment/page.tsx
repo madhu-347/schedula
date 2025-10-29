@@ -10,7 +10,7 @@ import BottomNav from "@/components/BottomNav";
 import { Appointment } from "@/lib/types/appointment";
 import Heading from "@/components/ui/Heading";
 
-type TabType = "Upcoming" | "Completed" | "Canceled";
+type TabType = "Upcoming" | "Completed" | "Cancelled";
 
 const AppointmentsPage: React.FC = () => {
   const router = useRouter();
@@ -33,7 +33,7 @@ const AppointmentsPage: React.FC = () => {
 
   const handleCancelAppointment = (id: number): void => {
     const updatedAppointments = appointments.map((apt) =>
-      apt.id === id ? { ...apt, status: "Canceled" as const } : apt
+      apt.id === id ? { ...apt, status: "Cancelled" as const } : apt
     );
     setAppointments(updatedAppointments);
     localStorage.setItem("appointments", JSON.stringify(updatedAppointments));
@@ -58,23 +58,36 @@ const AppointmentsPage: React.FC = () => {
     return dateString;
   };
 
-  async function getAllAppointments() {
+   async function getAllAppointments() {
     try {
-      const response = await fetch("/api/appointment");
-      const result = await response.json();
+      const userStr = localStorage.getItem("user");
+      const expiryStr = localStorage.getItem("userExpiry");
+      const expiry = expiryStr ? Number(expiryStr) : 0;
 
-      if (result.success) {
-        console.log(`Found ${result.count} appointments`);
-        console.log(result.data);
-        const allAppointments = result?.data;
-        setAppointments(allAppointments);
-        return result.data;
-      } else {
-        console.error("Error:", result.error);
+      if (!userStr || !expiry || Date.now() >= expiry) {
+        console.error("User not logged in or session expired");
+        setAppointments([]);
         return [];
       }
+
+      const user = JSON.parse(userStr);
+      const userEmail = user?.email?.trim()?.toLowerCase();
+
+      const storedAppointments = JSON.parse(
+        localStorage.getItem("appointments") || "[]"
+      );
+
+      // Filter appointments that belong to this user
+      const userAppointments = storedAppointments.filter(
+        (a: any) =>
+          a?.userEmail?.trim()?.toLowerCase() === userEmail
+      );
+
+      setAppointments(userAppointments);
+      return userAppointments;
     } catch (error) {
-      console.error("Failed to fetch appointments:", error);
+      console.error("Failed to fetch user appointments:", error);
+      setAppointments([]);
       return [];
     }
   }
@@ -125,13 +138,13 @@ const AppointmentsPage: React.FC = () => {
             )}
           </button>
           <button
-            onClick={() => setActiveTab("Canceled")}
+            onClick={() => setActiveTab("Cancelled")}
             className={`py-3 font-semibold relative ${
-              activeTab === "Canceled" ? "text-cyan-500" : "text-gray-400"
+              activeTab === "Cancelled" ? "text-cyan-500" : "text-gray-400"
             }`}
           >
-            Canceled
-            {activeTab === "Canceled" && (
+            Cancelled
+            {activeTab === "Cancelled" && (
               <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-cyan-500" />
             )}
           </button>

@@ -224,7 +224,7 @@ const PatientDetailsPage = () => {
                 className={`text-sm font-semibold ${
                   currentAppointment.status === "Upcoming"
                     ? "text-green-600"
-                    : currentAppointment.status === "Canceled"
+                    : currentAppointment.status === "Cancelled"
                     ? "text-red-600"
                     : "text-blue-600"
                 }`}
