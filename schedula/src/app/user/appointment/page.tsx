@@ -17,6 +17,7 @@ const AppointmentsPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>("Upcoming");
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
 
   const filteredAppointments = appointments.filter(
     (apt) => apt.status === activeTab
@@ -28,6 +29,9 @@ const AppointmentsPage: React.FC = () => {
     );
     setAppointments(updatedAppointments);
     localStorage.setItem("appointments", JSON.stringify(updatedAppointments));
+
+    // Dispatch custom event for other components
+    window.dispatchEvent(new Event("appointment:updated"));
     setOpenMenuId(null);
   };
 
@@ -37,6 +41,9 @@ const AppointmentsPage: React.FC = () => {
     );
     setAppointments(updatedAppointments);
     localStorage.setItem("appointments", JSON.stringify(updatedAppointments));
+
+    // Dispatch custom event for other components
+    window.dispatchEvent(new Event("appointment:updated"));
     setOpenMenuId(null);
   };
 
@@ -55,32 +62,60 @@ const AppointmentsPage: React.FC = () => {
     ) {
       return "Today";
     }
-    return dateString;
+
+    // Format as "Oct 30, 2025" or use your preferred format
+    return appointmentDate.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
   };
 
-  async function getAllAppointments() {
+  const getAllAppointments = () => {
     try {
-      const response = await fetch("/api/appointment");
-      const result = await response.json();
+      setLoading(true);
+      const stored = localStorage.getItem("appointments");
 
-      if (result.success) {
-        console.log(`Found ${result.count} appointments`);
-        console.log(result.data);
-        const allAppointments = result?.data;
-        setAppointments(allAppointments);
-        return result.data;
-      } else {
-        console.error("Error:", result.error);
-        return [];
+      if (!stored) {
+        console.log("No appointments found in localStorage");
+        setAppointments([]);
+        return;
       }
+
+      const parsed: Appointment[] = JSON.parse(stored);
+
+      // Ensure it's an array
+      if (!Array.isArray(parsed)) {
+        console.error("Appointments data is not an array");
+        setAppointments([]);
+        return;
+      }
+
+      console.log("All Appointments:", parsed);
+      setAppointments(parsed);
     } catch (error) {
       console.error("Failed to fetch appointments:", error);
-      return [];
+      setAppointments([]);
+    } finally {
+      setLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
     getAllAppointments();
+
+    // Listen for appointment updates from other components/tabs
+    const handleUpdate = () => {
+      getAllAppointments();
+    };
+
+    window.addEventListener("appointment:updated", handleUpdate);
+    window.addEventListener("storage", handleUpdate);
+
+    return () => {
+      window.removeEventListener("appointment:updated", handleUpdate);
+      window.removeEventListener("storage", handleUpdate);
+    };
   }, []);
 
   // Close menu when clicking outside
@@ -91,6 +126,17 @@ const AppointmentsPage: React.FC = () => {
       return () => document.removeEventListener("click", handleClickOutside);
     }
   }, [openMenuId]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen pb-20 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading appointments...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen pb-20">
@@ -266,7 +312,7 @@ const AppointmentsPage: React.FC = () => {
                                   `/user/appointment/${appointment.id}`
                                 );
                               }}
-                              className="w-full px-4 py-2.5 text-left text-sm font-medium hover:bg-gray-50 transition-colors"
+                              className="w-full px-4 py-2.5 text-left text-sm font-medium hover:bg-gray-50 transition-colors rounded-t-xl"
                             >
                               View Details
                             </button>
@@ -285,7 +331,7 @@ const AppointmentsPage: React.FC = () => {
                                   onClick={() =>
                                     handleCancelAppointment(appointment.id)
                                   }
-                                  className="w-full px-4 py-2.5 text-left text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+                                  className="w-full px-4 py-2.5 text-left text-sm font-medium text-red-600 hover:bg-red-50 transition-colors rounded-b-xl"
                                 >
                                   Cancel
                                 </button>

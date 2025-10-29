@@ -19,16 +19,16 @@ interface AppointmentUI {
   type: "In-person" | "Online";
   date: string;
   time: string;
-  status: "Upcoming" | "Completed" | "Canceled" | string;
+  status: "Upcoming" | "Completed" | "Canceled";
   problem?: string;
   raw?: any; // original object if you need it later
 }
 
+type TabStatus = "Upcoming" | "Completed" | "Canceled";
+
 export default function DoctorAppointmentsPage() {
   const [appointments, setAppointments] = useState<AppointmentUI[]>([]);
-  const [activeTab, setActiveTab] = useState<
-    "Upcoming" | "Completed" | "Canceled"
-  >("Upcoming");
+  const [activeTab, setActiveTab] = useState<TabStatus>("Upcoming");
   const [doctorName, setDoctorName] = useState<string | null>(null);
   const STORAGE_KEY = "appointments";
 
@@ -41,12 +41,20 @@ export default function DoctorAppointmentsPage() {
       item?.patientName ||
       "Patient";
 
-    const type = item?.patientDetails ? "In-person" : "Online";
+    const type: "In-person" | "Online" =
+      item?.type === "Online" ? "Online" : "In-person";
 
     const date = item?.date ?? item?.appointmentDate ?? "";
     const time = item?.timeSlot ?? item?.time ?? "";
 
-    const status = item?.status ?? "Upcoming";
+    // Normalize status to match our type
+    let status: TabStatus = "Upcoming";
+    const rawStatus = String(item?.status ?? "Upcoming").trim();
+    if (rawStatus === "Completed") status = "Completed";
+    else if (rawStatus === "Canceled" || rawStatus === "Cancelled")
+      status = "Canceled";
+    else status = "Upcoming";
+
     const problem = item?.patientDetails?.problem ?? item?.problem ?? "";
 
     return {
@@ -113,7 +121,7 @@ export default function DoctorAppointmentsPage() {
       // transform
       const transformed = filtered.map(transformStoredToUI);
 
-      // optional: sort by date/time if needed — currently leave order as-is or you can implement sorting
+      // optional: sort by date/time if needed
       setAppointments(transformed);
     } catch (err) {
       console.error("Error processing appointments", err);
@@ -152,15 +160,15 @@ export default function DoctorAppointmentsPage() {
   const filteredAppointments = useMemo(
     () =>
       appointments.filter((a) => {
-        // normalize status comparison
-        const s = String(a.status || "").trim();
-        return s === activeTab;
+        return a.status === activeTab;
       }),
     [appointments, activeTab]
   );
 
+  const tabs: TabStatus[] = ["Upcoming", "Completed", "Canceled"];
+
   return (
-    <div className="min-h-screen bg-gray-50 ">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-6 py-4">
@@ -176,7 +184,9 @@ export default function DoctorAppointmentsPage() {
                 My Appointments
               </h1>
               {doctorName && (
-                <p className="text-sm text-gray-500 mt-1">Doctor: {doctorName}</p>
+                <p className="text-sm text-gray-500 mt-1">
+                  Doctor: {doctorName}
+                </p>
               )}
             </div>
           </div>
@@ -186,7 +196,7 @@ export default function DoctorAppointmentsPage() {
       <div className="max-w-4xl mx-auto px-4 py-6">
         {/* Tabs */}
         <div className="flex gap-6 border-b border-gray-200 mb-6">
-          {["Upcoming", "Completed", "Canceled"].map((tab) => (
+          {tabs.map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
