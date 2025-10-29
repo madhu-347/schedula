@@ -690,7 +690,7 @@ export default function DoctorDashboardPage() {
                           )}
                           <div>
                             <p className="font-medium text-gray-700">
-                              {appt.patientDetails.fullName}
+                              {appt?.patientDetails?.fullName}
                             </p>
                             <p className="text-xs text-gray-500">
                               {appt.timeSlot} - {appt.patientDetails.problem}
