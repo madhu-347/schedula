@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect,useRef  } from "react";
 import { useRouter } from "next/navigation";
 import {
   LogOut,
@@ -8,7 +8,9 @@ import {
   Users,
   Settings,
   Clock,
+  Bell,
   UserPlus,
+  X,
   Video,
   ChevronRight,
   Star, // Added Star
@@ -119,6 +121,11 @@ export default function DoctorDashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
 
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [loadingNotifications, setLoadingNotifications] = useState(true);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
+
   // --- Authentication Check ---
   useEffect(() => {
     const userString = localStorage.getItem("user");
@@ -153,6 +160,39 @@ export default function DoctorDashboardPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]); // Added router to dependency array as per ESLint suggestion
   // --- End Auth Check ---
+
+
+ useEffect(() => {
+  if (!doctorInfo?.name) return;
+
+  const fetchNotifications = async () => {
+    try {
+      const res = await fetch(`/api/notifications?doctorName=${encodeURIComponent(doctorInfo.name)}`);
+      const data = await res.json();
+      if (data.success) {
+        setNotifications(data.data.reverse());
+      }
+    } catch (err) {
+      console.error("Error fetching notifications:", err);
+    } finally {
+      setLoadingNotifications(false);
+    }
+  };
+
+  fetchNotifications();
+  const interval = setInterval(fetchNotifications, 10000);
+  return () => clearInterval(interval);
+}, [doctorInfo?.name]);
+
+useEffect(() => {
+  const handleClickOutside = (event: MouseEvent) => {
+    if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      setShowDropdown(false);
+    }
+  };
+  document.addEventListener("mousedown", handleClickOutside);
+  return () => document.removeEventListener("mousedown", handleClickOutside);
+}, []);
 
   // --- Logout Function ---
   const handleLogout = () => {
@@ -204,14 +244,61 @@ export default function DoctorDashboardPage() {
               </p>
             )}
           </div>
-          <button
-            onClick={handleLogout}
-            title="Logout"
-            className="p-2 rounded-full hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-cyan-600 focus:ring-white transition-colors"
-          >
-            {" "}
-            <LogOut size={20} />{" "}
-          </button>
+          <div className="flex items-center gap-4 relative" ref={dropdownRef}>
+  {/* Notification Bell */}
+  <button
+    onClick={() => setShowDropdown((prev) => !prev)}
+    className="relative p-2 rounded-full hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-cyan-600 focus:ring-white transition"
+  >
+    <Bell size={20} />
+    {notifications.some((n) => !n.read) && (
+      <span className="absolute top-1 right-1 block w-2 h-2 bg-red-500 rounded-full" />
+    )}
+  </button>
+
+  {/* Dropdown */}
+  {showDropdown && (
+    <div className="absolute right-12 top-10 w-80 bg-white text-gray-800 rounded-lg shadow-lg border border-gray-100 z-50">
+      <div className="flex justify-between items-center px-4 py-3 border-b">
+        <h3 className="font-semibold text-gray-700">Notifications</h3>
+        <button onClick={() => setShowDropdown(false)}>
+          <X size={18} className="text-gray-500 hover:text-gray-700" />
+        </button>
+      </div>
+      <div className="max-h-64 overflow-y-auto">
+        {loadingNotifications ? (
+          <p className="text-sm text-gray-500 p-3">Loading...</p>
+        ) : notifications.length > 0 ? (
+          notifications.slice(0, 8).map((n) => (
+            <div
+              key={n.id}
+              className={`px-4 py-3 border-b last:border-none ${
+                n.read ? "bg-white" : "bg-cyan-50"
+              }`}
+            >
+              <p className="text-sm font-medium">{n.message}</p>
+              <p className="text-xs text-gray-500 mt-1">
+                {new Date(n.timestamp).toLocaleString()}
+              </p>
+            </div>
+          ))
+        ) : (
+          <p className="text-sm text-gray-500 p-3">No notifications yet</p>
+        )}
+      </div>
+    </div>
+  )}
+
+  {/* Logout Button */}
+  <button
+    onClick={handleLogout}
+    title="Logout"
+    className="p-2 rounded-full hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-cyan-600 focus:ring-white transition"
+  >
+    <LogOut size={20} />
+  </button>
+</div>
+
         </div>
       </header>
 

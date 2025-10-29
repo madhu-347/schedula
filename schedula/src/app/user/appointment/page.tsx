@@ -28,7 +28,7 @@ const AppointmentsPage: React.FC = () => {
       apt.id === id ? { ...apt, paymentStatus: "Paid" as const } : apt
     );
     setAppointments(updatedAppointments);
-    localStorage.setItem("appointments", JSON.stringify(updatedAppointments));
+    localStorage.setItem("appointments", JSON.stringify(updatedAppointments))
 
     // Dispatch custom event for other components
     window.dispatchEvent(new Event("appointment:updated"));

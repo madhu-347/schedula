@@ -121,7 +121,7 @@ export default function AppointmentPage() {
     }
   }, [days, selectedDate]);
 
-  const handleBookAppointment = () => {
+  const handleBookAppointment = async () => {
     if (!doctor) {
       console.log("No doctor, returning");
       return;
@@ -149,6 +149,20 @@ export default function AppointmentPage() {
       status: "Upcoming",
       paymentStatus: "Not paid",
     };
+ try {
+    await fetch("/api/notifications", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        doctorName: appointment.doctorName,
+        message: `New appointment booked by ${
+          appointment.patientDetails?.fullName || "a patient"
+        } on ${appointment.date} at ${appointment.timeSlot}.`,
+      }),
+    });
+  } catch (err) {
+    console.error("Failed to send notification:", err);
+  }
 
     saveAppointment(appointment);
 
