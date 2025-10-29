@@ -10,7 +10,7 @@ import BottomNav from "@/components/BottomNav";
 import { Appointment } from "@/lib/types/appointment";
 import Heading from "@/components/ui/Heading";
 
-type TabType = "Upcoming" | "Completed" | "Canceled";
+type TabType = "Upcoming" | "Completed" | "Cancelled";
 
 const AppointmentsPage: React.FC = () => {
   const router = useRouter();
@@ -171,13 +171,13 @@ const AppointmentsPage: React.FC = () => {
             )}
           </button>
           <button
-            onClick={() => setActiveTab("Canceled")}
+            onClick={() => setActiveTab("Cancelled")}
             className={`py-3 font-semibold relative ${
-              activeTab === "Canceled" ? "text-cyan-500" : "text-gray-400"
+              activeTab === "Cancelled" ? "text-cyan-500" : "text-gray-400"
             }`}
           >
-            Canceled
-            {activeTab === "Canceled" && (
+            Cancelled
+            {activeTab === "Cancelled" && (
               <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-cyan-500" />
             )}
           </button>
