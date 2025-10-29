@@ -69,6 +69,16 @@ export async function getAppointmentById(id: string) {
     const response = await fetch(`/api/appointment/${id}`);
     console.log("get appt by id res: ", response);
     if (!response.ok) {
+      // Fallback to client localStorage (list page uses localStorage)
+      try {
+        const stored = typeof window !== "undefined" ? localStorage.getItem("appointments") : null;
+        if (stored) {
+          const list = JSON.parse(stored) as any[];
+          const numericId = Number(id);
+          const found = list.find((a) => a.id === numericId) || null;
+          if (found) return found;
+        }
+      } catch {}
       console.error("Appointment not found");
       return null;
     }
@@ -148,8 +158,24 @@ export async function updateAppointment(id: number, updates: Partial<any>) {
       console.log("Appointment updated successfully!");
       return updatedAppointment;
     } else {
-      const error = await response.json();
-      console.error("Failed to update:", error.error);
+      // If backend doesn't have this record (e.g., localStorage-only item), update localStorage
+      if (response.status === 404) {
+        try {
+          const stored = typeof window !== "undefined" ? localStorage.getItem("appointments") : null;
+          if (stored) {
+            const list = JSON.parse(stored) as any[];
+            const index = list.findIndex((a) => a.id === id);
+            if (index !== -1) {
+              const merged = { ...list[index], ...updates };
+              list[index] = merged;
+              localStorage.setItem("appointments", JSON.stringify(list));
+              return { success: true, data: merged };
+            }
+          }
+        } catch {}
+      }
+      const error = await response.json().catch(() => ({}));
+      console.error("Failed to update:", (error as any).error || response.statusText);
       return null;
     }
   } catch (error) {
