@@ -37,7 +37,7 @@ const AppointmentsPage: React.FC = () => {
 
   const handleCancelAppointment = (id: number): void => {
     const updatedAppointments = appointments.map((apt) =>
-      apt.id === id ? { ...apt, status: "Canceled" as const } : apt
+      apt.id === id ? { ...apt, status: "Cancelled" as const } : apt
     );
     setAppointments(updatedAppointments);
     localStorage.setItem("appointments", JSON.stringify(updatedAppointments));

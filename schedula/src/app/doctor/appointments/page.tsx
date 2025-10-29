@@ -19,26 +19,16 @@ interface AppointmentUI {
   type: "In-person" | "Online";
   date: string;
   time: string;
-<<<<<<< HEAD
-  status: "Upcoming" | "Completed" | "Canceled";
-=======
-  status: string;
->>>>>>> f30f9f7c7dddd33118f684aa7886d1a40f5792d6
+  status: "Upcoming" | "Completed" | "Cancelled";
   problem?: string;
   raw?: any;
 }
 
-type TabStatus = "Upcoming" | "Completed" | "Canceled";
+type TabStatus = "Upcoming" | "Completed" | "Cancelled";
 
 export default function DoctorAppointmentsPage() {
   const [appointments, setAppointments] = useState<AppointmentUI[]>([]);
-<<<<<<< HEAD
   const [activeTab, setActiveTab] = useState<TabStatus>("Upcoming");
-=======
-  const [activeTab, setActiveTab] = useState<
-    "Upcoming" | "Completed" | "Cancelled"
-  >("Upcoming");
->>>>>>> f30f9f7c7dddd33118f684aa7886d1a40f5792d6
   const [doctorName, setDoctorName] = useState<string | null>(null);
   const [selectedAppointment, setSelectedAppointment] =
     useState<AppointmentUI | null>(null);
@@ -47,49 +37,47 @@ export default function DoctorAppointmentsPage() {
   // Transform data from your localStorage JSON
   const transformStoredToUI = (item: any): AppointmentUI => {
     const patientName = item?.patientDetails?.fullName || "Patient";
-    const type = item?.type === "Online" ? "Online" : "In-person";
-
-<<<<<<< HEAD
     const type: "In-person" | "Online" =
       item?.type === "Online" ? "Online" : "In-person";
 
-    const date = item?.date ?? item?.appointmentDate ?? "";
+    const date = item?.date ?? "";
     const time = item?.timeSlot ?? item?.time ?? "";
 
     // Normalize status to match our type
     let status: TabStatus = "Upcoming";
     const rawStatus = String(item?.status ?? "Upcoming").trim();
-    if (rawStatus === "Completed") status = "Completed";
-    else if (rawStatus === "Canceled" || rawStatus === "Cancelled")
-      status = "Canceled";
-    else status = "Upcoming";
+    if (rawStatus === "Completed") {
+      status = "Completed";
+    } else if (rawStatus === "Cancelled") {
+      status = "Cancelled";
+    } else if (rawStatus === "Waiting") {
+      status = "Upcoming";
+    } else {
+      status = "Upcoming";
+    }
 
     const problem = item?.patientDetails?.problem ?? item?.problem ?? "";
-=======
-    let status = item?.status ?? "Upcoming";
-    if (status === "Waiting") status = "Upcoming";
-    if (status.toLowerCase() === "cancelled") status = "Cancelled";
-
-    const problem = item?.patientDetails?.problem ?? "";
->>>>>>> f30f9f7c7dddd33118f684aa7886d1a40f5792d6
 
     return {
       id: item?.id ?? `${item?.doctorName}-${item?.tokenNo ?? Math.random()}`,
       patientName,
       type,
-      date: item?.date ?? "",
-      time: item?.timeSlot ?? "",
+      date,
+      time,
       status,
       problem,
       raw: item,
     };
   };
 
-  //  Load and filter for logged-in doctor
+  // Load and filter for logged-in doctor
   const loadAppointments = () => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return setAppointments([]);
+      if (!raw) {
+        setAppointments([]);
+        return;
+      }
 
       const parsed = JSON.parse(raw);
       const arr = Array.isArray(parsed) ? parsed : [parsed];
@@ -122,19 +110,21 @@ export default function DoctorAppointmentsPage() {
       const name = user.name?.trim().toLowerCase();
       setDoctorName(user.name);
 
-      //  Match doctorName case-insensitively
+      // Match doctorName case-insensitively
       const filtered = arr.filter(
         (a) =>
-          a?.doctorName &&
-          a.doctorName.trim().toLowerCase() === String(name)
+          a?.doctorName && a.doctorName.trim().toLowerCase() === String(name)
       );
 
       const transformed = filtered.map(transformStoredToUI);
-<<<<<<< HEAD
 
-      // optional: sort by date/time if needed
-=======
->>>>>>> f30f9f7c7dddd33118f684aa7886d1a40f5792d6
+      // Optional: sort by date/time if needed
+      transformed.sort((a, b) => {
+        const dateA = new Date(`${a.date} ${a.time}`).getTime();
+        const dateB = new Date(`${b.date} ${b.time}`).getTime();
+        return dateA - dateB;
+      });
+
       setAppointments(transformed);
     } catch (err) {
       console.error("Error processing appointments", err);
@@ -152,22 +142,7 @@ export default function DoctorAppointmentsPage() {
   }, []);
 
   const filteredAppointments = useMemo(
-    () =>
-<<<<<<< HEAD
-      appointments.filter((a) => {
-        return a.status === activeTab;
-      }),
-    [appointments, activeTab]
-  );
-
-  const tabs: TabStatus[] = ["Upcoming", "Completed", "Canceled"];
-
-  return (
-    <div className="min-h-screen bg-gray-50">
-=======
-      appointments.filter(
-        (a) => a.status.toLowerCase() === activeTab.toLowerCase()
-      ),
+    () => appointments.filter((a) => a.status === activeTab),
     [appointments, activeTab]
   );
 
@@ -180,9 +155,10 @@ export default function DoctorAppointmentsPage() {
     return () => window.removeEventListener("keydown", handleEsc);
   }, []);
 
+  const tabs: TabStatus[] = ["Upcoming", "Completed", "Cancelled"];
+
   return (
     <div className="min-h-screen bg-gray-50 relative">
->>>>>>> f30f9f7c7dddd33118f684aa7886d1a40f5792d6
       {/* Header */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-6 py-4">
@@ -210,14 +186,10 @@ export default function DoctorAppointmentsPage() {
       {/* Tabs */}
       <div className="max-w-4xl mx-auto px-4 py-6">
         <div className="flex gap-6 border-b border-gray-200 mb-6">
-<<<<<<< HEAD
           {tabs.map((tab) => (
-=======
-          {["Upcoming", "Completed", "Cancelled"].map((tab) => (
->>>>>>> f30f9f7c7dddd33118f684aa7886d1a40f5792d6
             <button
               key={tab}
-              onClick={() => setActiveTab(tab as any)}
+              onClick={() => setActiveTab(tab)}
               className={`pb-2 font-medium transition-colors ${
                 activeTab === tab
                   ? "text-[#46C2DE] border-b-2 border-[#46C2DE]"
@@ -235,7 +207,7 @@ export default function DoctorAppointmentsPage() {
             {filteredAppointments.map((a) => (
               <div
                 key={a.id}
-                className="bg-white shadow-sm border border-gray-200 rounded-2xl p-5 space-y-3 hover:shadow-md"
+                className="bg-white shadow-sm border border-gray-200 rounded-2xl p-5 space-y-3 hover:shadow-md transition-shadow"
               >
                 <div className="flex justify-between items-start">
                   <div>
@@ -243,7 +215,9 @@ export default function DoctorAppointmentsPage() {
                       <User className="w-5 h-5 text-[#46C2DE]" />
                       {a.patientName}
                     </h2>
-                    <p className="text-sm text-gray-500 mt-1">{a.problem}</p>
+                    {a.problem && (
+                      <p className="text-sm text-gray-500 mt-1">{a.problem}</p>
+                    )}
                   </div>
                   <span
                     className={`text-sm px-3 py-1 rounded-full font-medium ${
@@ -260,7 +234,8 @@ export default function DoctorAppointmentsPage() {
 
                 <div className="flex items-center gap-3 text-sm text-gray-600 mt-3">
                   <CalendarDays className="w-4 h-4" />
-                  {a.raw?.day}, {a.date}
+                  {a.raw?.day && `${a.raw.day}, `}
+                  {a.date}
                 </div>
 
                 <div className="flex items-center gap-3 text-sm text-gray-600">
@@ -278,23 +253,80 @@ export default function DoctorAppointmentsPage() {
                 </div>
 
                 <div className="flex justify-end gap-3 mt-4">
-                  {a.status === "Upcoming" && (
-                    <Button
-                      variant="outline"
-                      className="border-[#46C2DE] text-[#46C2DE] hover:bg-[#E6F7FA]"
-                      onClick={() => setSelectedAppointment(a)}
-                    >
-                      View Details
-                    </Button>
-                  )}
+                  <Button
+                    variant="outline"
+                    className="border-[#46C2DE] text-[#46C2DE] hover:bg-[#E6F7FA]"
+                    onClick={() => setSelectedAppointment(a)}
+                  >
+                    View Details
+                  </Button>
                 </div>
               </div>
             ))}
           </div>
         ) : (
-          <p className="text-center text-gray-500 py-16">
-            No {activeTab.toLowerCase()} appointments.
-          </p>
+          <div className="flex flex-col items-center justify-center py-16 px-4">
+            <svg
+              className="w-48 h-48 mb-6 opacity-50"
+              viewBox="0 0 400 400"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              {/* Clipboard illustration */}
+              <g transform="translate(120, 140) rotate(-15)">
+                <rect
+                  x="0"
+                  y="20"
+                  width="120"
+                  height="160"
+                  rx="8"
+                  fill="#E5E7EB"
+                  stroke="#9CA3AF"
+                  strokeWidth="2"
+                />
+                <rect
+                  x="30"
+                  y="0"
+                  width="60"
+                  height="30"
+                  rx="6"
+                  fill="#46C2DE"
+                />
+                <circle cx="50" cy="10" r="4" fill="white" />
+                <circle cx="70" cy="10" r="4" fill="white" />
+              </g>
+
+              <g transform="translate(180, 150) rotate(10)">
+                <rect
+                  x="0"
+                  y="20"
+                  width="140"
+                  height="180"
+                  rx="8"
+                  fill="#F3F4F6"
+                  stroke="#6B7280"
+                  strokeWidth="2"
+                />
+                <rect
+                  x="35"
+                  y="0"
+                  width="70"
+                  height="35"
+                  rx="8"
+                  fill="#46C2DE"
+                />
+                <circle cx="60" cy="12" r="5" fill="white" />
+                <circle cx="85" cy="12" r="5" fill="white" />
+              </g>
+            </svg>
+
+            <p className="text-lg font-medium text-gray-700 mb-2">
+              No {activeTab.toLowerCase()} appointments
+            </p>
+            <p className="text-sm text-gray-500 text-center">
+              Your {activeTab.toLowerCase()} appointments will appear here
+            </p>
+          </div>
         )}
       </div>
 
@@ -306,11 +338,12 @@ export default function DoctorAppointmentsPage() {
             onClick={closeModal}
           ></div>
 
-          <div className="fixed inset-0 z-30 flex items-center justify-center">
-            <div className="bg-white rounded-2xl shadow-xl w-[90%] max-w-md p-6 relative">
+          <div className="fixed inset-0 z-30 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 relative">
               <button
                 onClick={closeModal}
                 className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
+                aria-label="Close modal"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -320,42 +353,60 @@ export default function DoctorAppointmentsPage() {
               </h2>
 
               <div className="space-y-3 text-sm text-gray-700">
-                <p>
-                  <span className="font-medium">Token No:</span>{" "}
-                  {selectedAppointment.raw?.tokenNo}
-                </p>
+                {selectedAppointment.raw?.tokenNo && (
+                  <p>
+                    <span className="font-medium">Token No:</span>{" "}
+                    {selectedAppointment.raw.tokenNo}
+                  </p>
+                )}
                 <p>
                   <span className="font-medium">Patient Name:</span>{" "}
-                  {selectedAppointment.raw?.patientDetails?.fullName}
+                  {selectedAppointment.patientName}
                 </p>
-                <p>
-                  <span className="font-medium">Age:</span>{" "}
-                  {selectedAppointment.raw?.patientDetails?.age}
-                </p>
-                <p>
-                  <span className="font-medium">Gender:</span>{" "}
-                  {selectedAppointment.raw?.patientDetails?.gender}
-                </p>
-                <p>
-                  <span className="font-medium">Phone:</span>{" "}
-                  {selectedAppointment.raw?.patientDetails?.phone}
-                </p>
-                <p>
-                  <span className="font-medium">Problem:</span>{" "}
-                  {selectedAppointment.raw?.patientDetails?.problem}
-                </p>
+                {selectedAppointment.raw?.patientDetails?.age && (
+                  <p>
+                    <span className="font-medium">Age:</span>{" "}
+                    {selectedAppointment.raw.patientDetails.age}
+                  </p>
+                )}
+                {selectedAppointment.raw?.patientDetails?.gender && (
+                  <p>
+                    <span className="font-medium">Gender:</span>{" "}
+                    {selectedAppointment.raw.patientDetails.gender}
+                  </p>
+                )}
+                {selectedAppointment.raw?.patientDetails?.phone && (
+                  <p>
+                    <span className="font-medium">Phone:</span>{" "}
+                    {selectedAppointment.raw.patientDetails.phone}
+                  </p>
+                )}
+                {selectedAppointment.problem && (
+                  <p>
+                    <span className="font-medium">Problem:</span>{" "}
+                    {selectedAppointment.problem}
+                  </p>
+                )}
                 <p>
                   <span className="font-medium">Date:</span>{" "}
-                  {selectedAppointment.raw?.day}, {selectedAppointment.date}
+                  {selectedAppointment.raw?.day &&
+                    `${selectedAppointment.raw.day}, `}
+                  {selectedAppointment.date}
                 </p>
                 <p>
                   <span className="font-medium">Time Slot:</span>{" "}
-                  {selectedAppointment.raw?.timeSlot}
+                  {selectedAppointment.time}
                 </p>
                 <p>
-                  <span className="font-medium">Payment Status:</span>{" "}
-                  {selectedAppointment.raw?.paymentStatus}
+                  <span className="font-medium">Type:</span>{" "}
+                  {selectedAppointment.type}
                 </p>
+                {selectedAppointment.raw?.paymentStatus && (
+                  <p>
+                    <span className="font-medium">Payment Status:</span>{" "}
+                    {selectedAppointment.raw.paymentStatus}
+                  </p>
+                )}
               </div>
 
               <div className="flex justify-center mt-6">
