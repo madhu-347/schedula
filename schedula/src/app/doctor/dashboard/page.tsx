@@ -543,6 +543,12 @@ export default function DoctorDashboardPage() {
                   <button className="text-sm bg-cyan-500 hover:bg-cyan-600 text-white px-3 py-1.5 rounded-md transition-colors">
                     Add New Patient
                   </button>
+                  <Link
+                      href={`/doctor/calendar?doctorName=${encodeURIComponent(doctorInfo?.name || '')}`}
+                      className="text-sm bg-cyan-500 hover:bg-cyan-600 text-white px-3 py-2 rounded-md"
+                    >
+                      Open Full Calendar
+                  </Link>
                   <button className="text-sm bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-1.5 rounded-md transition-colors">
                     Manage Availability
                   </button>
