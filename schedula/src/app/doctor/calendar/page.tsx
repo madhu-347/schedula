@@ -18,41 +18,37 @@ export default function CalendarPage() {
     const appointments = JSON.parse(stored);
     const user = JSON.parse(userString);
 
-    // Filter only this doctor's appointments
-
     const doctorAppointments = appointments.filter(
       (apt: any) =>
         apt.doctorName &&
         user?.name &&
         apt.doctorName.toLowerCase() === user.name.toLowerCase()
-);
+    );
 
+    const statusColors: Record<string, string> = {
+      Upcoming: "#0ea5e9", // blue
+      Completed: "#10b981", // green
+      Cancelled: "#ef4444", // red
+    };
 
-  const statusColors: Record<string, string> = {
-  Upcoming: "#0ea5e9",   // blue
-  Completed: "#10b981", // green
-  Cancelled: "#ef4444", // red
-};
+    const mapped = doctorAppointments.map((apt: any) => {
+      const parsed = new Date(apt.date);
 
-const mapped = doctorAppointments.map((apt: any) => {
-  const parsed = new Date(apt.date);
+      return {
+        title: apt.patientDetails?.fullName || "Appointment",
+        start: parsed.toISOString().split("T")[0],
+        backgroundColor: statusColors[apt.status] || "#6366f1",
+        borderColor: statusColors[apt.status] || "#6366f1",
+        textColor: "#ffffff",
+        extendedProps: {
+          status: apt.status,
+          token: apt.tokenNo,
+          time: apt.timeSlot,
+        },
+      };
+    });
 
-  return {
-    title: apt.patientDetails?.fullName || "Appointment",
-    start: parsed.toISOString().split("T")[0],
-    backgroundColor: statusColors[apt.status] || "#6366f1",
-    borderColor: statusColors[apt.status] || "#6366f1",
-    textColor: "#ffffff",
-    extendedProps: {
-      status: apt.status,
-      token: apt.tokenNo,
-      time: apt.timeSlot,
-    },
-  };
-});
-
-setEvents(mapped);
-
+    setEvents(mapped);
   }, []);
 
   return (
@@ -60,35 +56,43 @@ setEvents(mapped);
       <h2 className="text-xl font-bold mb-4">My Calendar</h2>
 
       <FullCalendar
-      plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-      initialView="dayGridMonth"
-      height="80vh"
-      events={events}
-      eventMouseEnter={(info) => {
-    const { event, jsEvent } = info;
-    const tooltip = document.createElement("div");
-    tooltip.className = "fc-tooltip";
+        plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+        initialView="dayGridMonth"
+        height="80vh"
+        events={events}
+        headerToolbar={{
+          left: "prev,next today",
+          center: "title",
+          right: "dayGridMonth,timeGridWeek,timeGridDay",
+        }}
+        buttonText={{
+          today: "Today",
+          month: "Month",
+          week: "Week",
+          day: "Day",
+        }}
+        eventMouseEnter={(info) => {
+          const { event, jsEvent } = info;
+          const tooltip = document.createElement("div");
+          tooltip.className = "fc-tooltip";
 
-    tooltip.innerHTML = `
-      <strong>${event.title}</strong><br/>
-      Date: ${event.start?.toLocaleDateString()}<br/>
-      Time: ${event.extendedProps.time ?? "-"}<br/>
-      Status: ${event.extendedProps.status ?? "-"}<br/>
-      Token: ${event.extendedProps.token ?? "-"}
-    `;
+          tooltip.innerHTML = `
+            <strong>${event.title}</strong><br/>
+            Date: ${event.start?.toLocaleDateString()}<br/>
+            Time: ${event.extendedProps.time ?? "-"}<br/>
+            Status: ${event.extendedProps.status ?? "-"}<br/>
+            Token: ${event.extendedProps.token ?? "-"}
+          `;
 
-    document.body.appendChild(tooltip);
-    tooltip.style.left = jsEvent.pageX + 10 + "px";
-    tooltip.style.top = jsEvent.pageY + 10 + "px";
-
-    info.el.setAttribute("data-tooltip-id", event.id.toString());
-  }}
-  eventMouseLeave={(info) => {
-    const tooltip = document.querySelector(`.fc-tooltip`);
-    if (tooltip) tooltip.remove();
-  }}
- 
-/>
+          document.body.appendChild(tooltip);
+          tooltip.style.left = jsEvent.pageX + 10 + "px";
+          tooltip.style.top = jsEvent.pageY + 10 + "px";
+        }}
+        eventMouseLeave={() => {
+          const tooltip = document.querySelector(`.fc-tooltip`);
+          if (tooltip) tooltip.remove();
+        }}
+      />
     </div>
   );
 }
