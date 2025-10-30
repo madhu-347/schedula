@@ -88,10 +88,14 @@ export default function AppointmentPage() {
     appointment: Omit<Appointment, "id" | "patientDetails">
   ) => {
     const existing = localStorage.getItem("appointments");
+    const userString = localStorage.getItem("user");
+    const user = userString ? JSON.parse(userString) : null;
+    console.log("Saving appointment for user:", user);
     const appointments: Appointment[] = existing ? JSON.parse(existing) : [];
 
     const newAppointment = {
       id: Date.now(), // Generate unique ID
+      userEmail: user?.email ?? 'guest@example.com',
       ...appointment,
     };
 

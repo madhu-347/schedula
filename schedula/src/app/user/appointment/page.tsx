@@ -65,6 +65,8 @@ const AppointmentsPage: React.FC = () => {
 
     // Dispatch custom event for other components
     window.dispatchEvent(new Event("appointment:updated"));
+
+    getAllAppointments(JSON.parse(localStorage.getItem("user") || "{}"));
     setOpenMenuId(null);
   };
 
@@ -92,7 +94,8 @@ const AppointmentsPage: React.FC = () => {
     });
   };
 
-  const getAllAppointments = (patientName: string) => {
+  const getAllAppointments = (user: any) => {
+
     try {
       setLoading(true);
       const stored = localStorage.getItem("appointments");
@@ -113,15 +116,14 @@ const AppointmentsPage: React.FC = () => {
       }
 
       // Filter appointments for the current patient (case-insensitive)
+      // Filter by logged in user's email instead of name
       const patientAppointments = parsed.filter(
-        (apt) =>
-          apt.patientDetails?.fullName &&
-          apt.patientDetails.fullName.trim().toLowerCase() ===
-            patientName.trim().toLowerCase()
-      );
+        (apt) => apt.userEmail && apt.userEmail === user.email
+);
+
 
       console.log(
-        `Appointments for ${patientName}:`,
+        `Appointments for ${user.name}:`,
         patientAppointments.length
       );
       setAppointments(patientAppointments);
@@ -153,17 +155,12 @@ const AppointmentsPage: React.FC = () => {
         router.push("/user/login");
         return;
       }
+      setCurrentUserName(user.name);
+      getAllAppointments(user);
 
-      const patientName = user.name;
-      setCurrentUserName(patientName);
-
-      // Load appointments for this patient
-      getAllAppointments(patientName);
-
-      // Listen for appointment updates from other components/tabs
-      const handleUpdate = () => {
-        getAllAppointments(patientName);
-      };
+    const handleUpdate = () => {
+      getAllAppointments(user);
+};
 
       window.addEventListener("appointment:updated", handleUpdate);
       window.addEventListener("storage", handleUpdate);
