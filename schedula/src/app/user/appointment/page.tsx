@@ -18,17 +18,28 @@ const AppointmentsPage: React.FC = () => {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const [currentUserName, setCurrentUserName] = useState<string | null>(null);
 
   const filteredAppointments = appointments.filter(
     (apt) => apt.status === activeTab
   );
 
   const handleMakePayment = (id: number): void => {
+    // Update in state
     const updatedAppointments = appointments.map((apt) =>
       apt.id === id ? { ...apt, paymentStatus: "Paid" as const } : apt
     );
     setAppointments(updatedAppointments);
-    localStorage.setItem("appointments", JSON.stringify(updatedAppointments))
+
+    // Update in localStorage - get all appointments, update the specific one
+    const allStored = localStorage.getItem("appointments");
+    if (allStored) {
+      const allAppointments: Appointment[] = JSON.parse(allStored);
+      const updatedAll = allAppointments.map((apt) =>
+        apt.id === id ? { ...apt, paymentStatus: "Paid" as const } : apt
+      );
+      localStorage.setItem("appointments", JSON.stringify(updatedAll));
+    }
 
     // Dispatch custom event for other components
     window.dispatchEvent(new Event("appointment:updated"));
@@ -36,11 +47,21 @@ const AppointmentsPage: React.FC = () => {
   };
 
   const handleCancelAppointment = (id: number): void => {
+    // Update in state
     const updatedAppointments = appointments.map((apt) =>
       apt.id === id ? { ...apt, status: "Cancelled" as const } : apt
     );
     setAppointments(updatedAppointments);
-    localStorage.setItem("appointments", JSON.stringify(updatedAppointments));
+
+    // Update in localStorage - get all appointments, update the specific one
+    const allStored = localStorage.getItem("appointments");
+    if (allStored) {
+      const allAppointments: Appointment[] = JSON.parse(allStored);
+      const updatedAll = allAppointments.map((apt) =>
+        apt.id === id ? { ...apt, status: "Cancelled" as const } : apt
+      );
+      localStorage.setItem("appointments", JSON.stringify(updatedAll));
+    }
 
     // Dispatch custom event for other components
     window.dispatchEvent(new Event("appointment:updated"));
@@ -71,7 +92,7 @@ const AppointmentsPage: React.FC = () => {
     });
   };
 
-  const getAllAppointments = () => {
+  const getAllAppointments = (patientName: string) => {
     try {
       setLoading(true);
       const stored = localStorage.getItem("appointments");
@@ -91,8 +112,19 @@ const AppointmentsPage: React.FC = () => {
         return;
       }
 
-      console.log("All Appointments:", parsed);
-      setAppointments(parsed);
+      // Filter appointments for the current patient (case-insensitive)
+      const patientAppointments = parsed.filter(
+        (apt) =>
+          apt.patientDetails?.fullName &&
+          apt.patientDetails.fullName.trim().toLowerCase() ===
+            patientName.trim().toLowerCase()
+      );
+
+      console.log(
+        `Appointments for ${patientName}:`,
+        patientAppointments.length
+      );
+      setAppointments(patientAppointments);
     } catch (error) {
       console.error("Failed to fetch appointments:", error);
       setAppointments([]);
@@ -102,21 +134,49 @@ const AppointmentsPage: React.FC = () => {
   };
 
   useEffect(() => {
-    getAllAppointments();
+    // Get logged-in user's information
+    const userString = localStorage.getItem("user");
+    const expiryString = localStorage.getItem("userExpiry");
+    const expiry = expiryString ? Number(expiryString) : 0;
 
-    // Listen for appointment updates from other components/tabs
-    const handleUpdate = () => {
-      getAllAppointments();
-    };
+    if (!userString || !expiry || Date.now() >= expiry) {
+      // User not logged in or session expired
+      router.push("/user/login");
+      return;
+    }
 
-    window.addEventListener("appointment:updated", handleUpdate);
-    window.addEventListener("storage", handleUpdate);
+    try {
+      const user = JSON.parse(userString);
 
-    return () => {
-      window.removeEventListener("appointment:updated", handleUpdate);
-      window.removeEventListener("storage", handleUpdate);
-    };
-  }, []);
+      if (!user || user.type !== "user") {
+        // Not a patient user
+        router.push("/user/login");
+        return;
+      }
+
+      const patientName = user.name;
+      setCurrentUserName(patientName);
+
+      // Load appointments for this patient
+      getAllAppointments(patientName);
+
+      // Listen for appointment updates from other components/tabs
+      const handleUpdate = () => {
+        getAllAppointments(patientName);
+      };
+
+      window.addEventListener("appointment:updated", handleUpdate);
+      window.addEventListener("storage", handleUpdate);
+
+      return () => {
+        window.removeEventListener("appointment:updated", handleUpdate);
+        window.removeEventListener("storage", handleUpdate);
+      };
+    } catch (error) {
+      console.error("Error parsing user data:", error);
+      router.push("/user/login");
+    }
+  }, [router]);
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -273,7 +333,7 @@ const AppointmentsPage: React.FC = () => {
                         className="w-24 h-24 rounded-2xl object-cover ring-2 ring-gray-100"
                       />
                     ) : (
-                      <div className="w-24 h-24 rounded-2xl bg-linear-to-br from-cyan-100 to-cyan-200 flex items-center justify-center ring-2 ring-gray-100">
+                      <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-cyan-100 to-cyan-200 flex items-center justify-center ring-2 ring-gray-100">
                         <span className="text-3xl font-bold text-cyan-600">
                           {appointment.doctorName.charAt(0)}
                         </span>

@@ -693,7 +693,7 @@ export default function DoctorDashboardPage() {
                               {appt?.patientDetails?.fullName}
                             </p>
                             <p className="text-xs text-gray-500">
-                              {appt.timeSlot} - {appt.patientDetails.problem}
+                              {appt.timeSlot} - {appt.patientDetails?.problem}
                             </p>
                           </div>
                         </div>
