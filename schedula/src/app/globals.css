@@ -45,15 +45,22 @@ html{
 
 .fc-tooltip {
   position: absolute;
-  background: rgba(0, 0, 0, 0.85);
+  background: #000;
   color: #fff;
-  padding: 15px 10px;
+  padding: 6px 10px;
   border-radius: 6px;
   font-size: 12px;
-  pointer-events: none;
   z-index: 9999;
-  white-space: nowrap;
+  pointer-events: none;
+  opacity: 1;
 }
+
+
+.fc-tooltip.fc-tooltip--fadeout {
+  opacity: 0;
+  pointer-events: none;
+}
+
 .fc-daygrid-event-harness {
   margin-bottom: 4px !important;
 }
@@ -80,9 +87,54 @@ html{
 }
 
 .fc-daygrid-event {
-  color: white !important;
-  border-radius: 20px;
-  padding: 3px 10px;
-  font-size: 13px;
-  font-weight: 500;
+  border-radius: 6px !important;
+  padding: 2px 4px !important;
+  margin-bottom: 4px !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  text-align: center !important;
 }
+
+.fc-daygrid-event-dot {
+  display: none !important;
+}
+.fc-event {
+  height: 24px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 6px !important;
+}
+
+/* FullCalendar Buttons */
+.fc .fc-button-primary {
+  background-color: #06b6d4 !important; /* Cyan */
+  border-color: #06b6d4 !important;
+  color: white !important;
+  font-weight: 600;
+  border-radius: 6px;
+}
+
+/* Hover */
+.fc .fc-button-primary:hover {
+  background-color: #0891b2 !important; /* Teal shade */
+  border-color: #0891b2 !important;
+  
+}
+
+/* Active (selected view) */
+.fc .fc-button-primary.fc-button-active {
+  border-radius: 10px;
+  background-color: #0e7490 !important;
+  border-color: #0e7490 !important;
+}
+
+/* Today button special styling */
+.fc .fc-today-button {
+  background-color: #14b8a6 !important; /* Emerald/Cyan */
+  border-color: #14b8a6 !important;
+}
+
+
+
+
