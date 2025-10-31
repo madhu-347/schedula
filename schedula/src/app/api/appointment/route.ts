@@ -195,10 +195,7 @@ export async function POST(request: NextRequest) {
 
     const requiredPatientFields = [
       "fullName",
-      "age",
-      "gender",
       "phone",
-      "relationship",
     ];
     const missingPatientFields = requiredPatientFields.filter(
       (field) => !body.patientDetails[field]
@@ -278,14 +275,14 @@ export async function POST(request: NextRequest) {
       expectedTime: body.expectedTime,
       patientDetails: {
         fullName: body.patientDetails.fullName,
-        age: Number(body.patientDetails.age),
-        gender: body.patientDetails.gender,
+        age: Number(body.patientDetails.age) || undefined,
+        gender: body.patientDetails.gender || "Not Specified",
         phone: body.patientDetails.phone,
         weight: body.patientDetails.weight
           ? Number(body.patientDetails.weight)
           : undefined,
         problem: body.patientDetails.problem || body.problem || "",
-        relationship: body.patientDetails.relationship,
+        relationship: body.patientDetails.relationship || "Self",
         location: body.patientDetails.location || "",
       },
     };
