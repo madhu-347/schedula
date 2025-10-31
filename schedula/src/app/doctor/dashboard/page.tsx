@@ -435,11 +435,14 @@ export default function DoctorDashboardPage() {
         <header className="bg-linear-to-r from-cyan-500 to-teal-500 text-white shadow-md">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
             <div>
-              <h1 className="text-2xl font-bold">Doctor Dashboard</h1>
+             
               {doctorInfo && (
+                <div>
+                 <h1 className="text-2xl font-bold">{doctorInfo.name} 's Dashboard</h1>
                 <p className="text-sm text-cyan-100 mt-1">
-                  {doctorInfo.name} - {doctorInfo.specialty || "Specialist"}
+                  {doctorInfo.specialty || "Specialist"}
                 </p>
+                </div>
               )}
             </div>
             <div className="flex items-center gap-4 relative" ref={dropdownRef}>
@@ -543,8 +546,8 @@ export default function DoctorDashboardPage() {
                   <button className="text-sm bg-cyan-500 hover:bg-cyan-600 text-white px-3 py-1.5 rounded-md transition-colors">
                     Add New Patient
                   </button>
-                  <Link
-                      href={`/doctor/calendar?doctorName=${encodeURIComponent(doctorInfo?.name || '')}`}
+                   <Link
+                      href={'/doctor/calendar'}
                       className="text-sm bg-cyan-500 hover:bg-cyan-600 text-white px-3 py-2 rounded-md"
                     >
                       Open Full Calendar
