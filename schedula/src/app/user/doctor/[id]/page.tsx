@@ -1,24 +1,54 @@
 "use client";
 
-import React from "react";
-import Image from "next/image";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { ArrowLeft, Users, Star, Camera, MessageCircle } from "lucide-react";
-import mockData from "@/lib/mockData.json";
 import { useParams } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import Heading from "@/components/ui/Heading";
+import { getDoctorById } from "@/app/services/doctor.api";
+import { Doctor } from "@/lib/types/doctor";
+import DoctorSummary from "@/components/cards/DoctorSummary";
 
 export default function AppointmentDetailPage() {
   const params = useParams();
-  const id = params?.id as string;
-  const doctorId = Number(id);
-  const doctor = (mockData.doctors || []).find((d) => d.id === doctorId);
+  const doctorId = params?.id as string;
+  const [doctor, setDoctor] = useState<Doctor | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const fetchDoctor = async (doctorId: string) => {
+    setIsLoading(true);
+    try {
+      const response: any = await getDoctorById(doctorId);
+      const doctorData: Doctor = response?.doctor || {};
+      console.log("get doctor by id response", doctorData);
+      setDoctor(doctorData);
+    } catch (error) {
+      console.error("Error fetching doctor:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDoctor(doctorId);
+  }, [doctorId]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Heading heading="Book Appointment" />
+        <main className="flex-1 max-w-3xl mx-auto p-6">
+          <p className="text-gray-700">Loading doctor details...</p>
+        </main>
+      </div>
+    );
+  }
 
   if (!doctor) {
     return (
       <div className="min-h-screen flex flex-col">
-        <Heading heading="Book Appointment"/>
+        <Heading heading="Book Appointment" />
         <main className="flex-1 max-w-3xl mx-auto p-6">
           <p className="text-gray-700">Doctor not found.</p>
           <Link
@@ -36,34 +66,10 @@ export default function AppointmentDetailPage() {
     <div className="min-h-screen flex flex-col bg-gray-50">
       {/* Header */}
       <header className="bg-cyan-500 text-white pt-4 pb-4 rounded-b-3xl shadow-lg">
-        <Heading heading={"Book Appointment"} />
+        <Heading heading={"Doctor Details"} />
 
         {/* Doctor Summary Card */}
-        <div className="max-w-3xl mx-auto px-5 mt-2">
-          <div className="bg-white text-gray-900 rounded-2xl p-5 flex items-center gap-4 shadow-md">
-            <div className="flex-1">
-              <h2 className="text-lg font-bold leading-tight text-gray-900">
-                {doctor.name}
-              </h2>
-              <p className="text-sm text-gray-600 font-medium mt-0.5">
-                {doctor.specialty}
-              </p>
-              <p className="text-sm text-cyan-600 font-semibold mt-2">
-                MBBS, MS (Surgeon)
-              </p>
-              <p className="text-xs text-gray-500 mt-1">
-                Fellow of Sanskara netralaya, chennai
-              </p>
-            </div>
-            <Image
-              src={doctor.profilePicture || "/male-doctor-avatar.png"}
-              alt={doctor.name}
-              width={80}
-              height={80}
-              className="rounded-xl w-20 h-20 object-cover ring-2 ring-cyan-100"
-            />
-          </div>
-        </div>
+        <DoctorSummary doctor={doctor} />
       </header>
 
       {/* Content */}
@@ -138,23 +144,16 @@ export default function AppointmentDetailPage() {
           </div>
         </section>
         <div className="max-w-3xl mx-auto px-5">
-          <Button className="w-full py-6 rounded-xl font-bold text-base shadow-lg cursor-pointer">
+          <Button
+            asChild
+            className="w-full py-6 rounded-xl font-bold text-base shadow-lg cursor-pointer"
+          >
             <Link href={`/user/doctor/${doctor.id}/book`}>
               Book Appointment
             </Link>
           </Button>
         </div>
       </main>
-
-      {/* Book Appointment Button */}
-      {/* <div className="max-w-3xl mx-auto px-5 pb-6">
-        <Button
-          asChild
-          className="w-full py-6 rounded-xl font-bold text-base shadow-lg"
-        >
-          <Link href={`/user/doctor/${doctor.id}/book`}>Book Appointment</Link>
-        </Button>
-      </div> */}
     </div>
   );
 }

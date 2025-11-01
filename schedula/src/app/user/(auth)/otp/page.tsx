@@ -55,7 +55,7 @@ export default function OtpPage() {
     if (enteredOtp === storedOtp && pendingUser) {
       const user = JSON.parse(pendingUser);
       const expiryTime = Date.now() + 30 * 60 * 1000; // 30 mins
-      localStorage.setItem("user", JSON.stringify(user));
+      // localStorage.setItem("user", JSON.stringify(user));
       localStorage.setItem("userExpiry", expiryTime.toString());
       localStorage.removeItem("pendingUser");
       localStorage.removeItem("generatedOtp");

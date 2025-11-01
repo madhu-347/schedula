@@ -51,9 +51,7 @@ export default function UserLayout({ children }: PropsWithChildren) {
     <ProtectedRoute>
       <div className="min-h-screen flex flex-col bg-background">
         <Header
-          user={user}
           setShowNotifications={setShowNotifications}
-          handleLogout={handleLogout}
         />
 
         <main className="flex-1">{children}</main>

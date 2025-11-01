@@ -1,76 +1,63 @@
 "use client";
 
-import React, { useState, useEffect } from "react"; // Added useEffect
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { InputFieldComponent } from "@/components/ui/InputField";
 import mockData from "@/lib/mockData.json";
 import AuthBanner from "@/components/auth/AuthBanner";
 import AuthHeader from "@/components/auth/AuthHeader";
+import { useAuth } from "@/context/AuthContext";
+import { User } from "@/lib/types/user";
+import { Doctor } from "@/lib/types/doctor";
 
-// Define the login type state
 type LoginMode = "user" | "doctor";
 
-// --- Type Definitions ---
-type User = {
-  id?: number;
-  email: string;
-  phone?: string; // Use phone based on your mock data structure
-  name: string;
-  location?: string;
-};
-
-type Doctor = {
-  id: number;
-  email: string;
-  password?: string;
-  name: string;
-  specialty?: string;
-};
-// --- End Type Definitions ---
-
 export default function LoginPage() {
+  const { user, login, loading } = useAuth();
   const router = useRouter();
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [remember, setRemember] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [loginMode, setLoginMode] = useState<LoginMode>("user");
 
-  // --- Effect to redirect if mode changes to doctor ---
+  // Redirect if doctor mode
   useEffect(() => {
     if (loginMode === "doctor") {
-      router.push("/doctor/login"); // Navigate to the doctor login page
-      // Optional: Reset mode if user navigates back to prevent infinite loop
-      // setLoginMode('user');
+      router.push("/doctor/login");
     }
   }, [loginMode, router]);
-  // --- END Effect ---
+
+  // ✅ Wait until AuthContext finishes loading
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gray-50">
+        <p className="text-gray-600 text-lg font-medium animate-pulse">
+          Loading user data...
+        </p>
+      </div>
+    );
+  }
 
   const handleInputChange =
     (field: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
       setFormData((prev) => ({ ...prev, [field]: e.target.value }));
     };
 
-  // --- OTP Generation ---
   const generateOtp = (length = 4) => {
     let otp = "";
-    for (let i = 0; i < length; i++) {
-      otp += Math.floor(Math.random() * 10);
-    }
+    for (let i = 0; i < length; i++) otp += Math.floor(Math.random() * 10);
     return otp;
   };
 
-  // --- Handle USER Submit Logic ---
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // This page only handles USER login now
     if (loginMode !== "user") return;
 
     setIsLoading(true);
     console.log("🔐 Checking mock USER credentials...");
 
     try {
-      // Use User type here
       const foundAccount: User | undefined = mockData.users.find(
         (u) => u.email === formData.email || u.phone === formData.email
       );
@@ -78,18 +65,17 @@ export default function LoginPage() {
       if (foundAccount) {
         console.log(`✅ USER found:`, foundAccount);
 
-        // Store minimal info needed for OTP
         const accountInfo = {
-          // id might be missing on User, handle appropriately
-          id: foundAccount.id ?? Date.now(), // Example fallback ID
-          name: foundAccount.name,
+          id: foundAccount.id ?? Date.now(),
+          firstName: foundAccount.firstName,
+          lastName: foundAccount.lastName,
           email: foundAccount.email,
-          type: loginMode, // Store 'user'
+          type: loginMode,
         };
 
+        login(foundAccount.id);
         localStorage.setItem("pendingUser", JSON.stringify(accountInfo));
 
-        // --- OTP Logic (Simulated) ---
         const generatedOtp = generateOtp(4);
         localStorage.setItem("generatedOtp", generatedOtp);
         localStorage.setItem(
@@ -98,7 +84,6 @@ export default function LoginPage() {
         );
         console.log(`🔑 Generated OTP: ${generatedOtp}`);
         router.push("/user/otp");
-        // --- End OTP Logic ---
       } else {
         alert(`❌ Invalid credentials for user. Please try again.`);
       }
@@ -109,23 +94,17 @@ export default function LoginPage() {
       setIsLoading(false);
     }
   };
-  // --- END Handle Submit Logic ---
 
   const handleForgotPassword = () => console.log("Forgot password clicked");
 
   return (
     <div className="min-h-screen flex flex-col bg-white overflow-hidden">
-      {/* HEADER - Pass userType="user" */}
       <AuthHeader activeLink="login" userType="user" />
 
-      {/* MAIN CONTENT */}
       <div className="flex flex-col md:flex-row flex-1">
-        {/* LEFT SIDE BANNER */}
         <AuthBanner />
 
-        {/* RIGHT SIDE FORM */}
         <div className="flex-1 flex flex-col justify-center items-center px-8 py-12">
-          {/* User/Doctor Toggle Buttons */}
           <div className="flex justify-center space-x-2 border border-gray-200 rounded-lg p-1 mb-8 w-full max-w-sm">
             <button
               onClick={() => setLoginMode("user")}
@@ -138,7 +117,7 @@ export default function LoginPage() {
               User
             </button>
             <button
-              onClick={() => setLoginMode("doctor")} // This will now trigger the useEffect redirect
+              onClick={() => setLoginMode("doctor")}
               className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
                 loginMode === "doctor"
                   ? "bg-cyan-500 text-white shadow-sm"
@@ -149,7 +128,6 @@ export default function LoginPage() {
             </button>
           </div>
 
-          {/* Only render form/links if still in 'user' mode before redirect happens */}
           {loginMode === "user" && (
             <>
               <h2 className="text-2xl font-semibold text-gray-800 mb-8 text-center">
@@ -159,7 +137,6 @@ export default function LoginPage() {
                 onSubmit={handleSubmit}
                 className="space-y-4 w-full max-w-md"
               >
-                {/* Email / Mobile Input */}
                 <div>
                   <label className="block text-sm font-medium mb-2">
                     Email / Mobile
@@ -173,7 +150,6 @@ export default function LoginPage() {
                   />
                 </div>
 
-                {/* Password Input */}
                 <div>
                   <label className="block text-sm font-medium mb-2">
                     Password
@@ -187,7 +163,6 @@ export default function LoginPage() {
                   />
                 </div>
 
-                {/* Remember Me & Forgot Password */}
                 <div className="flex justify-between items-center pt-2">
                   <div className="flex items-center gap-2">
                     <input
@@ -198,8 +173,7 @@ export default function LoginPage() {
                       className="w-4 h-4 accent-cyan-400"
                     />
                     <label htmlFor="remember" className="text-xs text-gray-600">
-                      {" "}
-                      Remember Me{" "}
+                      Remember Me
                     </label>
                   </div>
                   <button
@@ -207,12 +181,10 @@ export default function LoginPage() {
                     className="text-xs text-pink-500 hover:underline"
                     onClick={handleForgotPassword}
                   >
-                    {" "}
-                    Forgot Password?{" "}
+                    Forgot Password?
                   </button>
                 </div>
 
-                {/* Sign In Button */}
                 <Button
                   type="submit"
                   disabled={isLoading}
@@ -222,7 +194,6 @@ export default function LoginPage() {
                 </Button>
               </form>
 
-              {/* Sign Up Link for User */}
               <p className="text-center text-sm text-gray-600 mt-6">
                 Don&apos;t have an account?{" "}
                 <button
@@ -235,7 +206,6 @@ export default function LoginPage() {
             </>
           )}
 
-          {/* Show redirecting message if mode switched */}
           {loginMode === "doctor" && (
             <p className="text-gray-500">Redirecting to doctor login...</p>
           )}

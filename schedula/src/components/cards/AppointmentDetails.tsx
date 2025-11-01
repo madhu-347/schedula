@@ -6,9 +6,10 @@ import { CalendarPlus } from "lucide-react";
 interface AppointmentDetailsCardProps {
   appointmentNumber: string;
   status: "Upcoming" | "Completed" | "Cancelled" | "Waiting";
-  reportingTime: string;
+  date: string;
+  day: string;
+  time: string;
   onAddToCalendar?: () => void;
-  type?: "In-person" | "Virtual";
   duration?: string;
   fee?: string;
   clinicAddress?: string;
@@ -17,9 +18,10 @@ interface AppointmentDetailsCardProps {
 export const AppointmentDetailsCard: React.FC<AppointmentDetailsCardProps> = ({
   appointmentNumber,
   status,
-  reportingTime,
+  date,
+  day,
+  time,
   onAddToCalendar,
-  type,
   duration,
   fee,
   clinicAddress,
@@ -40,7 +42,7 @@ export const AppointmentDetailsCard: React.FC<AppointmentDetailsCardProps> = ({
   return (
     <Card className="p-6 shadow-sm bg-white rounded-2xl">
       {/* Appointment Number */}
-      <div className="mb-6">
+      <div className="mb-4">
         <p className="text-muted-foreground mb-1 text-gray-500">
           Appointment Number:
         </p>
@@ -50,7 +52,7 @@ export const AppointmentDetailsCard: React.FC<AppointmentDetailsCardProps> = ({
       </div>
 
       {/* Status and Reporting Time */}
-      <div className="grid grid-cols-2 gap-4 mb-6">
+      <div className="grid grid-cols-2 gap-4 mb-2">
         <div>
           <p className="text-muted-foreground mb-1 text-gray-500">Status</p>
           <p
@@ -60,62 +62,32 @@ export const AppointmentDetailsCard: React.FC<AppointmentDetailsCardProps> = ({
           </p>
         </div>
         <div>
+          <p className="text-muted-foreground mb-1 text-gray-500">Date</p>
+          <p className="text-sm md:text-base text-black text-foreground">
+            {date} {day}
+          </p>
+        </div>
+        <div>
           <p className="text-muted-foreground mb-1 text-gray-500">
             Reporting Time
           </p>
           <p className="text-sm md:text-base text-black text-foreground">
-            {reportingTime}
+            {time}
           </p>
         </div>
+        {fee && (
+          <div className="grid grid-cols-2 gap-4 mb-6">
+            {fee && (
+              <div>
+                <p className="text-muted-foreground mb-1 text-gray-500">Fee</p>
+                <p className="text-sm md:text-base text-black text-foreground">
+                  {fee}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
-
-      {/* Additional Details */}
-      {(type || duration) && (
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          {type && (
-            <div>
-              <p className="text-muted-foreground mb-1 text-gray-500">Type</p>
-              <p className="text-sm md:text-base text-black text-foreground">
-                {type}
-              </p>
-            </div>
-          )}
-          {duration && (
-            <div>
-              <p className="text-gray-500 text-muted-foreground mb-1">
-                Duration
-              </p>
-              <p className="text-sm md:text-base text-black text-foreground">
-                {duration}
-              </p>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Consultation Fee */}
-      {/* {fee && (
-        <div className="mb-6">
-          <p className="text-gray-500 text-muted-foreground mb-1">
-            Consultation Fee
-          </p>
-          <p className="text-sm md:text-base text-black text-foreground">
-            {fee}
-          </p>
-        </div>
-      )} */}
-
-      {/* Clinic Address */}
-      {/* {clinicAddress && (
-        <div className="mb-6">
-          <p className="text-gray-500 text-muted-foreground mb-1">
-            Clinic Address
-          </p>
-          <p className="text-sm md:text-base text-black text-foreground">
-            {clinicAddress}
-          </p>
-        </div>
-      )} */}
 
       {/* Add to Calendar Button */}
       {onAddToCalendar && (

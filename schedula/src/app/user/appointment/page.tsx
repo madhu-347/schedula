@@ -143,7 +143,7 @@ const AppointmentsPage: React.FC = () => {
 
     if (!userString || !expiry || Date.now() >= expiry) {
       // User not logged in or session expired
-      router.push("/user/login");
+      // router.push("/user/login");
       return;
     }
 

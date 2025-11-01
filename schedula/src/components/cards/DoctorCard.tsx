@@ -9,7 +9,7 @@ import { Doctor } from "@/lib/types/doctor";
 
 type DoctorCardProps = {
   doctor: Doctor; // ✅ FIXED
-  onToggleLike: (id: number) => void;
+  onToggleLike: (id: string) => void;
 };
 
 export default function DoctorCard({ doctor, onToggleLike }: DoctorCardProps) {
@@ -50,13 +50,13 @@ export default function DoctorCard({ doctor, onToggleLike }: DoctorCardProps) {
         }`}
       >
         {/* Conditional Image Rendering */}
-        {doctor?.profilePicture ? (
+        {doctor?.image ? (
           <Image
-            src={doctor.profilePicture}
-            alt={doctor.name || "Doctor image"}
+            src={doctor.image}
+            alt={doctor.firstName || "Doctor image"}
             width={80}
             height={80}
-            className="rounded-xl w-20 h-20 object-cover flex-shrink-0"
+            className="rounded-xl w-20 h-20 object-cover shrink-0"
           />
         ) : (
           <div className="rounded-xl w-20 h-20 bg-gray-200 flex items-center justify-center text-gray-400 flex-shrink-0">
@@ -68,8 +68,11 @@ export default function DoctorCard({ doctor, onToggleLike }: DoctorCardProps) {
           <div className="flex justify-between items-start">
             <div className="flex-1 mr-2">
               <h3 className="font-bold text-md mb-0.5 truncate">
-                {doctor.name}
+                {doctor.firstName} {doctor.lastName}
               </h3>
+              <p className="text-sm font-medium text-cyan-600 truncate">
+                {doctor.qualifications}
+              </p>
               <p className="text-sm font-medium text-cyan-600 truncate">
                 {doctor.specialty}
               </p>
@@ -79,7 +82,7 @@ export default function DoctorCard({ doctor, onToggleLike }: DoctorCardProps) {
             <Heart
               size={18}
               onClick={handleLikeClick} // Use correct handler
-              className={`cursor-pointer transition-all duration-150 z-10 relative flex-shrink-0 ${
+              className={`cursor-pointer transition-all duration-150 z-10 relative shrink-0 ${
                 doctor.is_favorited
                   ? "text-red-500 fill-red-500"
                   : "text-gray-300 hover:text-red-300"
@@ -88,20 +91,39 @@ export default function DoctorCard({ doctor, onToggleLike }: DoctorCardProps) {
           </div>
 
           {/* Correct Status styling */}
-          <p className="text-xs font-semibold text-green-600 mt-1 inline-flex items-center gap-1">
-            <span className="w-1.5 h-1.5 bg-green-500 rounded-full inline-block"></span>
-            {doctor.status}
-          </p>
+          {doctor.isAvailable ? (
+            <p className="text-xs font-semibold text-green-600 mt-1 inline-flex items-center gap-1">
+              <span className="w-1.5 h-1.5 bg-green-500 rounded-full inline-block"></span>
+              {"Available"}
+            </p>
+          ) : (
+            <p className="text-xs font-semibold text-red-600 mt-1 inline-flex items-center gap-1">
+              <span className="w-1.5 h-1.5 bg-red-500 rounded-full inline-block"></span>
+              {"Unavailable"}
+            </p>
+          )}
+
           {/* Correct Bio styling */}
           <p className="text-xs text-gray-500 my-1.5 line-clamp-2">
             {doctor.bio}
           </p>
 
           {/* Correct Time styling */}
-          <span className="bg-gray-100 text-gray-600 text-xs font-medium px-2 py-0.5 rounded-full inline-flex items-center gap-1">
+          {/* <span className="bg-gray-100 text-gray-600 text-xs font-medium px-2 py-0.5 rounded-full inline-flex items-center gap-1">
             <Clock size={12} className="text-gray-400" />
-            {doctor.time}
-          </span>
+            {doctor?.availableTime?.morning.from} -{" "}
+            {doctor?.availableTime?.morning.to} |{" "}
+            {doctor?.availableTime?.evening.from} -{" "}
+            {doctor?.availableTime?.evening.to}
+          </span> */}
+
+          {/* instead of available time display available days */}
+          <p className="text-xs font-semibold text-cyan-600 mt-1 inline-flex items-center gap-1">
+            <Clock size={12} className="text-gray-400" />
+            {doctor.availableDays && doctor.availableDays.length > 0
+              ? doctor.availableDays.join(", ")
+              : "N/A"}
+          </p>
           {/* Make sure this closing div is correct */}
         </div>
       </div>

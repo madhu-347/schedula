@@ -7,53 +7,37 @@ import { DoctorInfoCard } from "@/components/cards/DoctorReview";
 import { AppointmentDetailsCard } from "@/components/cards/AppointmentDetails";
 import { Button } from "@/components/ui/Button";
 import { toast } from "@/hooks/useToast";
-import Link from "next/link";
 import { Appointment } from "@/lib/types/appointment";
 import Heading from "@/components/ui/Heading";
+import { getAppointmentById } from "@/app/services/appointments.api";
+import { useParams } from "next/navigation";
+import { Doctor } from "@/lib/types/doctor";
+import { User } from "@/lib/types/user";
 
 const AppointmentReviewPage = () => {
+  const params = useParams();
+  const appointmentId = params?.id as string;
   const router = useRouter();
-  const [appointment, setAppointment] = useState<Appointment | null>(null);
+  const [appointment, setAppointment] = useState<Appointment>(
+    {} as Appointment
+  );
+  const [doctor, setDoctor] = useState<Doctor>({} as Doctor);
+  const [patient, setPatient] = useState<User>({} as User);
 
-  useEffect(() => {
+  const fetchAppointment = async () => {
     try {
-      const appointmentsStr = localStorage.getItem("appointments");
-      if (!appointmentsStr) {
-        toast({
-          title: "No Appointment Found",
-          description: "Please book an appointment first.",
-          variant: "destructive",
-        });
-        router.push("/user/dashboard");
-        return;
-      }
-
-      const appointments: Appointment[] = JSON.parse(appointmentsStr);
-
-      // Get the most recent appointment (last one in array)
-      const latestAppointment = appointments[appointments.length - 1];
-
-      if (!latestAppointment) {
-        toast({
-          title: "No Appointment Found",
-          description: "Please book an appointment first.",
-          variant: "destructive",
-        });
-        router.push("/user/dashboard");
-        return;
-      }
-
-      setAppointment(latestAppointment);
+      const appointmentData = await getAppointmentById(appointmentId);
+      // console.log("response : ", appointmentData);
+      setAppointment(appointmentData);
+      setDoctor(appointmentData.doctor);
+      setPatient(appointmentData.patient);
     } catch (error) {
-      console.error("Error reading appointment data:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load appointment details.",
-        variant: "destructive",
-      });
-      router.push("/user/dashboard");
+      console.error("Error fetching appointment:", error);
     }
-  }, [router]);
+  };
+  useEffect(() => {
+    fetchAppointment();
+  }, []);
 
   const handleAddToCalendar = () => {
     toast({
@@ -64,7 +48,7 @@ const AppointmentReviewPage = () => {
   };
 
   const handleAddPatientDetails = () => {
-    router.push("/user/appointment/patient-details");
+    router.push(`/user/appointment/${appointmentId}/patient-details`);
   };
 
   const handleViewAppointments = () => {
@@ -94,20 +78,21 @@ const AppointmentReviewPage = () => {
         <div className="max-w-3xl mx-auto space-y-5">
           {/* Doctor Info */}
           <DoctorInfoCard
-            name={appointment.doctorName}
-            specialty={appointment.specialty}
-            location="Available today"
-            qualification="MBBS, MD"
-            imageUrl={appointment.doctorImage || "/male-doctor.png"}
+            firstName={doctor?.firstName}
+            lastName={doctor?.lastName}
+            specialty={doctor?.specialty}
+            qualifications={doctor?.qualifications}
+            imageUrl={doctor.image}
           />
 
           {/* Appointment Details */}
           <AppointmentDetailsCard
             appointmentNumber={`#${appointment.tokenNo}`}
             status={appointment.status}
-            reportingTime={`${appointment.date}, ${appointment.timeSlot}`}
+            date={appointment.date}
+            day={appointment.day}
+            time={appointment.time}
             onAddToCalendar={handleAddToCalendar}
-            type="In-person"
             duration="30 minutes"
             fee="₹1000"
             clinicAddress="Wellora Health Center, Chennai"
@@ -124,7 +109,7 @@ const AppointmentReviewPage = () => {
                 onClick={handleAddPatientDetails}
                 className="w-full md:w-auto"
               >
-                <Plus className="w-4 h-4 mr-2" />
+                <Plus className="cursor-pointer w-4 h-4 mr-2" />
                 Add Patient Details
               </Button>
             </div>

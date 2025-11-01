@@ -34,9 +34,23 @@ export async function createUser(user: User) {
   }
 }
 
+export async function getUserById(id: string) {
+  try {
+    const response = await fetch(`/api/user?id=${id}`);
+    // console.log("response for get user by id: ", response);
+    if (!response.ok) {
+      throw new Error("Network response was not ok " + response.statusText);
+    }
+    return response.json();
+  } catch (error) {
+    console.error("Error fetching user:", error);
+    throw error;
+  }
+}
+
 export async function updateUser(user: User) {
   try {
-    const response = await fetch(`/api/user/${user.id}`, {
+    const response = await fetch(`/api/user?id=${user.id}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",

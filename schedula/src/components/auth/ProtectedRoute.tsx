@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Header from "../Header";
-import BottomNav from "../BottomNav";
+import { useAuth } from "@/context/AuthContext";
 
 export default function ProtectedRoute({
   children,
@@ -11,22 +10,27 @@ export default function ProtectedRoute({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(true);
+  const { user, loading } = useAuth();
+  const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
-    const user = localStorage.getItem("user");
-    const userExpiry = localStorage.getItem("userExpiry");
+    // Wait for auth context to finish loading
+    if (!loading) {
+      const userId = localStorage.getItem("userId");
+      const userExpiry = localStorage.getItem("userExpiry");
 
-    if (!user || (userExpiry && Date.now() > +userExpiry)) {
-      localStorage.removeItem("user");
-      localStorage.removeItem("userExpiry");
-      router.replace("/user/login");
-    } else {
-      setIsLoading(false);
+      if (!userId || (userExpiry && Date.now() > +userExpiry)) {
+        localStorage.removeItem("userId");
+        localStorage.removeItem("userExpiry");
+        router.replace("/user/login");
+      } else {
+        setIsChecking(false);
+      }
     }
-  }, [router]);
+  }, [loading, router]);
 
-  if (isLoading) {
+  // Show loading state while checking authentication
+  if (loading || isChecking) {
     return (
       <div className="min-h-screen flex items-center justify-center text-gray-500">
         Checking authentication...
@@ -34,9 +38,5 @@ export default function ProtectedRoute({
     );
   }
 
-  return (
-    <>
-      {children}
-    </>
-  );
+  return <>{children}</>;
 }
