@@ -1,12 +1,11 @@
 // In @/lib/types/doctor.ts
 export interface Doctor {
   id: number;
-  name: string;
-  email?: string;
+  email: string;
   password?: string;
-  firstName?: string;
-  lastName?: string;
-  profilePicture: string;
+  firstName: string;
+  lastName: string;
+  profilePicture?: string;
   phone?: string;
   specialty: string;
   qualification?: string;

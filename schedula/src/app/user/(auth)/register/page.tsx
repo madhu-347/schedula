@@ -8,13 +8,16 @@ import { InputFieldComponent } from "@/components/ui/InputField";
 import AuthBanner from "@/components/auth/AuthBanner";
 import AuthHeader from "@/components/auth/AuthHeader";
 import mockData from "@/lib/mockData.json"; // Import mockData for simulation
+import { User } from "@/lib/types/user";
+import { createUser } from "@/app/services/user.api";
 
-type RegisterMode = 'user' | 'doctor'; // Add mode type
+type RegisterMode = "user" | "doctor"; // Add mode type
 
 export default function RegisterPage() {
   const router = useRouter();
   const [formData, setFormData] = useState({
-    fullName: "",
+    firstName: "",
+    lastName: "",
     email: "",
     mobile: "",
     password: "",
@@ -22,12 +25,12 @@ export default function RegisterPage() {
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [mobileError, setMobileError] = useState("");
-  const [registerMode, setRegisterMode] = useState<RegisterMode>('user'); // <-- NEW: State for toggle
+  const [registerMode, setRegisterMode] = useState<RegisterMode>("user"); // <-- NEW: State for toggle
 
   // --- NEW: Effect to redirect if mode changes to doctor ---
   useEffect(() => {
-    if (registerMode === 'doctor') {
-      router.push('/doctor/register');
+    if (registerMode === "doctor") {
+      router.push("/doctor/register");
       // Optional: Reset mode back to user after navigation to avoid staying on 'doctor' state if user navigates back
       // setRegisterMode('user');
     }
@@ -35,24 +38,26 @@ export default function RegisterPage() {
   // --- END NEW: Effect ---
 
   // Input handler remains the same
-  const handleInputChange = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    if (field === "mobile") {
-      if (!/^\d*$/.test(value)) return;
-      setFormData((prev) => ({ ...prev, mobile: value }));
-      if (value.length === 0) setMobileError("");
-      else if (value.length !== 10) setMobileError("Mobile must be 10 digits");
-      else setMobileError("");
-    } else {
-      setFormData((prev) => ({ ...prev, [field]: value }));
-    }
-  };
+  const handleInputChange =
+    (field: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
+      const value = e.target.value;
+      if (field === "mobile") {
+        if (!/^\d*$/.test(value)) return;
+        setFormData((prev) => ({ ...prev, mobile: value }));
+        if (value.length === 0) setMobileError("");
+        else if (value.length !== 10)
+          setMobileError("Mobile must be 10 digits");
+        else setMobileError("");
+      } else {
+        setFormData((prev) => ({ ...prev, [field]: value }));
+      }
+    };
 
   // --- User Registration Submit Logic ---
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     // Ensure this only runs for user registration
-    if (registerMode !== 'user') return;
+    if (registerMode !== "user") return;
 
     setIsLoading(true);
     if (mobileError || formData.mobile.length !== 10) {
@@ -67,43 +72,51 @@ export default function RegisterPage() {
     }
 
     try {
-        console.log("👤 Registering User:", formData);
-        // Simulate checking if user exists and adding to mockData
-        const existingUser = mockData.users.find(u => u.email === formData.email || u.phone === formData.mobile);
-        if (existingUser) {
-            alert("Email or Mobile already exists.");
-            setIsLoading(false);
-            return;
-        }
+      console.log("👤 Registering User:", formData);
+      // Simulate checking if user exists and adding to mockData
+      const existingUser = mockData.users.find(
+        (u) => u.email === formData.email || u.phone === formData.mobile
+      );
+      if (existingUser) {
+        alert("Email or Mobile already exists.");
+        setIsLoading(false);
+        return;
+      }
 
-        // Simulate creating user data (match User type structure)
-        const newUser = {
-            name: formData.fullName,
-            email: formData.email,
-            phone: formData.mobile, // Use 'phone' if that matches mockData.users
-            location: "Unknown", // Default location
-            // No password stored in mockData.users, rely on OTP
-        };
+      // Simulate creating user data (match User type structure)
+      const newUser: User = {
+        id: Date.now().toString(),
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        password: formData.password,
+        phone: formData.mobile, // Use 'phone' if that matches mockData.users
+      };
 
-        // In a real app, you'd send this to your backend API.
-        // For mock: Temporarily add to mockData (won't persist server restarts)
-        // mockData.users.push(newUser); // Be careful modifying imported JSON directly
-        console.log("Mock User Registration (Simulated):", newUser);
+      const response = await createUser(newUser);
+      console.log("User Registration Response:", response);
+      if (!response) {
+        alert("Registration failed. Please try again.");
+        setIsLoading(false);
+        return;
+      }
 
-        // Store pending user for OTP verification
-        localStorage.setItem("pendingUser", JSON.stringify(newUser));
+      // Store pending user for OTP verification
+      localStorage.setItem("pendingUser", JSON.stringify(newUser));
 
-        // Generate and store OTP
-        const generateOtp = (length = 4) => Math.floor(1000 + Math.random() * 9000).toString();
-        const generatedOtp = generateOtp(4);
-        localStorage.setItem("generatedOtp", generatedOtp);
-        localStorage.setItem("otpExpiry", (Date.now() + 2 * 60 * 1000).toString());
-        console.log(`🔑 Generated OTP for user: ${generatedOtp}`);
+      // Generate and store OTP
+      const generateOtp = (length = 4) =>
+        Math.floor(1000 + Math.random() * 9000).toString();
+      const generatedOtp = generateOtp(4);
+      localStorage.setItem("generatedOtp", generatedOtp);
+      localStorage.setItem(
+        "otpExpiry",
+        (Date.now() + 2 * 60 * 1000).toString()
+      );
+      console.log(`🔑 Generated OTP for user: ${generatedOtp}`);
 
-
-        await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate delay
-        router.push("/user/otp"); // Redirect to OTP page
-
+      await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate delay
+      router.push("/user/otp"); // Redirect to OTP page
     } catch (error) {
       console.error("Registration error:", error);
       alert("Registration failed. Please try again.");
@@ -165,14 +178,28 @@ export default function RegisterPage() {
                 {/* Full Name */}
                 <div>
                   <label className="block text-sm font-medium mb-1">
-                    Full Name
+                    First Name
                   </label>
                   <InputFieldComponent
                     type="text"
-                    placeholder="Enter your full name"
-                    value={formData.fullName}
+                    placeholder="Enter your first name"
+                    value={formData.firstName}
                     required
-                    onChange={handleInputChange("fullName")}
+                    onChange={handleInputChange("firstName")}
+                  />
+                </div>
+
+                {/* lastName */}
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    Last Name
+                  </label>
+                  <InputFieldComponent
+                    type="text"
+                    placeholder="Enter your last name"
+                    value={formData.lastName}
+                    required
+                    onChange={handleInputChange("lastName")}
                   />
                 </div>
 
@@ -202,7 +229,7 @@ export default function RegisterPage() {
                     value={formData.mobile}
                     required
                     onChange={handleInputChange("mobile")}
-                    maxLength={10} // ✅ Valid now
+                    maxLength={10} //only 10 numbers are allowed
                   />
                   {mobileError && (
                     <p className="text-red-500 text-xs mt-1">{mobileError}</p>
@@ -245,7 +272,7 @@ export default function RegisterPage() {
                 <Button
                   type="submit"
                   disabled={!agreedToTerms || isLoading || !!mobileError} // Added mobileError check
-                  className="w-full py-3 mt-4 bg-cyan-500 hover:bg-cyan-600 text-white font-semibold rounded-xl transition-colors duration-200" // Adjusted padding
+                  className="cursor-pointer w-full py-3 mt-4 bg-cyan-500 hover:bg-cyan-600 text-white font-semibold rounded-xl transition-colors duration-200" // Adjusted padding
                 >
                   {isLoading ? "Creating Account..." : "Sign Up"}
                 </Button>

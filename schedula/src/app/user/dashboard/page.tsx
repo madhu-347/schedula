@@ -6,14 +6,8 @@ import { Search, X } from "lucide-react";
 import DoctorCard from "@/components/cards/DoctorCard";
 import { Doctor } from "@/lib/types/doctor";
 import { useRouter } from "next/navigation";
-
-type User = {
-  id?: number;
-  email?: string;
-  mobile?: string;
-  name: string;
-  location?: string;
-};
+import { User } from "@/lib/types/user";
+// import { getUser } from "@/lib/api/user";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -83,60 +77,27 @@ export default function DashboardPage() {
   const filteredDoctors = allDoctors.filter((doctor: Doctor) => {
     const lowerSearchTerm = searchTerm.toLowerCase();
     const matchesSearch =
-      doctor.name.toLowerCase().includes(lowerSearchTerm) ||
+      doctor.firstName.toLowerCase().includes(lowerSearchTerm) ||
+      doctor.lastName.toLowerCase().includes(lowerSearchTerm) ||
       doctor.specialty.toLowerCase().includes(lowerSearchTerm);
     const matchesSpecialty =
       selectedSpecialty === "all" || doctor.specialty === selectedSpecialty;
     return matchesSearch && matchesSpecialty;
   });
 
-  const handleLogout = () => {
-    localStorage.removeItem("user");
-    localStorage.removeItem("userExpiry");
-    localStorage.removeItem("pendingUser");
-    localStorage.removeItem("generatedOtp");
-    localStorage.removeItem("otpExpiry");
-    router.push("/user/login");
-  };
+  // this logic is in the header
+  // const handleLogout = () => {
+  //   localStorage.removeItem("user");
+  //   localStorage.removeItem("userExpiry");
+  //   localStorage.removeItem("pendingUser");
+  //   localStorage.removeItem("generatedOtp");
+  //   localStorage.removeItem("otpExpiry");
+  //   router.push("/user/login");
+  // };
 
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-linear-to-b from-gray-50 to-gray-100">
-        {/* Notifications Panel */}
-        <div
-          className={`fixed top-4 right-4 w-[90%] max-w-[300px] h-80 bg-white border border-gray-200 rounded-2xl shadow-2xl z-40 overflow-hidden transform transition-transform duration-300 ease-in-out ${
-            showNotifications
-              ? "translate-x-0 pointer-events-auto"
-              : "translate-x-[120%] pointer-events-none"
-          }`}
-        >
-          <div className="flex items-center justify-between p-4 border-b border-gray-100 shrink-0">
-            <h2 className="text-base font-semibold text-gray-900">
-              Notifications
-            </h2>
-            <button
-              onClick={() => setShowNotifications(false)}
-              className="p-2 rounded-full hover:bg-gray-100 cursor-pointer shrink-0"
-              aria-label="Close notifications"
-            >
-              <X className="w-5 h-5 text-gray-700" />
-            </button>
-          </div>
-          <div className="p-4 overflow-y-auto flex-1">
-            <div className="text-sm text-gray-600 text-center">
-              No notifications now
-            </div>
-          </div>
-        </div>
-
-        {/* Overlay */}
-        {showNotifications && (
-          <div
-            className="fixed inset-0 bg-transparent bg-opacity-30 z-30"
-            onClick={() => setShowNotifications(false)}
-          />
-        )}
-
         {/* Main Content */}
         <div className="px-4 py-4 sm:px-6 sm:py-5 md:px-8 lg:px-12 pb-24">
           <div className="max-w-7xl mx-auto">

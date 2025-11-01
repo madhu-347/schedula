@@ -45,25 +45,25 @@
   ],
   "users": [
     {
-      "name": "Priya Kumar",
+      "firstName": "Priya",
+      "lastName": "Sharma",
       "email": "priya@example.com",
       "password": "password123",
-      "phone": "9876543210",
-      "location": "Chennai"
+      "phone": "9876543210"
     },
     {
-      "name": "John Mathew",
+      "firstName": "John",
+      "lastName": "Mathew",
       "email": "john@example.com",
       "password": "password123",
-      "phone": "9998887776",
-      "location": "Bangalore"
+      "phone": "9998887776"
     },
     {
-      "name": "Anjali Rao",
+      "firstName": "Anjali",
+      "lastName": "Rao",
       "email": "anjali@example.com",
       "password": "password123",
-      "phone": "7012345678",
-      "location": "Hyderabad"
+      "phone": "7012345678"
     }
   ],
   "appointments": {

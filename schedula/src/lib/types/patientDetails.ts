@@ -1,5 +1,9 @@
 export interface PatientDetails {
-  fullName: string;
+  id: string;
+  patientId: string;
+  appointmentId: string;
+  firstName: string;
+  lastName: string;
   age: number;
   gender: "Male" | "Female" | "Other";
   phone: string;
