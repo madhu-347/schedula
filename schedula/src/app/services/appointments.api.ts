@@ -1,6 +1,37 @@
-export async function getUpcomingAppointments() {
+import { Appointment } from "@/lib/types/appointment";
+
+export async function createAppointment(appointmentData: Appointment) {
   try {
-    const response = await fetch("/api/appointment?status=Upcoming");
+    const response = await fetch("/api/appointment", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(appointmentData),
+    });
+
+    const result = await response.json();
+
+    if (result.success) {
+      console.log("Appointment created successfully!");
+      console.log("Appointment ID:", result.data.id);
+      console.log("Token No:", result.data.tokenNo);
+      return result.data;
+    } else {
+      console.error("Failed to create appointment:", result.error);
+      alert(result.error);
+      return null;
+    }
+  } catch (error) {
+    console.error("Error creating appointment:", error);
+    alert("Failed to create appointment. Please try again.");
+    return null;
+  }
+}
+
+export async function getAppointmentsByStatus(status: string) {
+  try {
+    const response = await fetch(`/api/appointment?status=${status}`);
     const result = await response.json();
 
     if (result.success) {
@@ -32,10 +63,10 @@ export async function getAllAppointments() {
   }
 }
 
-export async function getAppointmentsByDoctor(doctorName: string) {
+export async function getAppointmentsByDoctor(doctorId: string) {
   try {
     const response = await fetch(
-      `/api/appointment?doctorName=${encodeURIComponent(doctorName)}`
+      `/api/appointment?doctorId=${encodeURIComponent(doctorId)}`
     );
     const result = await response.json();
 
@@ -45,6 +76,39 @@ export async function getAppointmentsByDoctor(doctorName: string) {
     return [];
   } catch (error) {
     console.error("Failed to fetch doctor appointments:", error);
+    return [];
+  }
+}
+
+export async function getAppointmentsByPatient(patientId: string) {
+  try {
+    const response = await fetch(
+      `/api/appointment?patientId=${encodeURIComponent(patientId)}`
+    );
+    const result = await response.json();
+
+    if (result.success) {
+      return result.data;
+    }
+    return [];
+  } catch (error) {
+    console.error("Failed to fetch doctor appointments:", error);
+    return [];
+  }
+}
+
+export async function getLatestAppointmentsForDoctor(doctorId: string) {
+  try {
+    const response = await fetch(
+      `/api/appointment?doctorId=${doctorId}&limit=4`
+    );
+    const result = await response.json();
+    if (result.success) {
+      return result.data;
+    }
+    return [];
+  } catch (error) {
+    console.error("Failed to fetch latest appointments for doctor:", error);
     return [];
   }
 }
@@ -66,116 +130,48 @@ export async function getAppointmentsByDate(date: string) {
 
 export async function getAppointmentById(id: string) {
   try {
-    const response = await fetch(`/api/appointment/${id}`);
-    console.log("get appt by id res: ", response);
-    if (!response.ok) {
-      // Fallback to client localStorage (list page uses localStorage)
-      try {
-        const stored = typeof window !== "undefined" ? localStorage.getItem("appointments") : null;
-        if (stored) {
-          const list = JSON.parse(stored) as any[];
-          const numericId = Number(id);
-          const found = list.find((a) => a.id === numericId) || null;
-          if (found) return found;
-        }
-      } catch {}
-      console.error("Appointment not found");
-      return null;
+    const response = await fetch(`/api/appointment?id=${id}`);
+
+    const result = await response.json();
+    // console.log("get appt by id res: ", result);
+
+    if (result.success) {
+      return result.data;
     }
 
-    const appointment = await response.json();
-    return appointment?.data;
+    return null;
   } catch (error) {
     console.error("Failed to fetch appointment:", error);
     return null;
   }
 }
 
-export async function createAppointment(appointmentData: InitialAppointment) {
+export async function updateAppointment(
+  appointmentId: string,
+  updates: Partial<Appointment>
+) {
   try {
-    const response = await fetch("/api/appointment", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(appointmentData),
-    });
-
-    const result = await response.json();
-
-    if (result.success) {
-      console.log("Appointment created successfully!");
-      console.log("Appointment ID:", result.data.id);
-      console.log("Token No:", result.data.tokenNo);
-      return result.data;
-    } else {
-      console.error("Failed to create appointment:", result.error);
-      alert(result.error);
-      return null;
-    }
-  } catch (error) {
-    console.error("Error creating appointment:", error);
-    alert("Failed to create appointment. Please try again.");
-    return null;
-  }
-}
-
-interface InitialAppointment {
-  id: string;
-  tokenNo: string;
-  doctorName: string;
-  doctorImage: string;
-  specialty: string;
-  qualifications?: string;
-  day: string;
-  date: string;
-  timeSlot: string;
-  status: string;
-  paymentStatus: string;
-}
-
-export async function bookAppointment(appointment: InitialAppointment) {
-  const newAppointment = await createAppointment(appointment);
-  // add appointment details to the mockdata file
-  if (newAppointment) {
-    // Redirect to appointment details page
-    window.location.href = `/appointments/${newAppointment.id}`;
-  }
-}
-
-export async function updateAppointment(id: number, updates: Partial<any>) {
-  try {
-    const response = await fetch(`/api/appointment/${id}`, {
+    const response = await fetch(`/api/appointment`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(updates),
+      body: JSON.stringify({
+        id: appointmentId,
+        ...updates,
+      }),
     });
 
     if (response.ok) {
       const updatedAppointment = await response.json();
-      console.log("Appointment updated successfully!");
+      // console.log("Appointment updated successfully!", updateAppointment);
       return updatedAppointment;
     } else {
-      // If backend doesn't have this record (e.g., localStorage-only item), update localStorage
-      if (response.status === 404) {
-        try {
-          const stored = typeof window !== "undefined" ? localStorage.getItem("appointments") : null;
-          if (stored) {
-            const list = JSON.parse(stored) as any[];
-            const index = list.findIndex((a) => a.id === id);
-            if (index !== -1) {
-              const merged = { ...list[index], ...updates };
-              list[index] = merged;
-              localStorage.setItem("appointments", JSON.stringify(list));
-              return { success: true, data: merged };
-            }
-          }
-        } catch {}
-      }
-      const error = await response.json().catch(() => ({}));
-      console.error("Failed to update:", (error as any).error || response.statusText);
+      const error = await response.json();
+      console.error(
+        "Failed to update appointment:",
+        error.error || response.statusText
+      );
       return null;
     }
   } catch (error) {
@@ -184,40 +180,6 @@ export async function updateAppointment(id: number, updates: Partial<any>) {
   }
 }
 
-export async function cancelAppointment(id: number) {
-  const result = await updateAppointment(id, { status: "Cancelled" });
-  if (result) {
-    alert("Appointment cancelled successfully");
-  }
-}
-
-// Example: Mark as paid
-export async function markAsPaid(id: number) {
-  const result = await updateAppointment(id, { paymentStatus: "Paid" });
-  if (result) {
-    alert("Payment marked as completed");
-  }
-}
-
-// Example: Reschedule appointment
-export async function rescheduleAppointment(
-  id: number,
-  newDate: string,
-  newTimeSlot: string
-) {
-  const result = await updateAppointment(id, {
-    date: newDate,
-    timeSlot: newTimeSlot,
-    status: "Upcoming",
-  });
-  if (result) {
-    alert("Appointment rescheduled successfully");
-  }
-}
-
-// ============================================
-// 6. DELETE APPOINTMENT
-// ============================================
 export async function deleteAppointment(id: number) {
   try {
     const response = await fetch(`/api/appointment/${id}`, {

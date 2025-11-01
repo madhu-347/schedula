@@ -1,31 +1,15 @@
 import React from "react";
 import Image from "next/image";
 import { MapPin, Bell } from "lucide-react";
-
-type User = {
-  id?: number;
-  email?: string;
-  mobile?: string;
-  name?: string;
-  location?: string;
-};
-
+import { useAuth } from "@/context/AuthContext";
 interface HeaderProps {
-  user: User | null;
   setShowNotifications: (show: boolean) => void;
-  handleLogout: () => void;
 }
 
-function Header({ user, setShowNotifications, handleLogout }: HeaderProps) {
-  const [localUser, setLocalUser] = React.useState<User | null>(user);
-
-  React.useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      setLocalUser(JSON.parse(storedUser));
-    }
-  }, []);
-  const firstName = localUser?.name || "User";
+function Header({ setShowNotifications }: HeaderProps) {
+  const { user, logout } = useAuth();
+  // console.log("user in header: ", user);
+  const firstName = user?.firstName || "User"; // Changed from user?.name to user?.firstName
 
   return (
     <header className="bg-white shadow-sm sticky top-0 z-20 border-b border-gray-100">
@@ -48,10 +32,10 @@ function Header({ user, setShowNotifications, handleLogout }: HeaderProps) {
               <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
                 <MapPin className="inline w-3 h-3" />
                 <span className="hidden sm:inline">
-                  {localUser?.location || "Dombivali, Mumbai"}
+                  {user?.location || "Dombivali, Mumbai"}
                 </span>
                 <span className="sm:hidden">
-                  {localUser?.location?.split(",")[0] || "Dombivali"}
+                  {user?.location?.split(",")[0] || "Dombivali"}
                 </span>
               </p>
             </div>
@@ -68,7 +52,7 @@ function Header({ user, setShowNotifications, handleLogout }: HeaderProps) {
             </button>
 
             <button
-              onClick={handleLogout}
+              onClick={logout}
               className="text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2 font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors"
             >
               Logout

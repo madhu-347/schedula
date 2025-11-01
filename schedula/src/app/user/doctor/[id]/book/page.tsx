@@ -2,34 +2,63 @@
 
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import mockData from "@/lib/mockData.json";
-import Image from "next/image";
 import { ArrowLeft, Calendar } from "lucide-react";
-import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Appointment } from "@/lib/types/appointment";
 import { Doctor } from "@/lib/types/doctor";
 import Heading from "@/components/ui/Heading";
+import DoctorSummary from "@/components/cards/DoctorSummary";
+import { getDoctorById } from "@/app/services/doctor.api";
+import { createAppointment } from "@/app/services/appointments.api";
+import { useAuth } from "@/context/AuthContext";
+import { filterAvailableTimeSlots } from "@/utils/timeslot";
 
 interface DayInfo {
   fullDate: string;
   dayNumber: number;
   dayName: string;
+  fullDayName: string;
   monthName: string;
 }
 
 export default function AppointmentPage() {
+  const { user } = useAuth();
+  const patientId = user?.id;
   const params = useParams();
   const id = params?.id as string;
   const router = useRouter();
-  const [doctor, setDoctor] = useState<Doctor | null>(null);
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
 
+  const [doctor, setDoctor] = useState<Doctor | null>(null);
+  const [selectedDate, setSelectedDate] = useState<string>("");
+  const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
+  const [availableDays, setAvailableDays] = useState<DayInfo[]>([]);
+  const [timeSlots, setTimeSlots] = useState<{
+    morning: string[];
+    evening: string[];
+  }>({
+    morning: [],
+    evening: [],
+  });
+
+  const fetchDoctor = async (id: string) => {
+    try {
+      const response: any = await getDoctorById(id);
+      const doctor = response?.doctor || response?.data;
+      setDoctor(doctor);
+    } catch (error) {
+      console.error("Failed to fetch doctor:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchDoctor(id);
+  }, [id]);
+
+  // Generate time slots based on start and end time
   function generateTimeSlots(
     startTime: string,
     endTime: string,
-    intervalMinutes: number
+    intervalMinutes: number = 30
   ): string[] {
     const slots: string[] = [];
     const start = new Date(`1970-01-01T${startTime}:00`);
@@ -54,70 +83,139 @@ export default function AppointmentPage() {
     return slots;
   }
 
-  const timeSlots = {
-    morning: generateTimeSlots("09:00", "13:00", 30),
-    evening: generateTimeSlots("14:00", "18:00", 30),
-  };
+  // Filter time slots based on current time if selected date is today
+  function filterSlotsForToday(
+    slots: string[],
+    selectedDate: string
+  ): string[] {
+    const today = new Date();
+    const todayStr = today.toISOString().split("T")[0];
 
-  const generateNextFiveDays = (): DayInfo[] => {
+    // If selected date is not today, return all slots
+    if (selectedDate !== todayStr) {
+      return slots;
+    }
+
+    const currentHour = today.getHours();
+    const currentMinute = today.getMinutes();
+    const currentTime = currentHour * 60 + currentMinute;
+
+    return slots.filter((slot) => {
+      // Extract start time from slot (e.g., "10:00 AM - 10:30 AM")
+      const timeMatch = slot.match(/(\d+):(\d+)\s*(AM|PM)/);
+      if (!timeMatch) return true;
+
+      let hour = parseInt(timeMatch[1]);
+      const minute = parseInt(timeMatch[2]);
+      const period = timeMatch[3].toUpperCase();
+
+      // Convert to 24-hour format
+      if (period === "PM" && hour !== 12) {
+        hour += 12;
+      } else if (period === "AM" && hour === 12) {
+        hour = 0;
+      }
+
+      // Compare with current time (add 30-minute buffer)
+      const slotTime = hour * 60 + minute;
+      return slotTime >= currentTime + 30;
+    });
+  }
+
+  // Generate next available days based on doctor's availability
+  const generateAvailableDays = (doctor: Doctor): DayInfo[] => {
     const days: DayInfo[] = [];
     const today = new Date();
+    let daysChecked = 0;
+    let daysAdded = 0;
 
-    for (let i = 0; i < 5; i++) {
+    // Get doctor's available days (convert to lowercase for comparison)
+    const doctorAvailableDays =
+      doctor.availableDays?.map((day) => day.toLowerCase()) || [];
+
+    // If no available days specified, assume all days are available
+    const checkAllDays = doctorAvailableDays.length === 0;
+
+    // Keep looking until we find 5 available days or checked 30 days
+    while (daysAdded < 5 && daysChecked < 30) {
       const date = new Date(today);
-      date.setDate(today.getDate() + i);
+      date.setDate(today.getDate() + daysChecked);
 
+      const fullDayName = date.toLocaleDateString("en-US", { weekday: "long" });
       const dayNumber = date.getDate();
       const dayName = date.toLocaleDateString("en-US", { weekday: "short" });
       const monthName = date.toLocaleDateString("en-US", { month: "short" });
 
-      days.push({
-        fullDate: date.toISOString().split("T")[0],
-        dayNumber,
-        dayName,
-        monthName,
-      });
+      // Check if this day is in doctor's available days
+      if (
+        checkAllDays ||
+        doctorAvailableDays.includes(fullDayName.toLowerCase())
+      ) {
+        days.push({
+          fullDate: date.toISOString().split("T")[0],
+          dayNumber,
+          dayName,
+          fullDayName,
+          monthName,
+        });
+        daysAdded++;
+      }
+
+      daysChecked++;
     }
 
     return days;
   };
 
-  const days = generateNextFiveDays();
-
-  const saveAppointment = (
-    appointment: Omit<Appointment, "id" | "patientDetails">
-  ) => {
-    const existing = localStorage.getItem("appointments");
-    const userString = localStorage.getItem("user");
-    const user = userString ? JSON.parse(userString) : null;
-    console.log("Saving appointment for user:", user);
-    const appointments: Appointment[] = existing ? JSON.parse(existing) : [];
-
-    const newAppointment = {
-      id: Date.now(), // Generate unique ID
-      userEmail: user?.email ?? 'guest@example.com',
-      ...appointment,
-    };
-
-    // Convert to unknown first to satisfy TypeScript when casting to Appointment
-    appointments.push(newAppointment as Appointment);
-    localStorage.setItem("appointments", JSON.stringify(appointments));
-  };
-
+  // Update available days when doctor data is loaded
   useEffect(() => {
-    if (id && mockData.doctors) {
-      const found = mockData.doctors.find(
-        (doc: any) => doc.id.toString() === id
-      );
-      setDoctor(found || null);
-    }
-  }, [id]);
+    if (!doctor) return;
 
-  useEffect(() => {
+    // Generate available days based on doctor's schedule
+    const days = generateAvailableDays(doctor);
+    setAvailableDays(days);
+
+    // Set first available day as selected by default
     if (days.length > 0 && !selectedDate) {
       setSelectedDate(days[0].fullDate);
     }
-  }, [days, selectedDate]);
+  }, [doctor]);
+
+  // Update time slots when doctor or selected date changes
+  useEffect(() => {
+    if (!doctor || !selectedDate) return;
+
+    // Generate time slots based on doctor's available time
+    const morningSlots =
+      doctor.availableTime?.morning.from && doctor.availableTime?.morning.to
+        ? generateTimeSlots(
+            doctor.availableTime.morning.from,
+            doctor.availableTime.morning.to,
+            30
+          )
+        : generateTimeSlots("09:00", "13:00", 30); // Default morning slots
+
+    const eveningSlots =
+      doctor.availableTime?.evening.from && doctor.availableTime?.evening.to
+        ? generateTimeSlots(
+            doctor.availableTime.evening.from,
+            doctor.availableTime.evening.to,
+            30
+          )
+        : generateTimeSlots("14:00", "18:00", 30); // Default evening slots
+
+    // Filter slots if today is selected
+    const filteredMorning = filterSlotsForToday(morningSlots, selectedDate);
+    const filteredEvening = filterSlotsForToday(eveningSlots, selectedDate);
+
+    setTimeSlots({
+      morning: filteredMorning,
+      evening: filteredEvening,
+    });
+
+    // Reset selected slot when date changes
+    setSelectedSlot(null);
+  }, [doctor, selectedDate]);
 
   const handleBookAppointment = async () => {
     if (!doctor) {
@@ -130,41 +228,58 @@ export default function AppointmentPage() {
       return;
     }
 
-    const selectedDay = days.find((d) => d.fullDate === selectedDate);
+    const userString = localStorage.getItem("userId");
+    const user = userString ? JSON.parse(userString) : null;
 
-    // Create appointment with doctor image included
-    const appointment: Omit<Appointment, "id" | "patientDetails"> = {
-      tokenNo: `TKN-${Math.floor(Math.random() * 10000)}`,
-      doctorName: doctor.name,
-      doctorImage:
-        doctor.profilePicture || doctor.imageUrl || "/male-doctor-avatar.png",
-      specialty: doctor.specialty,
-      day: selectedDay?.dayName || "",
-      date: `${selectedDay?.monthName} ${
-        selectedDay?.dayNumber
-      }, ${new Date().getFullYear()}`,
-      timeSlot: selectedSlot,
-      status: "Upcoming",
-      paymentStatus: "Not paid",
-    };
-
-    // Send notification to doctor
-    try {
-      await fetch("/api/notifications", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          doctorName: appointment.doctorName,
-          message: `New appointment booked on ${appointment.date} at ${appointment.timeSlot}.`,
-        }),
-      });
-    } catch (err) {
-      console.error("Failed to send notification:", err);
+    if (!user) {
+      alert("Please login to book an appointment");
+      router.push("/user/login");
+      return;
     }
 
-    saveAppointment(appointment);
+    const selectedDay = availableDays.find((d) => d.fullDate === selectedDate);
 
-    router.push("/user/appointment/review");
+    if (!selectedDay) {
+      alert("Please select a valid date");
+      return;
+    }
+
+    // Create appointment data
+    const appointmentData: any = {
+      patientId: patientId,
+      doctorId: doctor.id,
+      day: selectedDay.fullDayName,
+      date: selectedDate,
+      time: selectedSlot,
+      status: "Upcoming",
+      paid: false,
+      visitType: "First",
+    };
+
+    try {
+      // Call API to create appointment
+      const response = await createAppointment(appointmentData);
+
+      // Send notification to doctor
+      try {
+        await fetch("/api/notifications", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            doctorName: `${doctor.firstName} ${doctor.lastName}`,
+            message: `New appointment booked on ${selectedDate} at ${selectedSlot}.`,
+          }),
+        });
+      } catch (err) {
+        console.error("Failed to send notification:", err);
+      }
+
+      // Navigate to review page
+      router.push(`/user/appointment/${response?.id}/review`);
+    } catch (error) {
+      console.error("Failed to create appointment:", error);
+      alert("Failed to book appointment. Please try again.");
+    }
   };
 
   if (!doctor) {
@@ -183,37 +298,8 @@ export default function AppointmentPage() {
       {/* Header */}
       <header className="bg-cyan-500 text-white pt-3 pb-4 rounded-b-3xl shadow-lg">
         <Heading heading="Schedule Appointment" />
-
         {/* Doctor Summary Card */}
-        <div className="max-w-3xl mx-auto px-5 mt-3">
-          <div className="bg-white text-gray-900 rounded-2xl p-5 flex items-center gap-4 shadow-md">
-            <div className="flex-1">
-              <h2 className="text-lg font-bold leading-tight text-gray-900">
-                {doctor.name}
-              </h2>
-              <p className="text-sm text-gray-600 font-medium mt-0.5">
-                {doctor.specialty}
-              </p>
-              <p className="text-sm text-cyan-600 font-semibold mt-2">
-                {doctor.qualification || "MBBS, MS (Surgeon)"}
-              </p>
-              <p className="text-xs text-gray-500 mt-1">
-                {doctor.fellowship || "Fellow of Sanskara netralaya, chennai"}
-              </p>
-            </div>
-            <Image
-              src={
-                doctor.profilePicture ||
-                doctor.imageUrl ||
-                "/male-doctor-avatar.png"
-              }
-              alt={doctor.name}
-              width={80}
-              height={80}
-              className="rounded-xl w-20 h-20 object-cover ring-2 ring-cyan-100"
-            />
-          </div>
-        </div>
+        <DoctorSummary doctor={doctor} />
       </header>
 
       {/* Main Content */}
@@ -224,12 +310,25 @@ export default function AppointmentPage() {
             Select Date & Time
           </h3>
 
+          {/* Available Days Info */}
+          {doctor.availableDays && doctor.availableDays.length > 0 && (
+            <div className="mb-4 p-3 bg-cyan-50 rounded-lg border border-cyan-100">
+              <p className="text-sm text-cyan-800">
+                <strong>Available Days:</strong>{" "}
+                {doctor.availableDays.join(", ")}
+              </p>
+            </div>
+          )}
+
           {/* Date Row */}
           <div className="flex gap-3 mb-6 overflow-x-auto pb-2 scrollbar-hide">
-            {days.map((day) => (
+            {availableDays.map((day) => (
               <button
                 key={day.fullDate}
-                onClick={() => setSelectedDate(day.fullDate)}
+                onClick={() => {
+                  setSelectedDate(day.fullDate);
+                  setSelectedSlot(null); // Reset slot when date changes
+                }}
                 className={`shrink-0 px-4 py-3 rounded-xl border-2 transition-all ${
                   selectedDate === day.fullDate
                     ? "bg-cyan-500 text-white border-cyan-500 shadow-md scale-105"
@@ -245,56 +344,73 @@ export default function AppointmentPage() {
           </div>
 
           {/* Current Month Display */}
-          <div className="flex items-center gap-2 text-gray-700 mb-6 text-base">
-            <Calendar className="w-5 h-5 text-cyan-500" />
-            <span className="font-semibold">
-              {days[0]?.monthName}, {new Date().getFullYear()}
-            </span>
-          </div>
+          {availableDays.length > 0 && (
+            <div className="flex items-center gap-2 text-gray-700 mb-6 text-base">
+              <Calendar className="w-5 h-5 text-cyan-500" />
+              <span className="font-semibold">
+                {availableDays[0]?.monthName}, {new Date().getFullYear()}
+              </span>
+            </div>
+          )}
 
           {/* Morning Slots */}
-          <div className="mb-6">
-            <h4 className="text-gray-900 font-bold mb-3 text-base">
-              Morning Slots
-            </h4>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {timeSlots.morning.map((slot) => (
-                <button
-                  key={slot}
-                  onClick={() => setSelectedSlot(slot)}
-                  className={`p-3 text-sm rounded-xl border-2 transition-all font-semibold ${
-                    selectedSlot === slot
-                      ? "bg-cyan-500 text-white border-cyan-500 shadow-md scale-105"
-                      : "bg-white border-gray-200 text-gray-700 hover:border-cyan-300 hover:shadow-sm"
-                  }`}
-                >
-                  {slot}
-                </button>
-              ))}
+          {timeSlots.morning.length > 0 && (
+            <div className="mb-6">
+              <h4 className="text-gray-900 font-bold mb-3 text-base">
+                Morning Slots
+              </h4>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {timeSlots.morning.map((slot) => (
+                  <button
+                    key={slot}
+                    onClick={() => setSelectedSlot(slot)}
+                    className={`p-3 text-sm rounded-xl border-2 transition-all font-semibold ${
+                      selectedSlot === slot
+                        ? "bg-cyan-500 text-white border-cyan-500 shadow-md scale-105"
+                        : "bg-white border-gray-200 text-gray-700 hover:border-cyan-300 hover:shadow-sm"
+                    }`}
+                  >
+                    {slot}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Evening Slots */}
-          <div className="mb-6">
-            <h4 className="text-gray-900 font-bold mb-3 text-base">
-              Evening Slots
-            </h4>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {timeSlots.evening.map((slot) => (
-                <button
-                  key={slot}
-                  onClick={() => setSelectedSlot(slot)}
-                  className={`p-3 text-sm rounded-xl border-2 transition-all font-semibold ${
-                    selectedSlot === slot
-                      ? "bg-cyan-500 text-white border-cyan-500 shadow-md scale-105"
-                      : "bg-white border-gray-200 text-gray-700 hover:border-cyan-300 hover:shadow-sm"
-                  }`}
-                >
-                  {slot}
-                </button>
-              ))}
+          {timeSlots.evening.length > 0 && (
+            <div className="mb-6">
+              <h4 className="text-gray-900 font-bold mb-3 text-base">
+                Evening Slots
+              </h4>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {timeSlots.evening.map((slot) => (
+                  <button
+                    key={slot}
+                    onClick={() => setSelectedSlot(slot)}
+                    className={`p-3 text-sm rounded-xl border-2 transition-all font-semibold ${
+                      selectedSlot === slot
+                        ? "bg-cyan-500 text-white border-cyan-500 shadow-md scale-105"
+                        : "bg-white border-gray-200 text-gray-700 hover:border-cyan-300 hover:shadow-sm"
+                    }`}
+                  >
+                    {slot}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* No slots available message */}
+          {timeSlots.morning.length === 0 && timeSlots.evening.length === 0 && (
+            <div className="text-center py-8">
+              <p className="text-gray-500">
+                {selectedDate === new Date().toISOString().split("T")[0]
+                  ? "No more slots available today. Please select a future date."
+                  : "No time slots available. Please contact the clinic."}
+              </p>
+            </div>
+          )}
 
           {/* Confirm Button */}
           <Button

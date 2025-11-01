@@ -5,59 +5,40 @@ import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { Search, X } from "lucide-react";
 import DoctorCard from "@/components/cards/DoctorCard";
 import { Doctor } from "@/lib/types/doctor";
-import { useRouter } from "next/navigation";
-import { User } from "@/lib/types/user";
-// import { getUser } from "@/lib/api/user";
+import { getAllDoctors } from "@/app/services/doctor.api";
+import { useAuth } from "@/context/AuthContext";
 
 export default function DashboardPage() {
-  const router = useRouter();
+  const { user, loading } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedSpecialty, setSelectedSpecialty] = useState("all");
-  const [user, setUser] = useState<User | null>(null);
   const [allDoctors, setAllDoctors] = useState<Doctor[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showNotifications, setShowNotifications] = useState(false);
 
-  // Fetch User from localStorage
-  useEffect(() => {
-    const savedUser = localStorage.getItem("user");
-    if (savedUser) {
-      try {
-        setUser(JSON.parse(savedUser));
-      } catch (e) {
-        console.error("Failed to parse user from localStorage", e);
-      }
+  const fetchAllDoctors = async () => {
+    setIsLoading(true);
+    try {
+      const response = await getAllDoctors();
+      const allDoctors = response?.doctors;
+      console.log("All doctors: ", allDoctors);
+      setAllDoctors(allDoctors);
+    } catch (error) {
+      console.error("Failed to fetch doctors:", error);
+    } finally {
+      setIsLoading(false);
     }
-  }, []);
+  };
 
   // Fetch Doctors from API
   useEffect(() => {
-    const fetchDoctors = async () => {
-      setIsLoading(true);
-      try {
-        const response = await fetch("/api/doctors");
-        if (!response.ok) throw new Error("Failed to fetch doctors");
-        const data = await response.json();
-        console.log("doctor data from api: ", data);
+    // Only fetch doctors when user data is available
+    if (!loading && user) {
+      fetchAllDoctors();
+    }
+  }, [user, loading]);
 
-        const doctorsWithFavorite: Doctor[] = data.doctors.map(
-          (doc: Doctor) => ({
-            ...doc,
-            is_favorited: false,
-          })
-        );
-
-        setAllDoctors(doctorsWithFavorite);
-      } catch (error) {
-        console.error("Failed to fetch doctors:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchDoctors();
-  }, []);
-
-  const handleToggleLike = (id: number) => {
+  const handleToggleLike = (id: string) => {
     setAllDoctors((prevDoctors) =>
       prevDoctors.map((doctor) =>
         doctor.id === id
@@ -67,6 +48,26 @@ export default function DashboardPage() {
     );
     console.log(`Toggled like for doctor ID: ${id}`);
   };
+
+  // Show loading state while auth context is loading
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-gray-500">
+        Loading user data...
+      </div>
+    );
+  }
+
+  // Show loading state while doctors are loading
+  if (isLoading) {
+    return (
+      <ProtectedRoute>
+        <div className="min-h-screen flex items-center justify-center text-gray-500">
+          Loading doctors...
+        </div>
+      </ProtectedRoute>
+    );
+  }
 
   // Filtering Logic
   const specialties = [
@@ -84,16 +85,6 @@ export default function DashboardPage() {
       selectedSpecialty === "all" || doctor.specialty === selectedSpecialty;
     return matchesSearch && matchesSpecialty;
   });
-
-  // this logic is in the header
-  // const handleLogout = () => {
-  //   localStorage.removeItem("user");
-  //   localStorage.removeItem("userExpiry");
-  //   localStorage.removeItem("pendingUser");
-  //   localStorage.removeItem("generatedOtp");
-  //   localStorage.removeItem("otpExpiry");
-  //   router.push("/user/login");
-  // };
 
   return (
     <ProtectedRoute>
@@ -152,14 +143,10 @@ export default function DashboardPage() {
 
             {/* Doctor List */}
             <div className="space-y-3 sm:space-y-4">
-              {isLoading ? (
-                <p className="text-center text-gray-500 py-10">
-                  Loading doctors...
-                </p>
-              ) : filteredDoctors.length > 0 ? (
+              {filteredDoctors.length > 0 ? (
                 filteredDoctors.map((doctor: Doctor) => (
                   <DoctorCard
-                    key={doctor.id}
+                    key={doctor.id as unknown as number}
                     doctor={doctor}
                     onToggleLike={handleToggleLike}
                   />

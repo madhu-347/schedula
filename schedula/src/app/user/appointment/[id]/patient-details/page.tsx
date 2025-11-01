@@ -1,15 +1,16 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, ChevronDown } from "lucide-react";
-import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Appointment } from "@/lib/types/appointment";
 import Heading from "@/components/ui/Heading";
+import { updateAppointment } from "@/app/services/appointments.api";
 
 export default function PatientDetailsPage() {
   const router = useRouter();
-
+  const params = useParams();
+  const appointmentId = params?.id as string;
   const [formData, setFormData] = useState({
     fullName: "",
     age: "",
@@ -19,13 +20,10 @@ export default function PatientDetailsPage() {
     problem: "",
     relationship: "",
   });
-
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [showDropdown, setShowDropdown] = useState(false);
   const [showGenderDropdown, setShowGenderDropdown] = useState(false);
-  const [currentAppointmentIndex, setCurrentAppointmentIndex] = useState<
-    number | null
-  >(null);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const relationshipOptions = [
     "Self",
@@ -41,29 +39,30 @@ export default function PatientDetailsPage() {
 
   const genderOptions = ["Male", "Female", "Other"];
 
-  // Load the most recent appointment that needs patient details
-  useEffect(() => {
-    const appointmentsStr = localStorage.getItem("appointments");
-    if (!appointmentsStr) {
-      router.push("/user/dashboard");
-      return;
+  const addPatientDetails = async (patientDetails: any) => {
+    try {
+      setErrorMessage("");
+      console.log("patientDetails", patientDetails);
+      const response = await updateAppointment(appointmentId, {
+        patientDetails,
+      });
+      console.log("add patientDetails response", response);
+      if (response && response.success) {
+        router.push(`/user/appointment/${appointmentId}`);
+      } else {
+        // Handle error case
+        const errorMsg =
+          response?.error ||
+          "Failed to save patient details. Please try again.";
+        setErrorMessage(errorMsg);
+        console.error("Failed to update appointment:", errorMsg);
+      }
+    } catch (error) {
+      const errorMsg = "Failed to save patient details. Please try again.";
+      setErrorMessage(errorMsg);
+      console.error("Error updating appointment:", error);
     }
-
-    const appointments: Appointment[] = JSON.parse(appointmentsStr);
-
-    // Find the most recent appointment without patient details
-    const indexWithoutDetails = appointments.findIndex(
-      (apt) => !apt.patientDetails
-    );
-
-    if (indexWithoutDetails === -1) {
-      // All appointments have patient details, redirect
-      router.push("/user/dashboard");
-      return;
-    }
-
-    setCurrentAppointmentIndex(indexWithoutDetails);
-  }, [router]);
+  };
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -74,6 +73,10 @@ export default function PatientDetailsPage() {
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: "" }));
     }
+    // Clear general error message
+    if (errorMessage) {
+      setErrorMessage("");
+    }
   };
 
   const handleRelationshipSelect = (value: string) => {
@@ -82,6 +85,10 @@ export default function PatientDetailsPage() {
     if (errors.relationship) {
       setErrors((prev) => ({ ...prev, relationship: "" }));
     }
+    // Clear general error message
+    if (errorMessage) {
+      setErrorMessage("");
+    }
   };
 
   const handleGenderSelect = (value: string) => {
@@ -89,6 +96,10 @@ export default function PatientDetailsPage() {
     setShowGenderDropdown(false);
     if (errors.gender) {
       setErrors((prev) => ({ ...prev, gender: "" }));
+    }
+    // Clear general error message
+    if (errorMessage) {
+      setErrorMessage("");
     }
   };
 
@@ -156,22 +167,6 @@ export default function PatientDetailsPage() {
       return;
     }
 
-    if (currentAppointmentIndex === null) {
-      alert("No appointment found. Please book an appointment first.");
-      router.push("/user/dashboard");
-      return;
-    }
-
-    // Get existing appointments from localStorage
-    const appointmentsStr = localStorage.getItem("appointments");
-    if (!appointmentsStr) {
-      alert("No appointments found.");
-      router.push("/user/dashboard");
-      return;
-    }
-
-    const appointments: Appointment[] = JSON.parse(appointmentsStr);
-
     // Create patient details object
     const patientDetails = {
       fullName: formData.fullName.trim(),
@@ -193,40 +188,24 @@ export default function PatientDetailsPage() {
     };
 
     // Update the appointment with patient details
-    appointments[currentAppointmentIndex] = {
-      ...appointments[currentAppointmentIndex],
-      patientDetails,
-    };
-
-    // Save updated appointments back to localStorage
-    localStorage.setItem("appointments", JSON.stringify(appointments));
-
-    // Store the completed appointment for confirmation page
-    localStorage.setItem(
-      "currentAppointment",
-      JSON.stringify(appointments[currentAppointmentIndex])
-    );
-
-    // Navigate to appointment confirmation page
-    router.push("/user/appointment/summary");
+    addPatientDetails(patientDetails);
   };
-
-  // Show loading state while checking for appointments
-  if (currentAppointmentIndex === null) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-gray-500">Loading...</p>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-white pb-15">
       {/* Header */}
       <div className="pt-4 mb-2">
-      <Heading heading="Patient Details" />
-
+        <Heading heading="Patient Details" />
       </div>
+
+      {/* Error Message */}
+      {errorMessage && (
+        <div className="max-w-3xl mx-auto px-5 mb-4">
+          <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+            <p className="text-red-700 text-sm">{errorMessage}</p>
+          </div>
+        </div>
+      )}
 
       {/* Form */}
       <main className="max-w-3xl mx-auto px-5 py-6">

@@ -5,24 +5,26 @@ import { DoctorInfoCard } from "@/components/cards/DoctorReview";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, Calendar, Clock } from "lucide-react";
 import { getAppointmentById } from "@/app/services/appointments.api";
+import { Doctor } from "@/lib/types/doctor";
+import { User } from "@/lib/types/user";
 
 function AppointmentDetails() {
   const params = useParams();
-  const router = useRouter();
   const appointmentId = params?.id as string;
+  const router = useRouter();
   const [appointment, setAppointment] = useState<Appointment | null>(null);
+  const [doctor, setDoctor] = useState<Doctor>({} as Doctor);
+  const [patient, setPatient] = useState<User>({} as User);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchAppointment();
-  }, [appointmentId]);
-
   const fetchAppointment = async () => {
     try {
-      const appointment = await getAppointmentById(appointmentId);
-      console.log("appointment : ", appointment);
-      setAppointment(appointment);
+      const appointmentData = await getAppointmentById(appointmentId);
+      console.log("appointment data : ", appointmentData);
+      setAppointment(appointmentData);
+      setDoctor(appointmentData.doctor);
+      setPatient(appointmentData.patient);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Failed to load appointment"
@@ -31,6 +33,10 @@ function AppointmentDetails() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchAppointment();
+  }, []);
 
   const handleReschedule = () => {
     router.push(`/appointments/${appointmentId}/reschedule`);
@@ -120,11 +126,11 @@ function AppointmentDetails() {
       <div className="max-w-4xl mx-auto px-4 py-4 space-y-4">
         {/* Doctor Info Card */}
         <DoctorInfoCard
-          name={appointment.doctorName}
-          specialty={appointment.specialty}
-          location="Available today"
-          qualification="MBBS, MD"
-          imageUrl={appointment.doctorImage || "/male-doctor.png"}
+          firstName={doctor.firstName}
+          lastName={doctor.lastName}
+          specialty={doctor.specialty}
+          qualifications={doctor.qualifications}
+          imageUrl={doctor?.image}
         />
 
         {/* Appointment Status */}
@@ -148,24 +154,26 @@ function AppointmentDetails() {
               Full name
             </label>
             <p className="font-semibold text-lg">
-              {appointment.patientDetails.fullName}
+              {appointment.patientDetails?.fullName}
             </p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-gray-500 text-sm block mb-1">Age</label>
-              <p className="font-semibold">{appointment.patientDetails.age}</p>
+              <p className="font-semibold">
+                {appointment.patientDetails?.age}
+              </p>
             </div>
             <div>
               <label className="text-gray-500 text-sm block mb-1">Weight</label>
               <p className="font-semibold">
-                {appointment.patientDetails.weight || "N/A"}
+                {appointment.patientDetails?.weight || "N/A"}
               </p>
             </div>
           </div>
 
-          {appointment.patientDetails.problem && (
+          {appointment.patientDetails?.problem && (
             <div>
               <label className="text-gray-500 text-sm block mb-1">
                 Problem
@@ -178,15 +186,14 @@ function AppointmentDetails() {
         </div>
 
         {/* Live Tracking Card */}
-        {appointment.status === "Waiting" ||
-        appointment.status === "Upcoming" ? (
+        {appointment.status === "Upcoming" ? (
           <div className="bg-white rounded-2xl p-6 shadow-sm space-y-4">
             <h3 className="font-semibold text-lg">Live Tracking</h3>
             <p className="text-gray-700">
               <span className="font-semibold">
                 {appointment.queuePosition || 15} Patient Consulting
               </span>{" "}
-              expected consulting time {appointment.expectedTime || "8:20 PM"}
+              consulting time {appointment.time}
             </p>
 
             <div className="grid grid-cols-2 gap-3">
@@ -207,7 +214,7 @@ function AppointmentDetails() {
         ) : null}
 
         {/* Payment Section */}
-        {appointment.paymentStatus === "Not paid" && (
+        {appointment.paid && (
           <div className="bg-white rounded-2xl p-6 shadow-sm space-y-4">
             <h3 className="font-semibold text-lg">Payment</h3>
             <p className="text-gray-600 text-sm">
@@ -222,7 +229,7 @@ function AppointmentDetails() {
           </div>
         )}
 
-        {appointment.paymentStatus === "Paid" && (
+        {appointment.paid && (
           <div className="bg-green-50 rounded-2xl p-6 shadow-sm">
             <div className="flex items-center justify-between">
               <span className="text-green-700 font-medium">Payment Status</span>

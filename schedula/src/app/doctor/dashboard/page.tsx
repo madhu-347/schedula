@@ -30,6 +30,7 @@ import {
 import mockData from "@/lib/mockData.json";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { Appointment } from "@/lib/types/appointment";
+import { Doctor } from "@/lib/types/doctor";
 
 // --- Type Definitions ---
 type AccountInfo = {
@@ -41,8 +42,9 @@ type AccountInfo = {
 };
 
 type MockDoctorData = {
-  id: number;
-  name: string;
+  id: string;
+  firstName: string;
+  lastName: string;
   specialty: string;
 };
 

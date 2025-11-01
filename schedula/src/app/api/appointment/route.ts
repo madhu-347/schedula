@@ -1,146 +1,131 @@
 // app/api/appointment/route.ts
-// This handles /api/appointment (without ID parameter)
+// CRUD Operations:
+// - GET all appointments (with patient and doctor data)
+// - GET appointments by patient (patientId)
+// - GET appointments by doctor (doctorId)
+// - GET appointment by id
+// - POST create new appointment
+// - PUT/PATCH update appointment details by id (returns enriched data)
+// - DELETE appointment by id
 
 import { NextRequest, NextResponse } from "next/server";
 import { Appointment } from "@/lib/types/appointment";
+import { Doctor } from "@/lib/types/doctor";
+import { User } from "@/lib/types/user";
+import { doctors, users, appointments } from "@/lib/mockData.json";
 
-// In-memory storage (replace with actual database in production)
-// This should be shared with the [id] route or use a separate data service
-let appointments: Appointment[] = [];
-let nextId = 1;
+// In-memory storage (resets on server restart)
+let appointmentsData: Appointment[] = JSON.parse(
+  JSON.stringify(appointments)
+) as Appointment[];
 
-// Initialize with some mock data
-if (appointments.length === 0) {
-  appointments = [
-    {
-      id: 1,
-      tokenNo: "A001",
-      doctorName: "Dr. Kumar Das",
-      doctorImage: "/female-doctor.png",
-      specialty: "Cardiologist",
-      qualification: "MBBS, MD (Internal Medicine)",
-      day: "Monday",
-      date: "2025-10-28",
-      timeSlot: "8:20 PM",
-      problem: "Stomach pain Feeling unwell and",
-      status: "Waiting",
-      type: "In-person",
-      paymentStatus: "Not paid",
-      queuePosition: 15,
-      expectedTime: "8:20 PM",
-      patientDetails: {
-        fullName: "Sudharkar Murti",
-        age: 28,
-        gender: "Male",
-        phone: "+91-9876543210",
-        weight: 28,
-        problem: "Stomach pain Feeling unwell and",
-        relationship: "Self",
-        location: "Dombivali",
-      },
-    },
-    {
-      id: 2,
-      tokenNo: "A002",
-      doctorName: "Dr. Priya Sharma",
-      doctorImage: "/female-doctor.png",
-      specialty: "Dermatologist",
-      qualification: "MBBS, MD (Dermatology)",
-      day: "Tuesday",
-      date: "2025-10-29",
-      timeSlot: "10:00 AM",
-      status: "Upcoming",
-      type: "Online",
-      paymentStatus: "Paid",
-      patientDetails: {
-        fullName: "Anjali Rao",
-        age: 32,
-        gender: "Female",
-        phone: "+91-9876543211",
-        weight: 60,
-        problem: "Skin rash",
-        relationship: "Self",
-        location: "Mumbai",
-      },
-    },
-    {
-      id: 3,
-      tokenNo: "A003",
-      doctorName: "Dr. Prakash Das",
-      doctorImage: "/male-doctor1.png",
-      specialty: "Sr. Psychologist",
-      qualification: "MBBS, MD (Psychiatry)",
-      day: "Wednesday",
-      date: "2025-10-22",
-      timeSlot: "02:00 PM",
-      status: "Completed",
-      type: "In-person",
-      paymentStatus: "Paid",
-      patientDetails: {
-        fullName: "Priya Kumar",
-        age: 45,
-        gender: "Female",
-        phone: "+91-9876543212",
-        problem: "Anxiety issues",
-        relationship: "Self",
-        location: "Chennai",
-      },
-    },
-  ];
-  nextId = 4;
+// Helper function to enrich appointment with patient and doctor data
+function enrichAppointment(appointment: Appointment) {
+  const patient = users.find((u: any) => u.id === appointment.patientId);
+  const doctor = doctors.find((d: any) => d.id === appointment.doctorId);
+
+  return {
+    ...appointment,
+    patient: patient || null,
+    doctor: doctor || null,
+  };
 }
 
-// GET - Fetch all appointments or filter by query params
+// Helper function to enrich multiple appointments
+function enrichAppointments(appointments: Appointment[]) {
+  return appointments.map(enrichAppointment);
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
 
-    // Optional filters
+    // Get filter parameters
+    const id = searchParams.get("id");
+    const patientId = searchParams.get("patientId");
+    const doctorId = searchParams.get("doctorId");
     const status = searchParams.get("status");
-    const doctorName = searchParams.get("doctorName");
-    const patientName = searchParams.get("patientName");
     const date = searchParams.get("date");
-    const userId = searchParams.get("id"); // For filtering by user's appointments
+    const type = searchParams.get("type");
+    const visitType = searchParams.get("visitType");
+    const limitParam = searchParams.get("limit");
+    const limit = limitParam ? parseInt(limitParam, 10) : null;
 
-    let filteredAppointments = [...appointments];
+    // If ID is provided, return specific appointment with enriched data
+    if (id) {
+      const appointment = appointmentsData.find((app) => app.id === id);
+
+      if (!appointment) {
+        return NextResponse.json(
+          { success: false, error: "Appointment not found" },
+          { status: 404 }
+        );
+      }
+
+      // Enrich with patient and doctor data
+      const enrichedAppointment = enrichAppointment(appointment);
+
+      return NextResponse.json(
+        { success: true, data: enrichedAppointment },
+        { status: 200 }
+      );
+    }
+
+    // Start with all appointments
+    let filteredAppointments = [...appointmentsData];
 
     // Apply filters
-    if (status) {
+    if (patientId)
+      filteredAppointments = filteredAppointments.filter(
+        (app) => app.patientId === patientId
+      );
+
+    if (doctorId)
+      filteredAppointments = filteredAppointments.filter(
+        (app) => app.doctorId === doctorId
+      );
+
+    if (status)
       filteredAppointments = filteredAppointments.filter(
         (app) => app.status.toLowerCase() === status.toLowerCase()
       );
-    }
 
-    if (doctorName) {
-      filteredAppointments = filteredAppointments.filter((app) =>
-        app.doctorName.toLowerCase().includes(doctorName.toLowerCase())
-      );
-    }
-
-    if (patientName) {
-      filteredAppointments = filteredAppointments.filter((app) =>
-        app.patientDetails.fullName
-          .toLowerCase()
-          .includes(patientName.toLowerCase())
-      );
-    }
-
-    if (date) {
+    if (date)
       filteredAppointments = filteredAppointments.filter(
         (app) => app.date === date
       );
-    }
+
+    if (type)
+      filteredAppointments = filteredAppointments.filter(
+        (app) => app.type?.toLowerCase() === type.toLowerCase()
+      );
+
+    if (visitType)
+      filteredAppointments = filteredAppointments.filter(
+        (app) => app.visitType?.toLowerCase() === visitType.toLowerCase()
+      );
 
     // Sort by date (most recent first)
     filteredAppointments.sort((a, b) => {
-      return new Date(b.date).getTime() - new Date(a.date).getTime();
+      const dateA = new Date(a.date).getTime();
+      const dateB = new Date(b.date).getTime();
+      return dateB - dateA;
     });
+
+    // If limit is provided, return only that many latest appointments
+    const limitedAppointments =
+      limit && limit > 0
+        ? filteredAppointments.slice(0, limit)
+        : filteredAppointments;
+
+    // Enrich all appointments with patient and doctor data
+    const enrichedAppointments = enrichAppointments(limitedAppointments);
 
     return NextResponse.json(
       {
         success: true,
-        count: filteredAppointments.length,
-        data: filteredAppointments,
+        count: enrichedAppointments.length,
+        data: enrichedAppointments,
       },
       { status: 200 }
     );
@@ -150,25 +135,20 @@ export async function GET(request: NextRequest) {
       {
         success: false,
         error: "Internal server error",
+        details: error instanceof Error ? error.message : "Unknown error",
       },
       { status: 500 }
     );
   }
 }
 
-// POST - Create new appointment
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    console.log("create appt req body ", body);
 
-    // Validate required fields
-    const requiredFields = [
-      "doctorName",
-      "specialty",
-      "day",
-      "date",
-      "timeSlot",
-    ];
+    // Validate required fields based on interface
+    const requiredFields = ["patientId", "doctorId", "day", "date", "status"];
 
     const missingFields = requiredFields.filter((field) => !body[field]);
 
@@ -182,40 +162,35 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate patient details
-    if (!body.patientDetails) {
+    // Validate patientId exists in users
+    const patientExists = users.some((user: any) => user.id === body.patientId);
+    if (!patientExists) {
       return NextResponse.json(
         {
           success: false,
-          error: "Patient details are required",
+          error: `Patient with ID ${body.patientId} not found`,
         },
-        { status: 400 }
+        { status: 404 }
       );
     }
 
-    const requiredPatientFields = [
-      "fullName",
-      "phone",
-    ];
-    const missingPatientFields = requiredPatientFields.filter(
-      (field) => !body.patientDetails[field]
+    // Validate doctorId exists in doctors
+    const doctorExists = doctors.some(
+      (doctor: any) => doctor.id === body.doctorId
     );
-
-    if (missingPatientFields.length > 0) {
+    if (!doctorExists) {
       return NextResponse.json(
         {
           success: false,
-          error: `Missing required patient fields: ${missingPatientFields.join(
-            ", "
-          )}`,
+          error: `Doctor with ID ${body.doctorId} not found`,
         },
-        { status: 400 }
+        { status: 404 }
       );
     }
 
-    // Validate status if provided
-    const validStatuses = ["Upcoming", "Completed", "Cancelled", "Waiting"];
-    if (body.status && !validStatuses.includes(body.status)) {
+    // Validate status
+    const validStatuses = ["Upcoming", "Completed", "Cancelled"];
+    if (!validStatuses.includes(body.status)) {
       return NextResponse.json(
         {
           success: false,
@@ -225,76 +200,172 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate payment status if provided
-    const validPaymentStatuses = ["Paid", "Not paid"];
-    if (
-      body.paymentStatus &&
-      !validPaymentStatuses.includes(body.paymentStatus)
-    ) {
+    // Validate paid field (required boolean)
+    if (typeof body.paid !== "boolean") {
       return NextResponse.json(
         {
           success: false,
-          error: `Invalid payment status. Must be one of: ${validPaymentStatuses.join(
-            ", "
-          )}`,
+          error: "Field 'paid' is required and must be a boolean",
         },
         { status: 400 }
       );
     }
 
     // Validate appointment type if provided
-    const validTypes = ["In-person", "Online"];
-    if (body.type && !validTypes.includes(body.type)) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: `Invalid appointment type. Must be one of: ${validTypes.join(
-            ", "
-          )}`,
-        },
-        { status: 400 }
-      );
+    if (body.type) {
+      const validTypes = ["In-person", "Virtual"];
+      if (!validTypes.includes(body.type)) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `Invalid appointment type. Must be one of: ${validTypes.join(
+              ", "
+            )}`,
+          },
+          { status: 400 }
+        );
+      }
     }
+
+    // Validate visit type if provided
+    if (body.visitType) {
+      const validVisitTypes = ["Follow-up", "Report", "First"];
+      if (!validVisitTypes.includes(body.visitType)) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `Invalid visit type. Must be one of: ${validVisitTypes.join(
+              ", "
+            )}`,
+          },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Validate patientDetails if provided
+    if (body.patientDetails) {
+      const requiredPatientFields = ["fullName", "age", "gender", "phone"];
+      const missingPatientFields = requiredPatientFields.filter(
+        (field) => !body.patientDetails[field]
+      );
+
+      if (missingPatientFields.length > 0) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `Missing required patient fields: ${missingPatientFields.join(
+              ", "
+            )}`,
+          },
+          { status: 400 }
+        );
+      }
+
+      // Validate gender
+      const validGenders = ["Male", "Female", "Other"];
+      if (!validGenders.includes(body.patientDetails.gender)) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `Invalid gender. Must be one of: ${validGenders.join(", ")}`,
+          },
+          { status: 400 }
+        );
+      }
+
+      // Validate relationship
+      const validRelationships = [
+        "Self",
+        "Son",
+        "Daughter",
+        "Brother",
+        "Sister",
+        "Father",
+        "Mother",
+        "Spouse",
+        "Other",
+      ];
+      const relationship = body.patientDetails.relationship || "Self";
+      if (!validRelationships.includes(relationship)) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `Invalid relationship. Must be one of: ${validRelationships.join(
+              ", "
+            )}`,
+          },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Validate postFeeling if provided
+    if (body.postFeeling) {
+      const validPostFeelings = ["Feeling Better", "No improvements"];
+      if (!validPostFeelings.includes(body.postFeeling)) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `Invalid postFeeling. Must be one of: ${validPostFeelings.join(
+              ", "
+            )}`,
+          },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Generate unique ID using Date.now().toString()
+    const newId = Date.now().toString();
+    const tokenNumber = `T${String(appointmentsData.length + 1).padStart(
+      4,
+      "0"
+    )}`;
 
     // Create new appointment
     const newAppointment: Appointment = {
-      id: nextId++,
-      tokenNo: `A${String(nextId - 1).padStart(3, "0")}`,
-      doctorName: body.doctorName,
-      doctorImage: body.doctorImage || "/male-doctor.png",
-      specialty: body.specialty,
-      qualification: body.qualification || "MBBS, MD",
+      id: newId,
+      tokenNo: body.tokenNo || tokenNumber,
+      patientId: body.patientId,
+      doctorId: body.doctorId,
       day: body.day,
       date: body.date,
-      timeSlot: body.timeSlot,
-      problem: body.problem || "",
-      status: body.status || "Upcoming",
-      type: body.type || "In-person",
-      paymentStatus: body.paymentStatus || "Not paid",
+      type: body.type,
+      time: body.time,
       queuePosition: body.queuePosition,
-      expectedTime: body.expectedTime,
-      patientDetails: {
-        fullName: body.patientDetails.fullName,
-        age: Number(body.patientDetails.age) || undefined,
-        gender: body.patientDetails.gender || "Not Specified",
-        phone: body.patientDetails.phone,
-        weight: body.patientDetails.weight
-          ? Number(body.patientDetails.weight)
-          : undefined,
-        problem: body.patientDetails.problem || body.problem || "",
-        relationship: body.patientDetails.relationship || "Self",
-        location: body.patientDetails.location || "",
-      },
+      patientDetails: body.patientDetails
+        ? {
+            fullName: body.patientDetails.fullName,
+            age: Number(body.patientDetails.age),
+            gender: body.patientDetails.gender,
+            phone: body.patientDetails.phone,
+            weight: body.patientDetails.weight
+              ? Number(body.patientDetails.weight)
+              : undefined,
+            problem: body.patientDetails.problem,
+            relationship: body.patientDetails.relationship || "Self",
+          }
+        : undefined,
+      visitType: body.visitType,
+      status: body.status,
+      paid: body.paid,
+      postFeeling: body.postFeeling,
     };
 
     // Add to appointments array
-    appointments.push(newAppointment);
+    appointmentsData.push(newAppointment);
+
+    console.log("New appointment created:", newAppointment);
+
+    // Enrich response with patient and doctor data
+    const enrichedAppointment = enrichAppointment(newAppointment);
 
     return NextResponse.json(
       {
         success: true,
         message: "Appointment created successfully",
-        data: newAppointment,
+        data: enrichedAppointment,
       },
       { status: 201 }
     );
@@ -311,13 +382,255 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Helper function to get appointments (can be imported by other files)
-export function getAppointments() {
-  return appointments;
+// PUT/PATCH - Update appointment details by id
+export async function PUT(request: NextRequest) {
+  try {
+    const body = await request.json();
+    console.log("req body: ", body);
+    const { id, ...updateData } = body;
+
+    if (!id) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Appointment ID is required",
+        },
+        { status: 400 }
+      );
+    }
+
+    const appointmentIndex = appointmentsData.findIndex((app) => app.id === id);
+
+    if (appointmentIndex === -1) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Appointment not found",
+        },
+        { status: 404 }
+      );
+    }
+
+    // Validate status if being updated
+    if (updateData.status) {
+      const validStatuses = ["Upcoming", "Completed", "Cancelled"];
+      if (!validStatuses.includes(updateData.status)) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `Invalid status. Must be one of: ${validStatuses.join(
+              ", "
+            )}`,
+          },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Validate appointment type if being updated
+    if (updateData.type) {
+      const validTypes = ["In-person", "Virtual"];
+      if (!validTypes.includes(updateData.type)) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `Invalid appointment type. Must be one of: ${validTypes.join(
+              ", "
+            )}`,
+          },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Validate visit type if being updated
+    if (updateData.visitType) {
+      const validVisitTypes = ["Follow-up", "Report", "First"];
+      if (!validVisitTypes.includes(updateData.visitType)) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `Invalid visit type. Must be one of: ${validVisitTypes.join(
+              ", "
+            )}`,
+          },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Validate postFeeling if being updated
+    if (updateData.postFeeling) {
+      const validPostFeelings = ["Feeling Better", "No improvements"];
+      if (!validPostFeelings.includes(updateData.postFeeling)) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `Invalid postFeeling. Must be one of: ${validPostFeelings.join(
+              ", "
+            )}`,
+          },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Validate patient details if being updated
+    if (updateData.patientDetails) {
+      const { fullName, age, gender, phone, weight, problem, relationship } =
+        updateData.patientDetails;
+
+      // Validate required fields
+      if (fullName && typeof fullName !== "string") {
+        return NextResponse.json(
+          { success: false, error: "Full name must be a string" },
+          { status: 400 }
+        );
+      }
+
+      if (age && (typeof age !== "number" || age < 0 || age > 150)) {
+        return NextResponse.json(
+          { success: false, error: "Age must be a number between 0 and 150" },
+          { status: 400 }
+        );
+      }
+
+      if (gender && !["Male", "Female", "Other"].includes(gender)) {
+        return NextResponse.json(
+          { success: false, error: "Gender must be Male, Female, or Other" },
+          { status: 400 }
+        );
+      }
+
+      if (phone && !/^\d{10}$/.test(phone)) {
+        return NextResponse.json(
+          { success: false, error: "Phone must be a 10-digit number" },
+          { status: 400 }
+        );
+      }
+
+      if (relationship) {
+        const validRelationships = [
+          "Self",
+          "Son",
+          "Daughter",
+          "Brother",
+          "Sister",
+          "Father",
+          "Mother",
+          "Spouse",
+          "Other",
+        ];
+        if (!validRelationships.includes(relationship)) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: `Relationship must be one of: ${validRelationships.join(
+                ", "
+              )}`,
+            },
+            { status: 400 }
+          );
+        }
+      }
+
+      // Merge patient details properly
+      updateData.patientDetails = {
+        ...appointmentsData[appointmentIndex].patientDetails,
+        ...updateData.patientDetails,
+      };
+    }
+
+    // Update appointment with all changes
+    appointmentsData[appointmentIndex] = {
+      ...appointmentsData[appointmentIndex],
+      ...updateData,
+      id: appointmentsData[appointmentIndex].id, // Preserve original ID
+    };
+
+    console.log("Appointment updated:", appointmentsData[appointmentIndex]);
+
+    // Enrich response with patient and doctor data
+    const enrichedAppointment = enrichAppointment(
+      appointmentsData[appointmentIndex]
+    );
+
+    return NextResponse.json(
+      {
+        success: true,
+        message: "Appointment updated successfully",
+        data: enrichedAppointment,
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Error updating appointment:", error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Internal server error",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 }
+    );
+  }
 }
 
-// Helper function to set appointments (useful for testing or initialization)
-export function setAppointments(newAppointments: Appointment[]) {
-  appointments = newAppointments;
-  nextId = Math.max(...appointments.map((a) => a.id), 0) + 1;
+// PATCH - Same as PUT for partial updates
+export async function PATCH(request: NextRequest) {
+  return PUT(request);
+}
+
+// DELETE - Delete appointment by id
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get("id");
+
+    if (!id) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Appointment ID is required",
+        },
+        { status: 400 }
+      );
+    }
+
+    const appointmentIndex = appointmentsData.findIndex((app) => app.id === id);
+
+    if (appointmentIndex === -1) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Appointment not found",
+        },
+        { status: 404 }
+      );
+    }
+
+    const deletedAppointment = appointmentsData[appointmentIndex];
+    appointmentsData.splice(appointmentIndex, 1);
+
+    console.log("Appointment deleted:", deletedAppointment);
+
+    return NextResponse.json(
+      {
+        success: true,
+        message: "Appointment deleted successfully",
+        data: deletedAppointment,
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Error deleting appointment:", error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Internal server error",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 }
+    );
+  }
 }

@@ -1,21 +1,15 @@
 export interface Appointment {
-  id: number;
+  id: string;
   tokenNo: string;
-  doctorName: string;
-  doctorImage: string;
-  specialty: string;
-  qualification?: string;
+  patientId: string;
+  doctorId: string;
   day: string;
   date: string;
-  timeSlot: string;
-  problem?: string;
-  status: "Upcoming" | "Completed" | "Cancelled" | "Waiting";
-  visitType?: "Follow-up" | "Report" | "First";
-  type?: "In-person" | "Online";
-  paymentStatus: "Paid" | "Not paid";
+  time: string;
+  type?: "In-person" | "Virtual";
   queuePosition?: number;
-  expectedTime?: string;
-  patientDetails: {
+  
+  patientDetails?: {
     fullName: string;
     age: number;
     gender: "Male" | "Female" | "Other";
@@ -32,6 +26,10 @@ export interface Appointment {
       | "Mother"
       | "Spouse"
       | "Other";
-    location?: string;
   };
+
+  visitType?: "Follow-up" | "Report" | "First";
+  status: "Upcoming" | "Completed" | "Cancelled";
+  paid?: boolean;
+  postFeeling?: "Feeling Better" | "No improvements";
 }

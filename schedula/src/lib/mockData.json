@@ -1,50 +1,89 @@
 {
   "doctors": [
     {
-      "id": 1,
+      "id": "1",
       "email": "prakashdas@schedula.com",
       "password": "password123",
-      "name": "Dr. Prakash das",
       "firstName": "Prakash",
       "lastName": "das",
-      "profilePicture": "/male-doctor1.png",
+      "image": "/male-doctor1.png",
       "phone": "+91-9876543210",
+      "qualifications": "MBBS, MS (Surgeon)",
       "specialty": "Sr. Psychologist",
-      "status": "Available today",
-      "bio": "As Psychologist Dr das practices about 7+ years...",
-      "time": "09:30 AM-07:00 PM"
+      "bio": "As Psychologist Dr. Prakash Das practices about 7+ years...",
+      "fee": 300,
+      "isAvailable": true,
+      "availableDays": ["Monday", "Wednesday", "Friday"],
+      "availableTime": {
+        "morning": {
+          "from": "09:30",
+          "to": "12:00"
+        },
+        "evening": {
+          "from": "14:00",
+          "to": "17:00"
+        }
+      }
     },
+
     {
-      "id": 2,
+      "id": "2",
       "email": "priyasharma@schedula.com",
       "password": "password123",
       "name": "Dr. Priya Sharma",
       "firstName": "Priya",
       "lastName": "Sharma",
-      "profilePicture": "/female-doctor.png",
+      "image": "/female-doctor.png",
       "phone": "+91-9876543211",
+      "qualifications": "MBBS, MS (Cardiology)",
       "specialty": "Cardiologist",
-      "status": "Available today",
+      "isAvailable": true,
+      "fee": 700,
       "bio": "Dr. Sharma is a leading expert in cardiac care with 10+ years...",
-      "time": "10:00 AM-05:00 PM"
+      "availableDays": ["Tuesday", "Thursday", "Saturday"],
+      "availableTime": {
+        "morning": {
+          "from": "10:00",
+          "to": "12:30"
+        },
+        "evening": {
+          "from": "18:00",
+          "to": "20:00"
+        }
+      }
     },
+
     {
-      "id": 3,
+      "id": "3",
       "email": "anilkumar@schedula.com",
       "password": "password123",
       "name": "Dr. Anil Kumar",
       "firstName": "Anil",
       "lastName": "Kumar",
-      "profilePicture": "/male-doctor2.png",
+      "image": "/male-doctor2.png",
       "phone": "+91-9876543212",
+      "qualifications": "MBBS, MS (Dermatology)",
       "specialty": "Dermatologist",
-      "status": "Available tomorrow",
+      "isAvailable": true,
+      "fee": 500,
       "bio": "Specializes in all skin-related ailments and cosmetic procedures...",
-      "time": "11:00 AM-06:00 PM"
+      "availableDays": ["Monday", "Wednesday", "Friday"],
+      "availableTime": {
+        "morning": {
+          "from": "10:30",
+          "to": "12:00"
+        },
+        "evening": {
+          "from": "14:00",
+          "to": "17:00"
+        }
+      }
     }
   ],
+
   "users": [
     {
+      "id": "1",
       "firstName": "Priya",
       "lastName": "Sharma",
       "email": "priya@example.com",
@@ -52,6 +91,7 @@
       "phone": "9876543210"
     },
     {
+      "id": "2",
       "firstName": "John",
       "lastName": "Mathew",
       "email": "john@example.com",
@@ -59,6 +99,7 @@
       "phone": "9998887776"
     },
     {
+      "id": "3",
       "firstName": "Anjali",
       "lastName": "Rao",
       "email": "anjali@example.com",
@@ -66,14 +107,47 @@
       "phone": "7012345678"
     }
   ],
-  "appointments": {
-    "id": "",
-    "patientId": "",
-    "doctorId": "",
-    "tokenNo": "",
-    "day": "",
-    "time": "",
-    "status": "",
-    "notes": ""
-  }
+  "appointments": [
+    {
+      "id": "1",
+      "patientId": "1",
+      "doctorId": "1",
+      "patientDetails": {
+        "fullName": "Divya Sharma",
+        "age": "25",
+        "gender": "female",
+        "phone": "9876543210",
+        "weight": "55",
+        "problem": "Migraine",
+        "relationship": "Sister"
+      },
+      "tokenNo": "A001",
+      "day": "Monday",
+      "time": "09:30 AM",
+      "status": "Completed",
+      "notes": "Patient attended the appointment and showed improvement.",
+      "paid": false
+    },
+    {
+      "id": "2",
+      "tokenNo": "A002",
+      "patientId": "2",
+      "doctorId": "2",
+      "patientDetails": {
+        "fullName": "Mark Mathew",
+        "age": "35",
+        "gender": "male",
+        "phone": "9998887776",
+        "weight": "68",
+        "problem": "Heart Disease",
+        "relationship": "Brother"
+      },
+      "date": "3-11-25",
+      "day": "Tuesday",
+      "time": "10:00 AM",
+      "status": "Upcoming",
+      "notes": "Appointment is yet to happen.",
+      "paid": true
+    }
+  ]
 }
