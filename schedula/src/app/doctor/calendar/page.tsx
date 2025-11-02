@@ -20,6 +20,7 @@ import {
 } from "@/app/services/appointments.api";
 import { useAuth } from "@/context/AuthContext";
 import { Appointment } from "@/lib/types/appointment";
+import { getDoctorById } from "@/app/services/doctor.api";
 
 export default function CalendarPage() {
   const { doctor } = useAuth();
@@ -27,6 +28,7 @@ export default function CalendarPage() {
   const [events, setEvents] = useState<any[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
   const [showModal, setShowModal] = useState(false);
+  const [doctorAvailability, setDoctorAvailability] = useState<any>(null);
   const tooltipRef = useRef<HTMLDivElement | null>(null);
 
   const statusColors: Record<string, string> = {
@@ -35,6 +37,22 @@ export default function CalendarPage() {
     Completed: "#10b981", // green
     Cancelled: "#ef4444", // red
   };
+
+  // Load doctor data to get availability
+  useEffect(() => {
+    const loadDoctorData = async () => {
+      if (doctorId) {
+        try {
+          const doctorData = await getDoctorById(doctorId);
+          setDoctorAvailability(doctorData?.doctor || doctorData?.data);
+        } catch (error) {
+          console.error("Error loading doctor data:", error);
+        }
+      }
+    };
+
+    loadDoctorData();
+  }, [doctorId]);
 
   const handleEventClick = (info: any) => {
     setSelectedEvent(info.event);
@@ -165,6 +183,75 @@ export default function CalendarPage() {
     });
   }
 
+  // Generate background events for doctor's available time slots
+  const generateAvailabilityEvents = () => {
+    if (!doctorAvailability) return [];
+
+    const events = [];
+    const today = new Date();
+
+    // Generate events for the next 30 days
+    for (let i = 0; i < 30; i++) {
+      const date = new Date(today);
+      date.setDate(today.getDate() + i);
+
+      const dayName = date.toLocaleDateString("en-US", { weekday: "long" });
+      const isoDate = toISODate(date);
+
+      // Check if doctor is available on this day
+      const isAvailableDay =
+        !doctorAvailability.availableDays ||
+        doctorAvailability.availableDays.length === 0 ||
+        doctorAvailability.availableDays.includes(dayName);
+
+      if (isAvailableDay) {
+        // Add morning availability
+        if (
+          doctorAvailability.availableTime?.morning?.from &&
+          doctorAvailability.availableTime?.morning?.to
+        ) {
+          const start = new Date(
+            `${isoDate}T${doctorAvailability.availableTime.morning.from}:00`
+          );
+          const end = new Date(
+            `${isoDate}T${doctorAvailability.availableTime.morning.to}:00`
+          );
+
+          events.push({
+            start,
+            end,
+            display: "background",
+            backgroundColor: "rgba(236, 254, 255, 0.5)", // Light cyan background
+            borderColor: "rgba(236, 254, 255, 0.5)",
+          });
+        }
+
+        // Add evening availability
+        if (
+          doctorAvailability.availableTime?.evening?.from &&
+          doctorAvailability.availableTime?.evening?.to
+        ) {
+          const start = new Date(
+            `${isoDate}T${doctorAvailability.availableTime.evening.from}:00`
+          );
+          const end = new Date(
+            `${isoDate}T${doctorAvailability.availableTime.evening.to}:00`
+          );
+
+          events.push({
+            start,
+            end,
+            display: "background",
+            backgroundColor: "rgba(236, 254, 255, 0.5)", // Light cyan background
+            borderColor: "rgba(236, 254, 255, 0.5)",
+          });
+        }
+      }
+    }
+
+    return events;
+  };
+
   // Load appointments from API
   const loadAppointments = async () => {
     try {
@@ -214,11 +301,28 @@ export default function CalendarPage() {
         time: newTime,
       });
 
-      await updateAppointment(id, {
+      // Update the appointment
+      const updatedAppointment = await updateAppointment(id, {
         date: newDate,
         day: newDay,
         time: newTime,
       });
+
+      // Send notification to patient about rescheduling
+      if (updatedAppointment) {
+        try {
+          await fetch("/api/notifications", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              doctorName: `${doctor?.firstName} ${doctor?.lastName}`,
+              message: `Your appointment has been rescheduled to ${newDay}, ${newDate} at ${newTime}.`,
+            }),
+          });
+        } catch (err) {
+          console.error("Failed to send notification:", err);
+        }
+      }
 
       loadAppointments(); // Reload events
     } catch (e) {
@@ -240,9 +344,26 @@ export default function CalendarPage() {
 
       console.log("Updating time:", newTime);
 
-      await updateAppointment(id, {
+      // Update the appointment
+      const updatedAppointment = await updateAppointment(id, {
         time: newTime,
       });
+
+      // Send notification to patient about time change
+      if (updatedAppointment) {
+        try {
+          await fetch("/api/notifications", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              doctorName: `${doctor?.firstName} ${doctor?.lastName}`,
+              message: `Your appointment time has been updated to ${newTime}.`,
+            }),
+          });
+        } catch (err) {
+          console.error("Failed to send notification:", err);
+        }
+      }
 
       loadAppointments(); // Reload events
     } catch (e) {
@@ -274,6 +395,9 @@ export default function CalendarPage() {
       removeTooltip();
     };
   }, [doctorId]);
+
+  // Generate availability events when doctor availability changes
+  const availabilityEvents = generateAvailabilityEvents();
 
   return (
     <div className="p-4 sm:p-8 bg-gray-50 min-h-screen">
@@ -403,7 +527,7 @@ export default function CalendarPage() {
           plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
           initialView="timeGridWeek"
           height="80vh"
-          events={events}
+          events={[...events, ...availabilityEvents]}
           eventClick={handleEventClick}
           eventDisplay="block"
           displayEventTime={true}
@@ -412,9 +536,12 @@ export default function CalendarPage() {
           eventDurationEditable={true}
           eventDrop={handleEventDrop}
           eventResize={handleEventResize}
-          slotMinTime="06:00:00"
-          slotMaxTime="22:00:00"
-          slotDuration="00:30:00"
+          slotMinTime={
+            doctorAvailability?.availableTime?.morning?.from || "06:00:00"
+          }
+          slotMaxTime={
+            doctorAvailability?.availableTime?.evening?.to || "22:00:00"
+          }
           headerToolbar={{
             left: "prev,next today",
             center: "title",
@@ -427,6 +554,11 @@ export default function CalendarPage() {
             day: "Day",
           }}
           eventContent={(info) => {
+            // Don't show content for background events
+            if (info.event.display === "background") {
+              return { html: "" };
+            }
+
             const isList = info.view.type === "dayGridMonth";
             if (isList) {
               return {
@@ -447,6 +579,9 @@ export default function CalendarPage() {
             };
           }}
           eventMouseEnter={(info) => {
+            // Don't show tooltip for background events
+            if (info.event.display === "background") return;
+
             removeTooltip();
 
             const { event, jsEvent } = info;

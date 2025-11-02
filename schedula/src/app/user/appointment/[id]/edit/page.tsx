@@ -3,7 +3,10 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Appointment } from "@/lib/types/appointment";
-import { getAppointmentById, updateAppointment } from "@/app/services/appointments.api";
+import {
+  getAppointmentById,
+  updateAppointment,
+} from "@/app/services/appointments.api";
 import Heading from "@/components/ui/Heading";
 
 export default function EditAppointmentPage() {
@@ -39,23 +42,28 @@ export default function EditAppointmentPage() {
   }, [id]);
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >
   ) => {
     if (!appointment) return;
     const { name, value } = e.target;
     if (name.startsWith("patientDetails.")) {
-      const key = name.replace("patientDetails.", "") as keyof Appointment["patientDetails"];
+      const key = name.replace(
+        "patientDetails.",
+        ""
+      ) as keyof Appointment["patientDetails"];
       setAppointment({
         ...appointment,
-        patientDetails: { 
+        patientDetails: {
           ...(appointment.patientDetails || {
             fullName: "",
             age: 0,
             gender: "Male" as const,
             phone: "",
             relationship: "Self" as const,
-          }), 
-          [key]: key === "age" || key === "weight" ? Number(value) : value 
+          }),
+          [key]: key === "age" || key === "weight" ? Number(value) : value,
         },
       });
     } else {
@@ -116,16 +124,25 @@ export default function EditAppointmentPage() {
       </div>
 
       <div className="p-5 max-w-3xl mx-auto">
-        <form onSubmit={handleSubmit} className="mt-4 space-y-6 bg-white p-6 rounded-2xl shadow-md border border-gray-100 mb-16">
+        <form
+          onSubmit={handleSubmit}
+          className="mt-4 space-y-6 bg-white p-6 rounded-2xl shadow-md border border-gray-100 mb-16"
+        >
           {error ? (
-            <div className="p-3 rounded-md bg-red-50 text-red-700 text-sm">{error}</div>
+            <div className="p-3 rounded-md bg-red-50 text-red-700 text-sm">
+              {error}
+            </div>
           ) : null}
 
           <div>
-            <h3 className="text-base font-semibold text-gray-900 mb-3">Appointment</h3>
+            <h3 className="text-base font-semibold text-gray-900 mb-3">
+              Appointment Details
+            </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700">Date</label>
+                <label className="block text-sm font-medium text-gray-700">
+                  Date
+                </label>
                 <input
                   type="date"
                   name="date"
@@ -136,19 +153,36 @@ export default function EditAppointmentPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Time Slot</label>
+                <label className="block text-sm font-medium text-gray-700">
+                  Day
+                </label>
                 <input
                   type="text"
-                  name="timeSlot"
-                  value={appointment.timeSlot}
+                  name="day"
+                  value={appointment.day}
                   onChange={handleChange}
-                  placeholder="e.g. 10:00 AM"
                   className="mt-1 w-full bg-gray-50 border-2 border-gray-200 rounded-xl px-3 py-3 focus:outline-none focus:border-cyan-400 focus:bg-white transition-all"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Type</label>
+                <label className="block text-sm font-medium text-gray-700">
+                  Time
+                </label>
+                <input
+                  type="text"
+                  name="time"
+                  value={appointment.time}
+                  onChange={handleChange}
+                  placeholder="e.g. 10:00 AM - 10:30 AM"
+                  className="mt-1 w-full bg-gray-50 border-2 border-gray-200 rounded-xl px-3 py-3 focus:outline-none focus:border-cyan-400 focus:bg-white transition-all"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Type
+                </label>
                 <select
                   name="type"
                   value={appointment.type || "In-person"}
@@ -156,11 +190,14 @@ export default function EditAppointmentPage() {
                   className="mt-1 w-full bg-gray-50 border-2 border-gray-200 rounded-xl px-3 py-3 focus:outline-none focus:border-cyan-400 focus:bg-white transition-all"
                 >
                   <option value="In-person">In-person</option>
-                  <option value="Online">Online</option>
+                  <option value="Virtual">Virtual</option>
                 </select>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Status</label>
+              {/* don't display these fields */}
+              {/* <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Status
+                </label>
                 <select
                   name="status"
                   value={appointment.status}
@@ -172,27 +209,32 @@ export default function EditAppointmentPage() {
                   <option value="Completed">Completed</option>
                   <option value="Cancelled">Cancelled</option>
                 </select>
-              </div>
+              </div> */}
+              {/* <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Token No
+                </label>
+                <input
+                  type="text"
+                  name="tokenNo"
+                  value={appointment.tokenNo}
+                  onChange={handleChange}
+                  className="mt-1 w-full bg-gray-50 border-2 border-gray-200 rounded-xl px-3 py-3 focus:outline-none focus:border-cyan-400 focus:bg-white transition-all"
+                  readOnly
+                />
+              </div> */}
             </div>
           </div>
 
           <div>
-            <h3 className="text-base font-semibold text-gray-900 mb-3">Notes</h3>
-            <textarea
-              name="problem"
-              value={appointment.problem || ""}
-              onChange={handleChange}
-              rows={4}
-              className="mt-1 w-full bg-gray-50 border-2 border-gray-200 rounded-xl px-3 py-3 focus:outline-none focus:border-cyan-400 focus:bg-white transition-all"
-              placeholder="Briefly describe your problem (optional)"
-            />
-          </div>
-
-          <div>
-            <h3 className="text-base font-semibold text-gray-900 mb-3">Patient Details</h3>
+            <h3 className="text-base font-semibold text-gray-900 mb-3">
+              Patient Details
+            </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700">Full Name</label>
+                <label className="block text-sm font-medium text-gray-700">
+                  Full Name
+                </label>
                 <input
                   type="text"
                   name="patientDetails.fullName"
@@ -203,7 +245,9 @@ export default function EditAppointmentPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Age</label>
+                <label className="block text-sm font-medium text-gray-700">
+                  Age
+                </label>
                 <input
                   type="number"
                   name="patientDetails.age"
@@ -214,7 +258,9 @@ export default function EditAppointmentPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Gender</label>
+                <label className="block text-sm font-medium text-gray-700">
+                  Gender
+                </label>
                 <select
                   name="patientDetails.gender"
                   value={appointment.patientDetails?.gender || "Male"}
@@ -227,7 +273,9 @@ export default function EditAppointmentPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Phone</label>
+                <label className="block text-sm font-medium text-gray-700">
+                  Phone
+                </label>
                 <input
                   type="tel"
                   name="patientDetails.phone"
@@ -235,6 +283,75 @@ export default function EditAppointmentPage() {
                   onChange={handleChange}
                   className="mt-1 w-full bg-gray-50 border-2 border-gray-200 rounded-xl px-3 py-3 focus:outline-none focus:border-cyan-400 focus:bg-white transition-all"
                 />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Relationship
+                </label>
+                <select
+                  name="patientDetails.relationship"
+                  value={appointment.patientDetails?.relationship || "Self"}
+                  onChange={handleChange}
+                  className="mt-1 w-full bg-gray-50 border-2 border-gray-200 rounded-xl px-3 py-3 focus:outline-none focus:border-cyan-400 focus:bg-white transition-all"
+                >
+                  <option value="Self">Self</option>
+                  <option value="Son">Son</option>
+                  <option value="Daughter">Daughter</option>
+                  <option value="Brother">Brother</option>
+                  <option value="Sister">Sister</option>
+                  <option value="Father">Father</option>
+                  <option value="Mother">Mother</option>
+                  <option value="Spouse">Spouse</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Weight (kg)
+                </label>
+                <input
+                  type="number"
+                  name="patientDetails.weight"
+                  value={appointment.patientDetails?.weight || ""}
+                  onChange={handleChange}
+                  className="mt-1 w-full bg-gray-50 border-2 border-gray-200 rounded-xl px-3 py-3 focus:outline-none focus:border-cyan-400 focus:bg-white transition-all"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-base font-semibold text-gray-900 mb-3">
+              Additional Information
+            </h3>
+            <div className="grid grid-cols-1 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Problem Description
+                </label>
+                <textarea
+                  name="patientDetails.problem"
+                  value={appointment.patientDetails?.problem || ""}
+                  onChange={handleChange}
+                  rows={3}
+                  className="mt-1 w-full bg-gray-50 border-2 border-gray-200 rounded-xl px-3 py-3 focus:outline-none focus:border-cyan-400 focus:bg-white transition-all"
+                  placeholder="Briefly describe your problem"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Visit Type
+                </label>
+                <select
+                  name="visitType"
+                  value={appointment.visitType || "First"}
+                  onChange={handleChange}
+                  className="mt-1 w-full bg-gray-50 border-2 border-gray-200 rounded-xl px-3 py-3 focus:outline-none focus:border-cyan-400 focus:bg-white transition-all"
+                >
+                  <option value="First">First Visit</option>
+                  <option value="Follow-up">Follow-up</option>
+                  <option value="Report">Report Review</option>
+                </select>
               </div>
             </div>
           </div>
@@ -260,5 +377,3 @@ export default function EditAppointmentPage() {
     </div>
   );
 }
-
-

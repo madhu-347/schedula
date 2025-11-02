@@ -161,9 +161,7 @@ function AppointmentDetails() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-gray-500 text-sm block mb-1">Age</label>
-              <p className="font-semibold">
-                {appointment.patientDetails?.age}
-              </p>
+              <p className="font-semibold">{appointment.patientDetails?.age}</p>
             </div>
             <div>
               <label className="text-gray-500 text-sm block mb-1">Weight</label>
@@ -214,7 +212,7 @@ function AppointmentDetails() {
         ) : null}
 
         {/* Payment Section */}
-        {appointment.paid && (
+        {!appointment.paid && (
           <div className="bg-white rounded-2xl p-6 shadow-sm space-y-4">
             <h3 className="font-semibold text-lg">Payment</h3>
             <p className="text-gray-600 text-sm">

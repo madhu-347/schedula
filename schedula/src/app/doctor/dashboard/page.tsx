@@ -30,6 +30,7 @@ import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { Appointment } from "@/lib/types/appointment";
 import { useAuth } from "@/context/AuthContext";
 import { getLatestAppointmentsForDoctor } from "@/app/services/appointments.api";
+import NotificationBell from "@/components/notifications/NotificationBell";
 
 type DashboardStats = {
   todayAppointments: number;
@@ -148,15 +149,15 @@ export default function DoctorDashboardPage() {
   // Calculate visit type breakdown for pie chart
   const calculateVisitTypes = (appointments: Appointment[]) => {
     const firstVisitCount = appointments.filter(
-      (a) => a.visitType === "First" && a.status !== "Cancelled"
+      (a) => a.visitType === "First"
     ).length;
 
     const reportVisitCount = appointments.filter(
-      (a) => a.visitType === "Report" && a.status !== "Cancelled"
+      (a) => a.visitType === "Report"
     ).length;
 
     const followUpCount = appointments.filter(
-      (a) => a.visitType === "Follow-up" && a.status !== "Cancelled"
+      (a) => a.visitType === "Follow-up"
     ).length;
 
     setVisitTypeBreakdown([
@@ -312,76 +313,42 @@ export default function DoctorDashboardPage() {
     <ProtectedRoute>
       <div className="min-h-screen bg-gray-50">
         {/* Header */}
-        <header className="bg-linear-to-r from-cyan-500 to-teal-500 text-white shadow-md">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-            <div>
-              <h1 className="text-2xl font-bold">
-                Dr. {doctor.firstName} {doctor.lastName}'s Dashboard
-              </h1>
-              <p className="text-sm text-cyan-100 mt-1">
-                {doctor.specialty || "Specialist"}
-              </p>
-            </div>
-            <div className="flex items-center gap-4 relative" ref={dropdownRef}>
-              {/* Notification Bell */}
-              <button
-                onClick={() => setShowDropdown((prev) => !prev)}
-                className="relative p-2 rounded-full hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-cyan-600 focus:ring-white transition"
-              >
-                <Bell size={20} />
-                {notifications.some((n) => !n.read) && (
-                  <span className="absolute top-1 right-1 block w-2 h-2 bg-red-500 rounded-full" />
-                )}
-              </button>
+        <header className="bg-white shadow-sm">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between h-16 items-center">
+              <div className="flex items-center">
+                <h1 className="text-xl font-semibold text-gray-900">
+                  Doctor Dashboard
+                </h1>
+              </div>
+              <div className="flex items-center space-x-4">
+                <NotificationBell role="doctor" />
+                <div className="relative" ref={dropdownRef}>
+                  <button
+                    onClick={() => setShowDropdown(!showDropdown)}
+                    className="flex items-center space-x-2 text-gray-700 hover:text-gray-900"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-cyan-500 flex items-center justify-center text-white font-semibold">
+                      {doctor?.firstName?.charAt(0) || "D"}
+                    </div>
+                    <span className="hidden md:inline">
+                      Dr. {doctor?.firstName} {doctor?.lastName}
+                    </span>
+                  </button>
 
-              {/* Dropdown */}
-              {showDropdown && (
-                <div className="absolute right-12 top-10 w-80 bg-white text-gray-800 rounded-lg shadow-lg border border-gray-100 z-50">
-                  <div className="flex justify-between items-center px-4 py-3 border-b">
-                    <h3 className="font-semibold text-gray-700">
-                      Notifications
-                    </h3>
-                    <button onClick={() => setShowDropdown(false)}>
-                      <X
-                        size={18}
-                        className="text-gray-500 hover:text-gray-700"
-                      />
-                    </button>
-                  </div>
-                  <div className="max-h-64 overflow-y-auto">
-                    {loadingNotifications ? (
-                      <p className="text-sm text-gray-500 p-3">Loading...</p>
-                    ) : notifications.length > 0 ? (
-                      notifications.slice(0, 8).map((n) => (
-                        <div
-                          key={n.id}
-                          className={`px-4 py-3 border-b last:border-none ${
-                            n.read ? "bg-white" : "bg-cyan-50"
-                          }`}
-                        >
-                          <p className="text-sm font-medium">{n.message}</p>
-                          <p className="text-xs text-gray-500 mt-1">
-                            {new Date(n.timestamp).toLocaleString()}
-                          </p>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-sm text-gray-500 p-3">
-                        No notifications yet
-                      </p>
-                    )}
-                  </div>
+                  {showDropdown && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border border-gray-200">
+                      <button
+                        onClick={handleLogout}
+                        className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                      >
+                        <LogOut className="mr-2 h-4 w-4" />
+                        Sign out
+                      </button>
+                    </div>
+                  )}
                 </div>
-              )}
-
-              {/* Logout Button */}
-              <button
-                onClick={handleLogout}
-                title="Logout"
-                className="p-2 rounded-full hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-cyan-600 focus:ring-white transition"
-              >
-                <LogOut size={20} />
-              </button>
+              </div>
             </div>
           </div>
         </header>
@@ -437,6 +404,12 @@ export default function DoctorDashboardPage() {
                       className="text-sm bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-2 rounded-md transition-colors"
                     >
                       View All Appointments
+                    </Link>
+                    <Link
+                      href="/doctor/availability"
+                      className="text-sm bg-purple-500 hover:bg-purple-600 text-white px-3 py-2 rounded-md transition-colors"
+                    >
+                      Manage Availability
                     </Link>
                   </div>
                 </section>

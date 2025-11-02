@@ -12,6 +12,7 @@ import { getDoctorById } from "@/app/services/doctor.api";
 import { createAppointment } from "@/app/services/appointments.api";
 import { useAuth } from "@/context/AuthContext";
 import { filterAvailableTimeSlots } from "@/utils/timeslot";
+import { isTimeSlotBooked } from "@/app/services/appointments.api";
 
 interface DayInfo {
   fullDate: string;
@@ -90,19 +91,21 @@ export default function AppointmentPage() {
   ): string[] {
     const today = new Date();
     const todayStr = today.toISOString().split("T")[0];
+    const selectedDateObj = new Date(selectedDate);
 
     // If selected date is not today, return all slots
     if (selectedDate !== todayStr) {
       return slots;
     }
 
+    // Get current time in minutes since midnight
     const currentHour = today.getHours();
     const currentMinute = today.getMinutes();
-    const currentTime = currentHour * 60 + currentMinute;
+    const currentTimeInMinutes = currentHour * 60 + currentMinute;
 
     return slots.filter((slot) => {
       // Extract start time from slot (e.g., "10:00 AM - 10:30 AM")
-      const timeMatch = slot.match(/(\d+):(\d+)\s*(AM|PM)/);
+      const timeMatch = slot.match(/(\d+):(\d+)\s*(AM|PM)/i);
       if (!timeMatch) return true;
 
       let hour = parseInt(timeMatch[1]);
@@ -116,9 +119,11 @@ export default function AppointmentPage() {
         hour = 0;
       }
 
-      // Compare with current time (add 30-minute buffer)
-      const slotTime = hour * 60 + minute;
-      return slotTime >= currentTime + 30;
+      // Convert slot time to minutes since midnight
+      const slotTimeInMinutes = hour * 60 + minute;
+
+      // Only show slots that are at least 30 minutes in the future
+      return slotTimeInMinutes >= currentTimeInMinutes + 30;
     });
   }
 
@@ -141,6 +146,9 @@ export default function AppointmentPage() {
       const date = new Date(today);
       date.setDate(today.getDate() + daysChecked);
 
+      // Ensure we get the correct date without timezone issues
+      const fullDate = date.toISOString().split("T")[0];
+
       const fullDayName = date.toLocaleDateString("en-US", { weekday: "long" });
       const dayNumber = date.getDate();
       const dayName = date.toLocaleDateString("en-US", { weekday: "short" });
@@ -152,7 +160,7 @@ export default function AppointmentPage() {
         doctorAvailableDays.includes(fullDayName.toLowerCase())
       ) {
         days.push({
-          fullDate: date.toISOString().split("T")[0],
+          fullDate,
           dayNumber,
           dayName,
           fullDayName,
@@ -208,10 +216,46 @@ export default function AppointmentPage() {
     const filteredMorning = filterSlotsForToday(morningSlots, selectedDate);
     const filteredEvening = filterSlotsForToday(eveningSlots, selectedDate);
 
-    setTimeSlots({
-      morning: filteredMorning,
-      evening: filteredEvening,
-    });
+    // Filter out already booked slots
+    const filterBookedSlots = async () => {
+      try {
+        // Get all appointments for this doctor on the selected date
+        const response = await fetch(
+          `/api/appointment?doctorId=${doctor.id}&date=${selectedDate}`
+        );
+        const result = await response.json();
+
+        // Get booked time slots (excluding cancelled appointments)
+        const bookedSlots = result.success
+          ? result.data
+              .filter((apt: any) => apt.status !== "Cancelled")
+              .map((apt: any) => apt.time)
+          : [];
+
+        // Filter out booked slots from available slots
+        const availableMorning = filteredMorning.filter(
+          (slot) => !bookedSlots.includes(slot)
+        );
+
+        const availableEvening = filteredEvening.filter(
+          (slot) => !bookedSlots.includes(slot)
+        );
+
+        setTimeSlots({
+          morning: availableMorning,
+          evening: availableEvening,
+        });
+      } catch (error) {
+        console.error("Failed to filter booked slots:", error);
+        // Fallback to filtered slots without booking check
+        setTimeSlots({
+          morning: filteredMorning,
+          evening: filteredEvening,
+        });
+      }
+    };
+
+    filterBookedSlots();
 
     // Reset selected slot when date changes
     setSelectedSlot(null);

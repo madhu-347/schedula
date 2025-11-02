@@ -35,3 +35,24 @@ export async function getDoctorById(id: string) {
     throw error;
   }
 }
+
+export async function updateDoctor(id: string, doctorData: any) {
+  try {
+    const res = await fetch(`/api/doctor`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ id, ...doctorData }),
+    });
+
+    if (!res.ok) {
+      throw new Error("Failed to update doctor");
+    }
+
+    return res.json();
+  } catch (error) {
+    console.error("Error updating doctor:", error);
+    throw error;
+  }
+}

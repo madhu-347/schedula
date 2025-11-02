@@ -404,7 +404,6 @@ export default function DoctorAppointmentsPage() {
                     <DetailRow
                       label="Problem"
                       value={selectedAppointment.patientDetails.problem}
-                      fullWidth
                     />
                   )}
                   <DetailRow

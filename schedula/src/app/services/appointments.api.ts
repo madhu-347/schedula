@@ -201,3 +201,30 @@ export async function deleteAppointment(id: number) {
     return false;
   }
 }
+
+// Check if a time slot is already booked
+export async function isTimeSlotBooked(
+  doctorId: string,
+  date: string,
+  time: string
+): Promise<boolean> {
+  try {
+    const response = await fetch(
+      `/api/appointment?doctorId=${doctorId}&date=${date}`
+    );
+    const result = await response.json();
+
+    if (result.success) {
+      // Check if any appointment has the same time and is not cancelled
+      const isBooked = result.data.some(
+        (appointment: Appointment) =>
+          appointment.time === time && appointment.status !== "Cancelled"
+      );
+      return isBooked;
+    }
+    return false;
+  } catch (error) {
+    console.error("Failed to check time slot availability:", error);
+    return false;
+  }
+}
