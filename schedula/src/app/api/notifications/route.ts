@@ -17,11 +17,11 @@ let notifications: Notification[] = [];
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const doctorId = searchParams.get("doctorId");
+    const doctorName = searchParams.get("doctorName");
 
     // If doctorName is provided → filter for that doctor
-    const filtered = doctorId
-      ? notifications.filter((n) => n.id === parseInt(doctorId, 10))
+    const filtered = doctorName
+      ? notifications.filter((n) => n.doctorName === doctorName)
       : notifications;
 
     return NextResponse.json({ success: true, data: filtered });

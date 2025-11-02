@@ -107,27 +107,5 @@
       "phone": "7012345678"
     }
   ],
-  "appointments": [
-    {
-      "id": "2",
-      "tokenNo": "A002",
-      "patientId": "2",
-      "doctorId": "2",
-      "patientDetails": {
-        "fullName": "Mark Mathew",
-        "age": "35",
-        "gender": "male",
-        "phone": "9998887776",
-        "weight": "68",
-        "problem": "Heart Disease",
-        "relationship": "Brother"
-      },
-      "date": "3-11-25",
-      "day": "Tuesday",
-      "time": "10:00 AM",
-      "status": "Upcoming",
-      "notes": "Appointment is yet to happen.",
-      "paid": true
-    }
-  ]
+  "appointments": []
 }

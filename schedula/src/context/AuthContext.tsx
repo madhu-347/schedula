@@ -29,21 +29,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [doctor, setDoctor] = useState<Doctor | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // const getDoctorData = (doctorId: string) => {
-  //   setLoading(true);
-  //   try {
-  //     const res = await getDoctorById(doctorId);
-  //     // console.log("response: ", res);
-  //     if (res && res.doctor) {
-  //       setDoctor(res.doctor);
-  //     }
-  //   } catch (error) {
-  //     console.error("Failed to fetch doctor data:", error);
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
-
   // Load user/doctor from localStorage when the app starts
   useEffect(() => {
     const storedUserId = localStorage.getItem("userId");
@@ -52,22 +37,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (storedUserId && storedRole) {
       if (storedRole === "doctor") {
         console.log("getting doctor data in context");
-        getDoctorById(storedUserId).then((doctorData) => {
-          if (doctorData && doctorData.doctor) {
-            setDoctor(doctorData.doctor);
-          }
-          setLoading(false);
-        });
+        getDoctorById(storedUserId)
+          .then((doctorData) => {
+            if (doctorData && doctorData.doctor) {
+              setDoctor(doctorData.doctor);
+            }
+          })
+          .catch((error) => {
+            console.error("Failed to fetch doctor data:", error);
+          })
+          .finally(() => {
+            setLoading(false);
+          });
       } else {
         getUserById(storedUserId)
           .then((userData) => {
             if (userData && userData.data) {
               setUser(userData.data);
             }
-            setLoading(false);
           })
           .catch((error) => {
             console.error("Failed to fetch user data:", error);
+          })
+          .finally(() => {
             setLoading(false);
           });
       }

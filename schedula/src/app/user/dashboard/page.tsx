@@ -17,15 +17,21 @@ export default function DashboardPage() {
   const [showNotifications, setShowNotifications] = useState(false);
 
   const fetchAllDoctors = async () => {
-    setIsLoading(true);
-    try {
-      const response = await getAllDoctors();
-      const allDoctors = response?.doctors;
-      console.log("All doctors: ", allDoctors);
-      setAllDoctors(allDoctors);
-    } catch (error) {
-      console.error("Failed to fetch doctors:", error);
-    } finally {
+    // Only fetch if we don't already have doctors loaded
+    if (allDoctors.length === 0) {
+      setIsLoading(true);
+      try {
+        const response = await getAllDoctors();
+        const allDoctors = response?.doctors || [];
+        console.log("All doctors: ", allDoctors);
+        setAllDoctors(allDoctors);
+      } catch (error) {
+        console.error("Failed to fetch doctors:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    } else {
+      // If we already have doctors, don't show loading state
       setIsLoading(false);
     }
   };
@@ -36,7 +42,7 @@ export default function DashboardPage() {
     if (!loading && user) {
       fetchAllDoctors();
     }
-  }, [user, loading]);
+  }, [user, loading, allDoctors.length]);
 
   const handleToggleLike = (id: string) => {
     setAllDoctors((prevDoctors) =>
@@ -52,20 +58,24 @@ export default function DashboardPage() {
   // Show loading state while auth context is loading
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-gray-500">
-        Loading user data...
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading user data...</p>
+        </div>
       </div>
     );
   }
 
-  // Show loading state while doctors are loading
-  if (isLoading) {
+  // Show loading state while doctors are loading (only on initial load)
+  if (isLoading && allDoctors.length === 0) {
     return (
-      <ProtectedRoute>
-        <div className="min-h-screen flex items-center justify-center text-gray-500">
-          Loading doctors...
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading doctors...</p>
         </div>
-      </ProtectedRoute>
+      </div>
     );
   }
 
