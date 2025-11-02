@@ -1,15 +1,15 @@
-// user login page
+// doctor login page
 "use client";
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { InputFieldComponent } from "@/components/ui/InputField";
-import mockData from "@/lib/mockData.json";
+import { doctors } from "@/lib/mockData.json";
 import AuthBanner from "@/components/auth/AuthBanner";
 import AuthHeader from "@/components/auth/AuthHeader";
 import { useAuth } from "@/context/AuthContext";
-import { User } from "@/lib/types/user";
+import { Doctor } from "@/lib/types/doctor";
 import toast from "react-hot-toast";
 
 type LoginMode = "user" | "doctor";
@@ -20,12 +20,12 @@ export default function LoginPage() {
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [remember, setRemember] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [loginMode, setLoginMode] = useState<LoginMode>("user");
+  const [loginMode, setLoginMode] = useState<LoginMode>("doctor");
 
-  // Redirect if doctor mode
+  // Redirect if user mode
   useEffect(() => {
-    if (loginMode === "doctor") {
-      router.push("/doctor/login");
+    if (loginMode === "user") {
+      router.push("/user/login");
     }
   }, [loginMode, router]);
 
@@ -53,18 +53,18 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (loginMode !== "user") return;
+    if (loginMode !== "doctor") return;
 
     setIsLoading(true);
-    console.log("🔐 Checking mock USER credentials...");
+    console.log("🔐 Checking mock DOCTOR credentials...");
 
     try {
-      const foundAccount: User | undefined = mockData.users.find(
-        (u) => u.email === formData.email || u.phone === formData.email
+      const foundAccount: Doctor | undefined = doctors.find(
+        (d) => d.email === formData.email && d.password === formData.password
       );
 
-      if (foundAccount && foundAccount.password === formData.password) {
-        console.log(`✅ USER found:`, foundAccount);
+      if (foundAccount) {
+        console.log(`✅ DOCTOR found:`, foundAccount);
 
         const accountInfo = {
           id: foundAccount.id ?? Date.now().toString(),
@@ -74,7 +74,7 @@ export default function LoginPage() {
           type: loginMode,
         };
 
-        login(foundAccount.id, "user");
+        login(foundAccount.id, "doctor");
         localStorage.setItem("pendingUser", JSON.stringify(accountInfo));
 
         const generatedOtp = generateOtp(4);
@@ -85,10 +85,8 @@ export default function LoginPage() {
         );
         console.log(`🔑 Generated OTP: ${generatedOtp}`);
 
-        setTimeout(() => {
-          toast.success(`OTP sent! (Check console: ${generatedOtp})`);
-        }, 2000); // 2-second delay
-        router.push("/user/otp");
+        toast.success(`OTP sent! (Check console: ${generatedOtp})`);
+        router.push("/doctor/otp");
       } else {
         toast.error("❌ Invalid credentials. Please try again.");
       }
@@ -106,7 +104,7 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-white overflow-hidden">
-      <AuthHeader activeLink="login" userType="user" />
+      <AuthHeader activeLink="login" userType="doctor" />
 
       <div className="flex flex-col md:flex-row flex-1">
         <AuthBanner />
@@ -135,7 +133,7 @@ export default function LoginPage() {
             </button>
           </div>
 
-          {loginMode === "user" && (
+          {loginMode === "doctor" && (
             <>
               <h2 className="text-2xl font-semibold text-gray-800 mb-8 text-center">
                 Login
@@ -204,7 +202,7 @@ export default function LoginPage() {
               <p className="text-center text-sm text-gray-600 mt-6">
                 Don&apos;t have an account?{" "}
                 <button
-                  onClick={() => router.push("/user/register")}
+                  onClick={() => router.push("/doctor/register")}
                   className="font-medium text-cyan-600 hover:underline"
                 >
                   Sign Up
@@ -213,8 +211,8 @@ export default function LoginPage() {
             </>
           )}
 
-          {loginMode === "doctor" && (
-            <p className="text-gray-500">Redirecting to doctor login...</p>
+          {loginMode === "user" && (
+            <p className="text-gray-500">Redirecting to user login...</p>
           )}
         </div>
       </div>

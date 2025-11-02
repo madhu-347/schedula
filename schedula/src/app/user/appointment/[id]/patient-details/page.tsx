@@ -48,7 +48,7 @@ export default function PatientDetailsPage() {
       });
       console.log("add patientDetails response", response);
       if (response && response.success) {
-        router.push(`/user/appointment/${appointmentId}`);
+        router.push(`/user/appointment/${appointmentId}/summary`);
       } else {
         // Handle error case
         const errorMsg =

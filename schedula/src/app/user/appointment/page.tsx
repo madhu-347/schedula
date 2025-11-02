@@ -9,68 +9,94 @@ import Image from "next/image";
 import BottomNav from "@/components/BottomNav";
 import { Appointment } from "@/lib/types/appointment";
 import Heading from "@/components/ui/Heading";
+import {
+  getAppointmentsByPatient,
+  updateAppointment,
+} from "@/app/services/appointments.api";
+import { Doctor } from "@/lib/types/doctor";
+import { User } from "@/lib/types/user";
+import toast from "react-hot-toast";
+import { useAuth } from "@/context/AuthContext";
 
 type TabType = "Upcoming" | "Completed" | "Cancelled";
 
 const AppointmentsPage: React.FC = () => {
+  const { user } = useAuth();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabType>("Upcoming");
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [openMenuId, setOpenMenuId] = useState<number | null>(null);
+  const [appointments, setAppointments] = useState<any[]>([]);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [currentUserName, setCurrentUserName] = useState<string | null>(null);
 
   const filteredAppointments = appointments.filter(
     (apt) => apt.status === activeTab
   );
 
-  const handleMakePayment = (id: number): void => {
-    // Update in state
-    const updatedAppointments = appointments.map((apt) =>
-      apt.id === id ? { ...apt, paymentStatus: "Paid" as const } : apt
-    );
-    setAppointments(updatedAppointments);
-
-    // Update in localStorage - get all appointments, update the specific one
-    const allStored = localStorage.getItem("appointments");
-    if (allStored) {
-      const allAppointments: Appointment[] = JSON.parse(allStored);
-      const updatedAll = allAppointments.map((apt) =>
-        apt.id === id ? { ...apt, paymentStatus: "Paid" as const } : apt
-      );
-      localStorage.setItem("appointments", JSON.stringify(updatedAll));
+  const fetchAllAppointments = async () => {
+    try {
+      setLoading(true);
+      const response = await getAppointmentsByPatient(user?.id || "");
+      console.log("response: ", response);
+      setAppointments(response || []);
+    } catch (error) {
+      console.error("Error fetching appointments:", error);
+      setAppointments([]);
+    } finally {
+      setLoading(false);
     }
+  };
 
-    // Dispatch custom event for other components
-    window.dispatchEvent(new Event("appointment:updated"));
+  useEffect(() => {
+    fetchAllAppointments();
+  }, []);
+
+  const handleMakePayment = async (id: string): Promise<void> => {
+    try {
+      const response = await updateAppointment(id, {
+        paid: true,
+      });
+
+      if (response.success) {
+        // Update local state
+        setAppointments((prev) =>
+          prev.map((apt) => (apt.id === id ? { ...apt, paid: true } : apt))
+        );
+        toast.success("Payment successful!");
+      }
+    } catch (error) {
+      console.error("Error updating payment:", error);
+      toast.error("Failed to process payment");
+    }
     setOpenMenuId(null);
   };
 
-  const handleCancelAppointment = (id: number): void => {
-    // Update in state
-    const updatedAppointments = appointments.map((apt) =>
-      apt.id === id ? { ...apt, status: "Cancelled" as const } : apt
-    );
-    setAppointments(updatedAppointments);
-
-    // Update in localStorage - get all appointments, update the specific one
-    const allStored = localStorage.getItem("appointments");
-    if (allStored) {
-      const allAppointments: Appointment[] = JSON.parse(allStored);
-      const updatedAll = allAppointments.map((apt) =>
-        apt.id === id ? { ...apt, status: "Cancelled" as const } : apt
-      );
-      localStorage.setItem("appointments", JSON.stringify(updatedAll));
+  const handleCancelAppointment = async (id: string): Promise<void> => {
+    if (!confirm("Are you sure you want to cancel this appointment?")) {
+      return;
     }
 
-    // Dispatch custom event for other components
-    window.dispatchEvent(new Event("appointment:updated"));
+    try {
+      const response = await updateAppointment(id, {
+        status: "Cancelled",
+      });
 
-    getAllAppointments(JSON.parse(localStorage.getItem("user") || "{}"));
+      if (response.success) {
+        // Update local state
+        setAppointments((prev) =>
+          prev.map((apt) =>
+            apt.id === id ? { ...apt, status: "Cancelled" } : apt
+          )
+        );
+        toast.success("Appointment cancelled successfully");
+      }
+    } catch (error) {
+      console.error("Error cancelling appointment:", error);
+      toast.error("Failed to cancel appointment");
+    }
     setOpenMenuId(null);
   };
 
-  const toggleMenu = (id: number): void => {
+  const toggleMenu = (id: string): void => {
     setOpenMenuId(openMenuId === id ? null : id);
   };
 
@@ -86,94 +112,12 @@ const AppointmentsPage: React.FC = () => {
       return "Today";
     }
 
-    // Format as "Oct 30, 2025" or use your preferred format
     return appointmentDate.toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
       year: "numeric",
     });
   };
-
-  const getAllAppointments = (user: any) => {
-
-    try {
-      setLoading(true);
-      const stored = localStorage.getItem("appointments");
-
-      if (!stored) {
-        console.log("No appointments found in localStorage");
-        setAppointments([]);
-        return;
-      }
-
-      const parsed: Appointment[] = JSON.parse(stored);
-
-      // Ensure it's an array
-      if (!Array.isArray(parsed)) {
-        console.error("Appointments data is not an array");
-        setAppointments([]);
-        return;
-      }
-
-      // Filter appointments for the current patient (case-insensitive)
-      // Filter by logged in user's email instead of name
-      const patientAppointments = parsed.filter(
-        (apt) => apt.userEmail && apt.userEmail === user.email
-);
-
-
-      console.log(
-        `Appointments for ${user.name}:`,
-        patientAppointments.length
-      );
-      setAppointments(patientAppointments);
-    } catch (error) {
-      console.error("Failed to fetch appointments:", error);
-      setAppointments([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    // Get logged-in user's information
-    const userString = localStorage.getItem("user");
-    const expiryString = localStorage.getItem("userExpiry");
-    const expiry = expiryString ? Number(expiryString) : 0;
-
-    if (!userString || !expiry || Date.now() >= expiry) {
-      // User not logged in or session expired
-      // router.push("/user/login");
-      return;
-    }
-
-    try {
-      const user = JSON.parse(userString);
-
-      if (!user || user.type !== "user") {
-        // Not a patient user
-        router.push("/user/login");
-        return;
-      }
-      setCurrentUserName(user.name);
-      getAllAppointments(user);
-
-    const handleUpdate = () => {
-      getAllAppointments(user);
-};
-
-      window.addEventListener("appointment:updated", handleUpdate);
-      window.addEventListener("storage", handleUpdate);
-
-      return () => {
-        window.removeEventListener("appointment:updated", handleUpdate);
-        window.removeEventListener("storage", handleUpdate);
-      };
-    } catch (error) {
-      console.error("Error parsing user data:", error);
-      router.push("/user/login");
-    }
-  }, [router]);
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -313,149 +257,159 @@ const AppointmentsPage: React.FC = () => {
               </Button>
             </div>
           ) : (
-            filteredAppointments.map((appointment) => (
-              <Card
-                key={appointment.id}
-                className="p-5 shadow-md border border-gray-200"
-              >
-                <div className="flex gap-4">
-                  {/* Doctor Image */}
-                  <div className="relative shrink-0">
-                    {appointment.doctorImage ? (
-                      <Image
-                        src={appointment.doctorImage}
-                        alt={appointment.doctorName}
-                        width={96}
-                        height={96}
-                        className="w-24 h-24 rounded-2xl object-cover ring-2 ring-gray-100"
-                      />
-                    ) : (
-                      <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-cyan-100 to-cyan-200 flex items-center justify-center ring-2 ring-gray-100">
-                        <span className="text-3xl font-bold text-cyan-600">
-                          {appointment.doctorName.charAt(0)}
-                        </span>
-                      </div>
-                    )}
-                  </div>
+            filteredAppointments.map((appointment) => {
+              const doctorName = appointment.doctor
+                ? `${appointment.doctor.firstName || ""} ${
+                    appointment.doctor.lastName || ""
+                  }`.trim()
+                : "Unknown Doctor";
+              const doctorSpecialty = appointment.doctor?.specialty || "";
+              const doctorImage = appointment.doctor?.image || null;
 
-                  {/* Appointment Details */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-start mb-2">
-                      <div className="flex-1">
-                        <h3 className="font-bold text-lg text-gray-900">
-                          {appointment.doctorName}
-                        </h3>
-                        {appointment.specialty && (
-                          <p className="text-sm text-cyan-600 font-medium">
-                            {appointment.specialty}
-                          </p>
-                        )}
-                      </div>
-                      <div className="relative">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleMenu(appointment.id);
-                          }}
-                          className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
-                        >
-                          <MoreVertical className="w-5 h-5 text-gray-600" />
-                        </button>
-                        {openMenuId === appointment.id && (
-                          <div className="absolute right-0 top-8 bg-white border border-gray-200 rounded-xl shadow-lg z-10 w-40">
-                            <button
-                              onClick={() => {
-                                router.push(
-                                  `/user/appointment/${appointment.id}`
-                                );
-                              }}
-                              className="w-full px-4 py-2.5 text-left text-sm font-medium hover:bg-gray-50 transition-colors rounded-t-xl"
-                            >
-                              View Details
-                            </button>
-                            {appointment.status === "Completed" && (
-                              <button
-                                onClick={() =>
-                                  router.push(
-                                    `/user/appointment/${appointment.id}/feedback`
-                                  )
-                                }
-                                className="w-full px-4 py-2.5 text-left text-sm font-medium hover:bg-gray-50 transition-colors"
-                              >
-                                Feedback
-                              </button>
-                            )}
-                            {appointment.status === "Upcoming" && (
+              return (
+                <Card
+                  key={appointment.id}
+                  className="p-5 shadow-md border border-gray-200"
+                >
+                  <div className="flex gap-4">
+                    {/* Doctor Image */}
+                    <div className="relative shrink-0">
+                      {doctorImage ? (
+                        <Image
+                          src={doctorImage}
+                          alt={doctorName}
+                          width={96}
+                          height={96}
+                          className="w-24 h-24 rounded-2xl object-cover ring-2 ring-gray-100"
+                        />
+                      ) : (
+                        <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-cyan-100 to-cyan-200 flex items-center justify-center ring-2 ring-gray-100">
+                          <span className="text-3xl font-bold text-cyan-600">
+                            {doctorName.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Appointment Details */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="flex-1">
+                          <h3 className="font-bold text-lg text-gray-900">
+                            Dr. {doctorName}
+                          </h3>
+                          {doctorSpecialty && (
+                            <p className="text-sm text-cyan-600 font-medium">
+                              {doctorSpecialty}
+                            </p>
+                          )}
+                        </div>
+                        <div className="relative">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleMenu(appointment.id);
+                            }}
+                            className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+                          >
+                            <MoreVertical className="w-5 h-5 text-gray-600" />
+                          </button>
+                          {openMenuId === appointment.id && (
+                            <div className="absolute right-0 top-8 bg-white border border-gray-200 rounded-xl shadow-lg z-10 w-40">
                               <button
                                 onClick={() => {
                                   router.push(
-                                    `/user/appointment/${appointment.id}/edit`
+                                    `/user/appointment/${appointment.id}`
                                   );
                                 }}
-                                className="w-full px-4 py-2.5 text-left text-sm font-medium hover:bg-gray-50 transition-colors"
+                                className="w-full px-4 py-2.5 text-left text-sm font-medium hover:bg-gray-50 transition-colors rounded-t-xl"
                               >
-                                Edit
+                                View Details
                               </button>
-                            )}
-                            {appointment.status === "Upcoming" && (
-                              <>
+                              {appointment.status === "Completed" && (
+                                <button
+                                  onClick={() =>
+                                    router.push(
+                                      `/user/appointment/${appointment.id}/feedback`
+                                    )
+                                  }
+                                  className="w-full px-4 py-2.5 text-left text-sm font-medium hover:bg-gray-50 transition-colors"
+                                >
+                                  Feedback
+                                </button>
+                              )}
+                              {appointment.status === "Upcoming" && (
                                 <button
                                   onClick={() => {
-                                    console.log("Reschedule clicked");
-                                    setOpenMenuId(null);
+                                    router.push(
+                                      `/user/appointment/${appointment.id}/edit`
+                                    );
                                   }}
                                   className="w-full px-4 py-2.5 text-left text-sm font-medium hover:bg-gray-50 transition-colors"
                                 >
-                                  Reschedule
+                                  Edit
                                 </button>
-                                <button
-                                  onClick={() =>
-                                    handleCancelAppointment(appointment.id)
-                                  }
-                                  className="w-full px-4 py-2.5 text-left text-sm font-medium text-red-600 hover:bg-red-50 transition-colors rounded-b-xl"
-                                >
-                                  Cancel
-                                </button>
-                              </>
-                            )}
-                          </div>
-                        )}
+                              )}
+                              {appointment.status === "Upcoming" && (
+                                <>
+                                  <button
+                                    onClick={() => {
+                                      router.push(
+                                        `/user/doctor/${appointment.doctorId}/book`
+                                      );
+                                      setOpenMenuId(null);
+                                    }}
+                                    className="w-full px-4 py-2.5 text-left text-sm font-medium hover:bg-gray-50 transition-colors"
+                                  >
+                                    Reschedule
+                                  </button>
+                                  <button
+                                    onClick={() =>
+                                      handleCancelAppointment(appointment.id)
+                                    }
+                                    className="w-full px-4 py-2.5 text-left text-sm font-medium text-red-600 hover:bg-red-50 transition-colors rounded-b-xl"
+                                  >
+                                    Cancel
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="space-y-1 text-sm text-gray-600">
+                        <p className="font-medium">
+                          Token no - #{appointment.tokenNo}
+                        </p>
+                        <p>
+                          {formatDate(appointment.date)} |{" "}
+                          <span className="text-cyan-600 font-medium">
+                            {appointment.time}
+                          </span>
+                        </p>
+                        <p>
+                          Payment |{" "}
+                          <span
+                            className={
+                              appointment.paid
+                                ? "text-green-600 font-medium"
+                                : "text-red-600 font-medium"
+                            }
+                          >
+                            {appointment.paid ? "Paid" : "Not Paid"}
+                          </span>
+                        </p>
                       </div>
                     </div>
 
-                    <div className="space-y-1 text-sm text-gray-600">
-                      <p className="font-medium">
-                        Token no - #{appointment.tokenNo}
-                      </p>
-                      <p>
-                        {formatDate(appointment.date)} |{" "}
-                        <span className="text-cyan-600 font-medium">
-                          {appointment.timeSlot}
-                        </span>
-                      </p>
-                      <p>
-                        Payment |{" "}
-                        <span
-                          className={
-                            appointment.paymentStatus === "Paid"
-                              ? "text-green-600 font-medium"
-                              : "text-red-600 font-medium"
-                          }
-                        >
-                          {appointment.paymentStatus}
-                        </span>
-                      </p>
+                    {/* Hospital Icon */}
+                    <div className="bg-cyan-50 rounded-xl p-3 h-fit">
+                      <Building2 className="w-6 h-6 text-cyan-500" />
                     </div>
                   </div>
 
-                  {/* Hospital Icon */}
-                  <div className="bg-cyan-50 rounded-xl p-3 h-fit">
-                    <Building2 className="w-6 h-6 text-cyan-500" />
-                  </div>
-                </div>
-
-                {appointment.paymentStatus === "Not paid" &&
-                  appointment.status === "Upcoming" && (
+                  {!appointment.paid && appointment.status === "Upcoming" && (
                     <div className="mt-4 pt-4 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                       <p className="text-sm text-gray-600 sm:max-w-[60%]">
                         Reduce your waiting time and visiting time by paying the
@@ -469,8 +423,9 @@ const AppointmentsPage: React.FC = () => {
                       </Button>
                     </div>
                   )}
-              </Card>
-            ))
+                </Card>
+              );
+            })
           )}
         </div>
       </div>

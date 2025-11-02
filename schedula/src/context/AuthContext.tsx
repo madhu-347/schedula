@@ -8,13 +8,16 @@ import {
   ReactNode,
 } from "react";
 import { User } from "@/lib/types/user";
+import { Doctor } from "@/lib/types/doctor";
 import { getUserById } from "@/app/services/user.api";
+import { getDoctorById } from "@/app/services/doctor.api";
 import { useRouter } from "next/navigation";
 
 interface AuthContextType {
   user: User | null;
+  doctor: Doctor | null;
   loading: boolean;
-  login: (userId: string) => Promise<void>;
+  login: (userId: string, role: "user" | "doctor") => Promise<void>;
   logout: () => void;
 }
 
@@ -23,51 +26,80 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
+  const [doctor, setDoctor] = useState<Doctor | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Load user from localStorage when the app starts
+  // Load user/doctor from localStorage when the app starts
   useEffect(() => {
     const storedUserId = localStorage.getItem("userId");
-    if (storedUserId) {
-      getUserById(storedUserId)
-        .then((userData) => {
-          if (userData && userData.data) {
-            setUser(userData.data);
-          }
-          setLoading(false);
-        })
-        .catch((error) => {
-          console.error("Failed to fetch user data:", error);
-          setLoading(false);
-        });
+    const storedRole = localStorage.getItem("userRole");
+
+    if (storedUserId && storedRole) {
+      if (storedRole === "doctor") {
+        getDoctorById(storedUserId)
+          .then((doctorData) => {
+            if (doctorData && doctorData.data) {
+              setDoctor(doctorData.data);
+            }
+            setLoading(false);
+          })
+          .catch((error) => {
+            console.error("Failed to fetch doctor data:", error);
+            setLoading(false);
+          });
+      } else {
+        getUserById(storedUserId)
+          .then((userData) => {
+            if (userData && userData.data) {
+              setUser(userData.data);
+            }
+            setLoading(false);
+          })
+          .catch((error) => {
+            console.error("Failed to fetch user data:", error);
+            setLoading(false);
+          });
+      }
     } else {
       setLoading(false);
     }
   }, []);
 
-  // Function to log in user
-  const login = async (userId: string) => {
+  // Function to log in user/doctor
+  const login = async (userId: string, role: "user" | "doctor") => {
     try {
-      const fetchedUser = await getUserById(userId);
-      if (fetchedUser && fetchedUser.data) {
-        setUser(fetchedUser.data);
-        localStorage.setItem("userId", userId);
+      if (role === "doctor") {
+        const fetchedDoctor = await getDoctorById(userId);
+        if (fetchedDoctor && fetchedDoctor.data) {
+          setDoctor(fetchedDoctor.data);
+          localStorage.setItem("userId", userId);
+          localStorage.setItem("userRole", "doctor");
+        }
+      } else {
+        const fetchedUser = await getUserById(userId);
+        if (fetchedUser && fetchedUser.data) {
+          setUser(fetchedUser.data);
+          localStorage.setItem("userId", userId);
+          localStorage.setItem("userRole", "user");
+        }
       }
     } catch (error) {
-      console.error("Failed to log in user:", error);
+      console.error("Failed to log in:", error);
       throw error;
     }
   };
 
-  // Function to log out user
+  // Function to log out user/doctor
   const logout = () => {
     setUser(null);
+    setDoctor(null);
     localStorage.removeItem("userId");
+    localStorage.removeItem("userRole");
     router.push("/user/login");
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, doctor, loading, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

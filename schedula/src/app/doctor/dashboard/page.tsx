@@ -31,6 +31,8 @@ import mockData from "@/lib/mockData.json";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { Appointment } from "@/lib/types/appointment";
 import { Doctor } from "@/lib/types/doctor";
+import { useAuth } from "@/context/AuthContext";
+import { getLatestAppointmentsForDoctor } from "@/app/services/appointments.api";
 
 // --- Type Definitions ---
 type AccountInfo = {
@@ -81,8 +83,10 @@ type ReviewDisplay = {
 // --- End Type Definitions ---
 
 export default function DoctorDashboardPage() {
+  const { doctor, loading } = useAuth();
+  console.log("doctor data: ", doctor);
   const router = useRouter();
-  const [doctorInfo, setDoctorInfo] = useState<AccountInfo | null>(null);
+  // const [doctorInfo, setDoctorInfo] = useState<AccountInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
 
@@ -108,6 +112,17 @@ export default function DoctorDashboardPage() {
   const STORAGE_KEY = "appointments";
   const FEEDBACK_KEY = "appointmentFeedback";
 
+  const fetchLatestAppointments = async () => {
+    try {
+      const appointments = await getLatestAppointmentsForDoctor(
+        doctor?.id || ""
+      );
+      console.log("upcoming appts : ", appointments);
+      setUpcomingAppointments(appointments);
+    } catch (error) {
+      console.error("Error fetching appointments:", error);
+    }
+  };
   // --- Load Reviews from LocalStorage ---
   const loadReviewsFromStorage = (doctorName: string) => {
     try {
@@ -194,34 +209,34 @@ export default function DoctorDashboardPage() {
   };
 
   // --- Load Appointments from LocalStorage ---
-  const loadAppointmentsFromStorage = (doctorName: string) => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) {
-        resetDashboardData();
-        return;
-      }
+  // const loadAppointmentsFromStorage = (doctorName: string) => {
+  //   try {
+  //     const raw = localStorage.getItem(STORAGE_KEY);
+  //     if (!raw) {
+  //       resetDashboardData();
+  //       return;
+  //     }
 
-      const parsed = JSON.parse(raw);
-      const arr = Array.isArray(parsed) ? parsed : [parsed];
+  //     const parsed = JSON.parse(raw);
+  //     const arr = Array.isArray(parsed) ? parsed : [parsed];
 
-      // Filter appointments for this doctor (case-insensitive)
-      const doctorAppointments = arr.filter(
-        (a: any) =>
-          a?.doctorName &&
-          a.doctorName.trim().toLowerCase() === doctorName.trim().toLowerCase()
-      );
+  //     // Filter appointments for this doctor (case-insensitive)
+  //     const doctorAppointments = arr.filter(
+  //       (a: any) =>
+  //         a?.doctorName &&
+  //         a.doctorName.trim().toLowerCase() === doctorName.trim().toLowerCase()
+  //     );
 
-      // Process appointments
-      processAppointments(doctorAppointments);
+  //     // Process appointments
+  //     processAppointments(doctorAppointments);
 
-      // Load reviews
-      loadReviewsFromStorage(doctorName);
-    } catch (e) {
-      console.error("Error loading appointments:", e);
-      resetDashboardData();
-    }
-  };
+  //     // Load reviews
+  //     loadReviewsFromStorage(doctorName);
+  //   } catch (e) {
+  //     console.error("Error loading appointments:", e);
+  //     resetDashboardData();
+  //   }
+  // };
 
   const resetDashboardData = () => {
     setUpcomingAppointments([]);
@@ -305,70 +320,13 @@ export default function DoctorDashboardPage() {
     setAppointmentDates(dates);
   };
 
-  // --- Authentication Check ---
   useEffect(() => {
-    const userString = localStorage.getItem("user");
-    const expiryString = localStorage.getItem("userExpiry");
-    const expiry = expiryString ? Number(expiryString) : 0;
-    let isValid = false;
-    let userData: AccountInfo | null = null;
-
-    if (userString && expiry && Date.now() < expiry) {
-      try {
-        userData = JSON.parse(userString);
-        if (userData && userData.type === "doctor") {
-          const doctorDetails = (
-            (mockData.doctors as MockDoctorData[]) || []
-          ).find((d) => d.id === userData?.id);
-
-          const doctorInfoData = {
-            ...userData,
-            specialty: doctorDetails?.specialty,
-          };
-
-          setDoctorInfo(doctorInfoData);
-
-          // Load appointments for this doctor
-          if (userData.name) {
-            loadAppointmentsFromStorage(userData.name);
-          }
-
-          isValid = true;
-        }
-      } catch (e) {
-        console.error("Error parsing user data", e);
-      }
-    }
-
-    if (!isValid) {
-      router.push("/doctor/login");
-    } else {
-      setIsLoading(false);
-    }
-  }, [router]);
-
-  // Listen for storage changes
-  useEffect(() => {
-    const handleStorageChange = (e: StorageEvent) => {
-      if (
-        (e.key === STORAGE_KEY || e.key === FEEDBACK_KEY) &&
-        doctorInfo?.name
-      ) {
-        loadAppointmentsFromStorage(doctorInfo.name);
-      }
-    };
-
-    window.addEventListener("storage", handleStorageChange);
-    return () => window.removeEventListener("storage", handleStorageChange);
-  }, [doctorInfo]);
-
-  useEffect(() => {
-    if (!doctorInfo?.name) return;
+    if (!doctor?.id) return; // Changed from doctor?.name to doctor?.id
 
     const fetchNotifications = async () => {
       try {
         const res = await fetch(
-          `/api/notifications?doctorName=${encodeURIComponent(doctorInfo.name)}`
+          `/api/notifications?doctorId=${encodeURIComponent(doctor.id)}`
         );
         const data = await res.json();
         if (data.success) {
@@ -384,7 +342,7 @@ export default function DoctorDashboardPage() {
     fetchNotifications();
     const interval = setInterval(fetchNotifications, 10000);
     return () => clearInterval(interval);
-  }, [doctorInfo?.name]);
+  }, [doctor?.id]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -407,13 +365,13 @@ export default function DoctorDashboardPage() {
   };
 
   // --- Loading State ---
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex justify-center items-center bg-gray-100">
-        Verifying session...
-      </div>
-    );
-  }
+  // if (loading || isLoading) {
+  //   return (
+  //     <div className="min-h-screen flex justify-center items-center bg-gray-100">
+  //       Verifying session...
+  //     </div>
+  //   );
+  // }
 
   // --- Calendar Modifiers ---
   const appointmentDayModifier = { appointment: appointmentDates };
@@ -437,13 +395,13 @@ export default function DoctorDashboardPage() {
         <header className="bg-linear-to-r from-cyan-500 to-teal-500 text-white shadow-md">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
             <div>
-              {doctorInfo && (
+              {doctor && (
                 <div>
                   <h1 className="text-2xl font-bold">
-                    {doctorInfo.name} 's Dashboard
+                    {doctor.firstName} 's Dashboard
                   </h1>
                   <p className="text-sm text-cyan-100 mt-1">
-                    {doctorInfo.specialty || "Specialist"}
+                    {doctor.specialty || "Specialist"}
                   </p>
                 </div>
               )}
@@ -695,7 +653,7 @@ export default function DoctorDashboardPage() {
                         className="border border-gray-100 rounded-lg p-3 hover:bg-gray-50 transition-colors flex items-center justify-between"
                       >
                         <div className="flex items-center gap-3">
-                          {appt.type === "Online" ? (
+                          {appt.type === "Virtual" ? (
                             <Video className="w-5 h-5 text-purple-500 shrink-0" />
                           ) : (
                             <Clock className="w-5 h-5 text-cyan-500 shrink-0" />
@@ -705,7 +663,7 @@ export default function DoctorDashboardPage() {
                               {appt?.patientDetails?.fullName}
                             </p>
                             <p className="text-xs text-gray-500">
-                              {appt.timeSlot} - {appt.patientDetails?.problem}
+                              {appt.time} - {appt.patientDetails?.problem}
                             </p>
                           </div>
                         </div>

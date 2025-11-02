@@ -8,7 +8,7 @@ export interface Appointment {
   time: string;
   type?: "In-person" | "Virtual";
   queuePosition?: number;
-  
+
   patientDetails?: {
     fullName: string;
     age: number;
@@ -31,5 +31,13 @@ export interface Appointment {
   visitType?: "Follow-up" | "Report" | "First";
   status: "Upcoming" | "Completed" | "Cancelled";
   paid?: boolean;
+  feedback?: {
+    consulting: number;
+    hospital: number;
+    waitingTime: number;
+    wouldRecommend: boolean;
+    feedbackText?: string;
+    submittedAt: string;
+  };
   postFeeling?: "Feeling Better" | "No improvements";
 }

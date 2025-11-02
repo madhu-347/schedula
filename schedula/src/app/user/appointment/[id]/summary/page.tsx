@@ -2,15 +2,20 @@
 
 import React, { useState, useEffect } from "react";
 import { ArrowLeft, ChevronDown, ChevronUp } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { toast } from "@/hooks/useToast";
 import { Appointment } from "@/lib/types/appointment";
 import Heading from "@/components/ui/Heading";
 import { PatientDetails } from "@/lib/types/patientDetails";
+import { getAppointmentById } from "@/app/services/appointments.api";
+import { Doctor } from "@/lib/types/doctor";
 
 const PatientDetailsPage = () => {
+  const params = useParams();
+  const appointmentId = params?.id as string;
   const router = useRouter();
+  const [doctorData, setDoctorData] = useState<Doctor>();
   const [currentAppointment, setCurrentAppointment] =
     useState<Appointment | null>(null);
   const [showVisitTypeDropdown, setShowVisitTypeDropdown] = useState(false);
@@ -24,48 +29,20 @@ const PatientDetailsPage = () => {
     "Follow-up",
   ];
 
-  useEffect(() => {
-    // Get the current appointment from localStorage
+  const fetchAppointment = async () => {
     try {
-      const currentAppointmentStr = localStorage.getItem("currentAppointment");
-
-      if (currentAppointmentStr) {
-        const appointment: Appointment = JSON.parse(currentAppointmentStr);
-        console.log("current appointment : ", appointment);
-        // Check if appointment has patient details
-        if (!appointment.patientDetails) {
-          toast({
-            title: "No Patient Details",
-            description: "Please add patient details first.",
-            variant: "destructive",
-          });
-          router.push("/user/appointment/add-patient-details");
-          return;
-        }
-
-        setCurrentAppointment(appointment);
-        // Set the visit type from appointment if it exists
-        if (appointment.visitType) {
-          setSelectedVisitType(appointment.visitType);
-        }
-      } else {
-        toast({
-          title: "No Appointment Found",
-          description: "Please book an appointment first.",
-          variant: "destructive",
-        });
-        router.push("/user/dashboard");
-      }
+      const appointment = await getAppointmentById(appointmentId);
+      console.log("response : ", appointment);
+      setCurrentAppointment(appointment);
+      setDoctorData(appointment.doctor);
     } catch (error) {
-      console.error("Error loading appointment:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load appointment details.",
-        variant: "destructive",
-      });
-      router.push("/user/dashboard");
+      console.error("Error fetching appointment:", error);
     }
-  }, [router]);
+  };
+
+  useEffect(() => {
+    fetchAppointment();
+  }, [appointmentId]);
 
   const handleVisitTypeChange = (
     visitType: "First" | "Report" | "Follow-up"
@@ -227,28 +204,26 @@ const PatientDetailsPage = () => {
               <p className="text-sm text-gray-500 mb-1">Gender</p>
               <p className="text-lg text-gray-900">{patientDetails.gender}</p>
             </div>
-          </div>
-
-          {/* Relationship */}
-          <div className="mb-6 font-medium">
-            <p className="text-sm text-gray-500 mb-1">Relationship</p>
-            <p className="text-lg text-gray-900">
-              {patientDetails.relationship}
-            </p>
+            {/* Mobile */}
+            <div className="font-medium">
+              <p className="text-sm text-gray-500 mb-1">Mobile</p>
+              <p className="text-lg text-gray-900">{patientDetails.phone}</p>
+            </div>
+            {/* Relationship */}
+            <div className="mb-6 font-medium">
+              <p className="text-sm text-gray-500 mb-1">Relationship</p>
+              <p className="text-lg text-gray-900">
+                {patientDetails.relationship}
+              </p>
+            </div>
           </div>
 
           {/* Problem */}
-          <div className="mb-6 font-medium">
+          <div className="mb-2 font-medium">
             <p className="text-sm text-gray-500 mb-1">Problem</p>
             <p className="text-base text-gray-900 leading-relaxed">
               {patientDetails.problem}
             </p>
-          </div>
-
-          {/* Mobile */}
-          <div className="font-medium">
-            <p className="text-sm text-gray-500 mb-1">Mobile</p>
-            <p className="text-lg text-gray-900">{patientDetails.phone}</p>
           </div>
         </div>
 
@@ -267,19 +242,19 @@ const PatientDetailsPage = () => {
             <div className="flex justify-between items-center">
               <span className="text-sm text-gray-600">Doctor</span>
               <span className="text-sm font-semibold text-gray-900">
-                {currentAppointment.doctorName}
+                {doctorData?.firstName} {doctorData?.lastName}
               </span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-sm text-gray-600">Specialty</span>
               <span className="text-sm font-semibold text-gray-900">
-                {currentAppointment.specialty}
+                {doctorData?.specialty}
               </span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-sm text-gray-600">Date & Time</span>
               <span className="text-sm font-semibold text-cyan-600">
-                {currentAppointment.date}, {currentAppointment.timeSlot}
+                {currentAppointment.date}, {currentAppointment.time}
               </span>
             </div>
             <div className="flex justify-between items-center">
@@ -300,12 +275,12 @@ const PatientDetailsPage = () => {
               <span className="text-sm text-gray-600">Payment</span>
               <span
                 className={`text-sm font-semibold ${
-                  currentAppointment.paymentStatus === "Paid"
+                  currentAppointment.paid === true
                     ? "text-green-600"
                     : "text-red-600"
                 }`}
               >
-                {currentAppointment.paymentStatus}
+                {currentAppointment.paid === true ? "Paid" : "Not Paid"}
               </span>
             </div>
           </div>
@@ -351,14 +326,14 @@ const PatientDetailsPage = () => {
         </div>
 
         {/* Action Buttons */}
-        <div className="space-y-4">
+        <div className="flex items-center gap-x-10">
           {/* Pay Consulting Fee Button */}
           <Button
             onClick={handlePayment}
-            disabled={currentAppointment.paymentStatus === "Paid"}
-            className="w-full py-6 rounded-xl font-bold text-base"
+            disabled={currentAppointment.paid === true}
+            className="w-1/2 py-6 rounded-xl font-bold text-base"
           >
-            {currentAppointment.paymentStatus === "Paid"
+            {currentAppointment.paid === true
               ? "Payment Completed ✓"
               : "Pay Consulting Fee"}
           </Button>
@@ -367,7 +342,7 @@ const PatientDetailsPage = () => {
           <Button
             variant="outline"
             onClick={handleQuickQuery}
-            className="w-full py-6 rounded-xl font-bold text-base"
+            className="w-1/2 py-6 rounded-xl font-bold text-base"
           >
             Quick query
           </Button>
