@@ -6,44 +6,42 @@ import { ArrowLeft, Star } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { toast } from "@/hooks/useToast";
 import { Appointment } from "@/lib/types/appointment";
-import Image from "next/image";
 import { DoctorInfoCard } from "@/components/cards/DoctorReview";
-import mockData from "@/lib/mockData.json";
+import { useParams } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
+import { getAppointmentById } from "@/app/services/appointments.api";
+import { Doctor } from "@/lib/types/doctor";
+import { updateAppointment } from "@/app/services/appointments.api";
 
 interface FeedbackData {
-  appointmentId: number | string;
-  doctorName: string;
-  consultingRating: number;
-  hospitalRating: number;
-  waitingTimeRating: number;
-  wouldRecommend: boolean | null;
+  consulting: number;
+  hospital: number;
+  waitingTime: number;
+  wouldRecommend: boolean;
   feedbackText: string;
   submittedAt: string;
 }
 
-interface DoctorData {
-  id: number;
-  name: string;
-  specialty: string;
-  time: string;
-  profilePicture: string;
-}
-
 const ConsultingFeedbackPage = () => {
+  const { user } = useAuth();
+  const params = useParams();
+  const apptId = params?.id as string;
   const router = useRouter();
   const [currentAppointment, setCurrentAppointment] =
     useState<Appointment | null>(null);
-  const [doctorData, setDoctorData] = useState<DoctorData | null>(null);
+  const [doctorData, setDoctorData] = useState<Doctor | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [existingFeedbackIndex, setExistingFeedbackIndex] = useState<
     number | null
   >(null);
 
-  // Rating states
+  // Individual state for each rating
   const [consultingRating, setConsultingRating] = useState(0);
   const [hospitalRating, setHospitalRating] = useState(0);
   const [waitingTimeRating, setWaitingTimeRating] = useState(0);
-  const [wouldRecommend, setWouldRecommend] = useState<boolean | null>(null);
+  const [wouldRecommend, setWouldRecommend] = useState<boolean | undefined>(
+    undefined
+  );
   const [feedbackText, setFeedbackText] = useState("");
 
   // Hover states for star animations
@@ -51,67 +49,58 @@ const ConsultingFeedbackPage = () => {
   const [hospitalHover, setHospitalHover] = useState(0);
   const [waitingTimeHover, setWaitingTimeHover] = useState(0);
 
-  useEffect(() => {
+  const fetchAppointment = async () => {
+    setIsLoading(true);
     try {
-      const currentAppointmentStr = localStorage.getItem("currentAppointment");
+      const appointment = await getAppointmentById(apptId);
+      console.log("appt: ", appointment);
+      setCurrentAppointment(appointment);
+      setDoctorData(appointment.doctor);
 
-      if (currentAppointmentStr) {
-        const appointment: Appointment = JSON.parse(currentAppointmentStr);
-        setCurrentAppointment(appointment);
-
-        // Find matching doctor from mockData
-        const doctor = (mockData.doctors as DoctorData[]).find(
-          (doc) =>
-            doc.name.trim().toLowerCase() ===
-            appointment.doctorName.trim().toLowerCase()
-        );
-
-        if (doctor) {
-          setDoctorData(doctor);
-        }
-
-        // Check if feedback already exists for this appointment
-        const existingFeedbackStr = localStorage.getItem("appointmentFeedback");
-        if (existingFeedbackStr) {
-          const existingFeedback: FeedbackData[] =
-            JSON.parse(existingFeedbackStr);
-          const feedbackIndex = existingFeedback.findIndex(
-            (feedback) => feedback.appointmentId === appointment.id
-          );
-
-          if (feedbackIndex !== -1) {
-            // Load existing feedback data
-            const feedback = existingFeedback[feedbackIndex];
-            setConsultingRating(feedback.consultingRating);
-            setHospitalRating(feedback.hospitalRating);
-            setWaitingTimeRating(feedback.waitingTimeRating);
-            setWouldRecommend(feedback.wouldRecommend);
-            setFeedbackText(feedback.feedbackText || "");
-            setExistingFeedbackIndex(feedbackIndex);
-          }
-        }
-      } else {
-        toast({
-          title: "No Appointment Found",
-          description: "Please select an appointment first.",
-          variant: "destructive",
-        });
-        router.push("/user/appointments");
+      // Load existing feedback if available
+      if (appointment.feedback) {
+        setConsultingRating(appointment.feedback.consulting || 0);
+        setHospitalRating(appointment.feedback.hospital || 0);
+        setWaitingTimeRating(appointment.feedback.waitingTime || 0);
+        setWouldRecommend(appointment.feedback.wouldRecommend);
+        setFeedbackText(appointment.feedback.feedbackText || "");
+        setExistingFeedbackIndex(0); // Mark as existing
       }
     } catch (error) {
-      console.error("Error loading appointment:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load appointment details.",
-        variant: "destructive",
-      });
-      router.push("/user/appointments");
+      console.error("Error fetching appointment:", error);
     } finally {
       setIsLoading(false);
     }
-  }, [router]);
+  };
 
-  const handleSubmit = () => {
+  useEffect(() => {
+    fetchAppointment();
+  }, [apptId]);
+
+  const addFeedback = async (feedback: FeedbackData) => {
+    setIsLoading(true);
+    try {
+      const res = await updateAppointment(apptId, { feedback });
+      if (res.success) {
+        toast({
+          title: "Feedback Submitted",
+          description: "Thank you for your valuable feedback!",
+        });
+        router.push("/user/appointment");
+      }
+    } catch (error) {
+      console.error("Error adding feedback:", error);
+      toast({
+        title: "Submission Failed",
+        description: "Failed to submit feedback. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSubmit = async () => {
     // Validate all fields are filled
     if (consultingRating === 0) {
       toast({
@@ -140,7 +129,7 @@ const ConsultingFeedbackPage = () => {
       return;
     }
 
-    if (wouldRecommend === null) {
+    if (wouldRecommend === undefined) {
       toast({
         title: "Incomplete Feedback",
         description: "Please select if you would recommend the doctor.",
@@ -153,48 +142,17 @@ const ConsultingFeedbackPage = () => {
 
     try {
       // Create feedback object
-      const feedback: FeedbackData = {
-        appointmentId: currentAppointment.id,
-        doctorName: currentAppointment.doctorName,
-        consultingRating,
-        hospitalRating,
-        waitingTimeRating,
-        wouldRecommend,
-        feedbackText: feedbackText.trim(),
+      const feedbackFromPatient: FeedbackData = {
+        consulting: consultingRating,
+        hospital: hospitalRating,
+        waitingTime: waitingTimeRating,
+        wouldRecommend: wouldRecommend,
+        feedbackText: feedbackText || "",
         submittedAt: new Date().toISOString(),
       };
 
-      // Get existing feedback
-      const existingFeedbackStr = localStorage.getItem("appointmentFeedback");
-      const existingFeedback: FeedbackData[] = existingFeedbackStr
-        ? JSON.parse(existingFeedbackStr)
-        : [];
-
-      if (existingFeedbackIndex !== null) {
-        // Update existing feedback
-        existingFeedback[existingFeedbackIndex] = feedback;
-        toast({
-          title: "Feedback Updated",
-          description: "Your feedback has been updated successfully!",
-        });
-      } else {
-        // Add new feedback
-        existingFeedback.push(feedback);
-        toast({
-          title: "Feedback Submitted",
-          description: "Thank you for your valuable feedback!",
-        });
-      }
-
-      localStorage.setItem(
-        "appointmentFeedback",
-        JSON.stringify(existingFeedback)
-      );
-
-      // Navigate to appointments page
-      setTimeout(() => {
-        router.push("/user/appointment");
-      }, 1000);
+      // Submit feedback
+      await addFeedback(feedbackFromPatient);
     } catch (error) {
       console.error("Error submitting feedback:", error);
       toast({
@@ -215,15 +173,6 @@ const ConsultingFeedbackPage = () => {
       </div>
     );
   }
-
-  // Get doctor info with fallbacks
-  const displaySpecialty =
-    doctorData?.specialty || currentAppointment.specialty || "Specialist";
-  const displayTime = doctorData?.time || "Available today";
-  const displayImage =
-    currentAppointment.doctorImage ||
-    doctorData?.profilePicture ||
-    "/male-doctor.png";
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
@@ -246,11 +195,11 @@ const ConsultingFeedbackPage = () => {
       <main className="max-w-3xl mx-auto px-4 py-6 space-y-6">
         {/* Doctor Card */}
         <DoctorInfoCard
-          name={currentAppointment.doctorName}
-          specialty={displaySpecialty}
-          location={displayTime}
-          qualification={currentAppointment.qualification || "MBBS, MD"}
-          imageUrl={displayImage}
+          firstName={doctorData?.firstName || ""}
+          lastName={doctorData?.lastName || ""}
+          specialty={doctorData?.specialty || ""}
+          qualifications={doctorData?.qualifications || "MBBS, MD"}
+          imageUrl={doctorData?.image || ""}
         />
 
         {/* Consulting Time */}
@@ -260,7 +209,7 @@ const ConsultingFeedbackPage = () => {
               Consulting Time
             </span>
             <span className="text-base text-cyan-600 font-semibold">
-              {currentAppointment.date} | {currentAppointment.timeSlot}
+              {currentAppointment.day} | {currentAppointment.time}
             </span>
           </div>
         </div>
@@ -284,7 +233,7 @@ const ConsultingFeedbackPage = () => {
                   className={`${
                     star <= (consultingHover || consultingRating)
                       ? "fill-cyan-400 text-cyan-400"
-                      : "text-cyan-400"
+                      : "text-gray-300"
                   } transition-colors`}
                 />
               </button>
@@ -311,7 +260,7 @@ const ConsultingFeedbackPage = () => {
                   className={`${
                     star <= (hospitalHover || hospitalRating)
                       ? "fill-cyan-400 text-cyan-400"
-                      : "text-cyan-400"
+                      : "text-gray-300"
                   } transition-colors`}
                 />
               </button>
@@ -321,7 +270,7 @@ const ConsultingFeedbackPage = () => {
 
         {/* Waiting Time */}
         <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100">
-          <h3 className="text-lg font-medium text-gray-700 mb-4">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">
             Waiting Time
           </h3>
           <div className="flex gap-2">
@@ -338,7 +287,7 @@ const ConsultingFeedbackPage = () => {
                   className={`${
                     star <= (waitingTimeHover || waitingTimeRating)
                       ? "fill-cyan-400 text-cyan-400"
-                      : "text-cyan-400"
+                      : "text-gray-300"
                   } transition-colors`}
                 />
               </button>
@@ -346,32 +295,14 @@ const ConsultingFeedbackPage = () => {
           </div>
         </div>
 
-        {/* Additional Feedback Text */}
-        <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100">
-          <h3 className="text-lg font-medium text-gray-700 mb-4">
-            Additional Comments (Optional)
-          </h3>
-          <textarea
-            value={feedbackText}
-            onChange={(e) => setFeedbackText(e.target.value)}
-            placeholder="Share your experience with the doctor and hospital..."
-            className="w-full min-h-32 p-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent resize-none text-gray-700"
-            maxLength={500}
-          />
-          <div className="flex justify-between items-center mt-2">
-            <p className="text-xs text-gray-500">
-              Share your detailed experience
-            </p>
-            <p className="text-xs text-gray-400">{feedbackText.length}/500</p>
-          </div>
-        </div>
-
         {/* Would you recommend */}
         <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100">
-          <h3 className="text-lg font-medium text-gray-700 mb-4">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">
             Would you recommend{" "}
-            <span className="">{currentAppointment.doctorName}</span> to your
-            friends?
+            <span className="text-cyan-600">
+              Dr. {doctorData?.firstName} {doctorData?.lastName}
+            </span>{" "}
+            to your friends?
           </h3>
           <div className="flex gap-6">
             <button
@@ -424,12 +355,35 @@ const ConsultingFeedbackPage = () => {
           </div>
         </div>
 
+        {/* Additional Feedback Text */}
+        <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">
+            Additional Comments (Optional)
+          </h3>
+          <textarea
+            value={feedbackText}
+            onChange={(e) => setFeedbackText(e.target.value)}
+            placeholder="Share your experience with the doctor and hospital..."
+            className="w-full min-h-32 p-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent resize-none text-gray-700"
+            maxLength={500}
+          />
+          <div className="flex justify-between items-center mt-2">
+            <p className="text-xs text-gray-500">
+              Share your detailed experience
+            </p>
+            <p className="text-xs text-gray-400">{feedbackText.length}/500</p>
+          </div>
+        </div>
+
         {/* Submit Button */}
         <Button
           onClick={handleSubmit}
+          disabled={isLoading}
           className="w-full py-6 rounded-xl font-bold text-base"
         >
-          {existingFeedbackIndex !== null
+          {isLoading
+            ? "Submitting..."
+            : existingFeedbackIndex !== null
             ? "Update Feedback"
             : "Submit Feedback"}
         </Button>

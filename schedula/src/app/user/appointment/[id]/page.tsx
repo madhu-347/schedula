@@ -238,64 +238,6 @@ function AppointmentDetails() {
           </div>
         )}
       </div>
-
-      {/* Bottom Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 md:hidden">
-        <div className="grid grid-cols-4 px-2 py-3">
-          <button className="flex flex-col items-center gap-1 text-gray-600">
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
-            </svg>
-            <span className="text-xs">Find a Doctor</span>
-          </button>
-          <button className="flex flex-col items-center gap-1 text-cyan-500">
-            <Calendar className="w-6 h-6" />
-            <span className="text-xs font-medium">Appoint.</span>
-          </button>
-          <button className="flex flex-col items-center gap-1 text-gray-600">
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-              />
-            </svg>
-            <span className="text-xs">Records</span>
-          </button>
-          <button className="flex flex-col items-center gap-1 text-gray-600">
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-              />
-            </svg>
-            <span className="text-xs">Profile</span>
-          </button>
-        </div>
-      </div>
     </div>
   );
 }

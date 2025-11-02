@@ -10,7 +10,6 @@ export interface Doctor {
   specialty: string;
   qualifications?: string;
   fellowship?: string;
-  status: string;
   isAvailable: boolean;
   availableDays?: string[];
   availableTime?: {
@@ -24,7 +23,7 @@ export interface Doctor {
     };
   };
   bio?: string; // Make optional
-  is_favorited: boolean;
+  is_favorited?: boolean;
   reviews?: any[];
   fee?: number; // Make optional
 }
