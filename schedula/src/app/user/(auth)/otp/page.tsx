@@ -10,7 +10,6 @@ export default function OtpPage() {
   const [enteredOtp, setEnteredOtp] = useState("");
   const [timer, setTimer] = useState(120);
   const [otpVisible, setOtpVisible] = useState<string | null>(null);
-  
 
   // Check for pending user
   useEffect(() => {
@@ -55,18 +54,19 @@ export default function OtpPage() {
     if (enteredOtp === storedOtp && pendingUser) {
       const user = JSON.parse(pendingUser);
       const expiryTime = Date.now() + 30 * 60 * 1000; // 30 mins
-      // localStorage.setItem("user", JSON.stringify(user));
+      // Set userId in localStorage for AuthContext
+      localStorage.setItem("userId", user.id);
       localStorage.setItem("userExpiry", expiryTime.toString());
       localStorage.removeItem("pendingUser");
       localStorage.removeItem("generatedOtp");
       localStorage.removeItem("otpExpiry");
       toast.success("OTP Verified Successfully 🎉");
-    setTimeout(() => {
-      router.push("/user/dashboard");
-    }, 1500); // 1.5 seconds delay
-  } else {
-    toast.error("Invalid OTP. Please try again.");
-  }
+      setTimeout(() => {
+        router.push("/user/dashboard");
+      }, 1500); // 1.5 seconds delay
+    } else {
+      toast.error("Invalid OTP. Please try again.");
+    }
   };
 
   // Resend OTP
@@ -82,7 +82,7 @@ export default function OtpPage() {
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-white overflow-hidden w-full">
       {/* Left side banner */}
-        <AuthBanner />
+      <AuthBanner />
 
       {/* Right side OTP card */}
       <div className="flex-1 flex md:w-1/3 justify-center items-center">

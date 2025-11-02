@@ -4,14 +4,30 @@ import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
-import React, { useEffect, useState } from "react";
-import { X, User, Clock, Calendar as CalendarIcon, Info } from "lucide-react"; // Import icons
-import { Button } from "@/components/ui/Button"; // Import your Button component
+import React, { useEffect, useState, useRef } from "react";
+import {
+  X,
+  User,
+  Clock,
+  Calendar as CalendarIcon,
+  Info,
+  MapPin,
+} from "lucide-react";
+import { Button } from "@/components/ui/Button";
+import {
+  getAppointmentsByDoctor,
+  updateAppointment,
+} from "@/app/services/appointments.api";
+import { useAuth } from "@/context/AuthContext";
+import { Appointment } from "@/lib/types/appointment";
 
 export default function CalendarPage() {
+  const { doctor } = useAuth();
+  const doctorId = doctor?.id as string;
   const [events, setEvents] = useState<any[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
   const [showModal, setShowModal] = useState(false);
+  const tooltipRef = useRef<HTMLDivElement | null>(null);
 
   const statusColors: Record<string, string> = {
     Upcoming: "#0ea5e9", // blue
@@ -25,68 +41,103 @@ export default function CalendarPage() {
     setShowModal(true);
   };
 
+  // Parse time range like "05:30 AM - 06:00 AM" and create start/end dates
+  function parseTimeRange(dateStr: string, timeRange?: string) {
+    const base = new Date(dateStr + "T00:00:00");
 
-  // --- helpers ---
-  function parseTimeRange(dateStr: string, timeSlot?: string) {
-    const base = new Date(dateStr);
-    if (!timeSlot) {
+    if (!timeRange) {
       const start = new Date(base);
+      start.setHours(9, 0, 0, 0);
       const end = new Date(start.getTime() + 30 * 60 * 1000);
       return { start, end };
     }
-    // Handle "10:00 AM" format
+
     try {
-        const [time, period] = timeSlot.split(" ");
-        const [hours, minutes] = time.split(":").map(Number);
-        let startHour = hours;
-        if (period && period.toLowerCase() === 'pm' && startHour < 12) startHour += 12;
-        if (period && period.toLowerCase() === 'am' && startHour === 12) startHour = 0;
-        const start = new Date(base.setHours(startHour, minutes, 0, 0));
-        const end = new Date(start.getTime() + 30 * 60 * 1000); // 30 min duration
-        return { start, end };
-    } catch (e) {
-        // Fallback for "10:00 AM - 11:00 AM"
-        try {
-            const [startStr, endStr] = timeSlot.split("-").map(s => s.trim());
-            const start = new Date(`${dateStr} ${startStr}`);
-            const end = endStr ? new Date(`${dateStr} ${endStr}`) : new Date(start.getTime() + 30 * 60 * 1000);
-            return { start, end };
-        } catch (e2) {
-             const start = new Date(base);
-             const end = new Date(start.getTime() + 30 * 60 * 1000);
-             return { start, end };
+      // Handle "05:30 AM - 06:00 AM" format
+      const parts = timeRange.split("-").map((s) => s.trim());
+
+      // Parse start time
+      const [startTimeStr, startPeriod] = parts[0].split(" ");
+      const [startHours, startMinutes] = startTimeStr.split(":").map(Number);
+
+      let startHour = startHours;
+      if (startPeriod && startPeriod.toLowerCase() === "pm" && startHour < 12) {
+        startHour += 12;
+      }
+      if (
+        startPeriod &&
+        startPeriod.toLowerCase() === "am" &&
+        startHour === 12
+      ) {
+        startHour = 0;
+      }
+
+      const start = new Date(base);
+      start.setHours(startHour, startMinutes || 0, 0, 0);
+
+      // Parse end time if available
+      let end: Date;
+      if (parts.length > 1) {
+        const [endTimeStr, endPeriod] = parts[1].split(" ");
+        const [endHours, endMinutes] = endTimeStr.split(":").map(Number);
+
+        let endHour = endHours;
+        if (endPeriod && endPeriod.toLowerCase() === "pm" && endHour < 12) {
+          endHour += 12;
         }
+        if (endPeriod && endPeriod.toLowerCase() === "am" && endHour === 12) {
+          endHour = 0;
+        }
+
+        end = new Date(base);
+        end.setHours(endHour, endMinutes || 0, 0, 0);
+      } else {
+        // Default 30 min duration if no end time
+        end = new Date(start.getTime() + 30 * 60 * 1000);
+      }
+
+      return { start, end };
+    } catch (e) {
+      console.error("Error parsing time:", e);
+      const start = new Date(base);
+      start.setHours(9, 0, 0, 0);
+      const end = new Date(start.getTime() + 30 * 60 * 1000);
+      return { start, end };
     }
   }
 
-  function fmtUS(d: Date) {
-    return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  // Format time to 12-hour format
+  function fmtTime(d: Date): string {
+    return d.toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    });
   }
 
-  function fmtTime(d: Date) {
-    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: true });
+  // Convert date to ISO format (YYYY-MM-DD)
+  function toISODate(d: Date): string {
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
   }
 
-  // --- MODIFIED rebuildEventsForDoctor ---
-  function rebuildEventsForDoctor(appointments: any[], doctorName: string) {
-    // 1. Filter for the doctor
-    const doctorAppointments = appointments.filter(
-      (apt: any) =>
-        apt?.doctorName &&
-        doctorName &&
-        apt.doctorName.toLowerCase() === doctorName.toLowerCase() &&
-        // --- FIX 2: Only show appointments that are NOT completed or cancelled ---
+  // Get day name from date
+  function getDayName(d: Date): string {
+    return d.toLocaleDateString("en-US", { weekday: "long" });
+  }
+
+  // Build calendar events from appointments
+  function buildCalendarEvents(appointments: Appointment[]) {
+    // Filter out completed/cancelled appointments
+    const relevantAppointments = appointments.filter(
+      (apt: Appointment) =>
         apt.status !== "Completed" && apt.status !== "Cancelled"
     );
 
-    return doctorAppointments.map((apt: any) => {
-      const parsedDate = new Date(apt.date);
-      const yyyy = parsedDate.getFullYear();
-      const mm = String(parsedDate.getMonth() + 1).padStart(2, "0");
-      const dd = String(parsedDate.getDate()).padStart(2, "0");
-      const dateOnlyISO = `${yyyy}-${mm}-${dd}`;
-
-      const { start, end } = parseTimeRange(dateOnlyISO, apt.timeSlot);
+    return relevantAppointments.map((apt: Appointment) => {
+      const { start, end } = parseTimeRange(apt.date, apt.time);
 
       return {
         id: String(apt.id),
@@ -101,264 +152,545 @@ export default function CalendarPage() {
         extendedProps: {
           status: apt.status,
           token: apt.tokenNo,
-          time: apt.timeSlot,
+          time: apt.time,
+          type: apt.type,
+          visitType: apt.visitType,
           name: apt.patientDetails?.fullName || "N/A",
           age: apt.patientDetails?.age || "N/A",
           gender: apt.patientDetails?.gender || "N/A",
           phone: apt.patientDetails?.phone || "N/A",
-          // --- FIX 1: Pass the problem field ---
-          problem: apt.patientDetails?.problem || "N/A", 
+          problem: apt.patientDetails?.problem || "N/A",
         },
       };
     });
   }
-  // --- END MODIFIED FUNCTION ---
 
-  // --- update status actions ---
-  const updateAppointmentStatus = (status: "Completed" | "Cancelled") => {
-    if (!selectedEvent) return;
-    const stored = JSON.parse(localStorage.getItem("appointments") || "[]");
-    const updated = stored.map((apt: any) =>
-      String(apt.id) === String(selectedEvent.id) ? { ...apt, status } : apt
-    );
-    localStorage.setItem("appointments", JSON.stringify(updated));
-    setShowModal(false);
-    
-    // Refresh events: This will re-run rebuildEventsForDoctor
-    // which will now filter out the event you just changed.
-    const user = JSON.parse(localStorage.getItem("user") || "null");
-    setEvents(rebuildEventsForDoctor(updated, user?.name));
+  // Load appointments from API
+  const loadAppointments = async () => {
+    try {
+      const appointments = await getAppointmentsByDoctor(doctorId);
+      const calendarEvents = buildCalendarEvents(appointments);
+      setEvents(calendarEvents);
+    } catch (error) {
+      console.error("Error loading appointments:", error);
+      setEvents([]);
+    }
   };
 
-  useEffect(() => {
-    const stored = localStorage.getItem("appointments");
-    const userString = localStorage.getItem("user");
-    if (!stored || !userString) return;
+  // Update appointment status
+  const updateAppointmentStatus = async (status: "Completed" | "Cancelled") => {
+    if (!selectedEvent) return;
 
-    const appointments = JSON.parse(stored);
-    const user = JSON.parse(userString);
-    setEvents(rebuildEventsForDoctor(appointments, user?.name));
-  }, []);
+    try {
+      await updateAppointment(selectedEvent.id, { status });
+      setShowModal(false);
+      loadAppointments(); // Reload events
+    } catch (error) {
+      console.error("Failed to update appointment:", error);
+      alert("Failed to update appointment");
+    }
+  };
+
+  // Handle event drag (reschedule) - Update date, day, and time
+  const handleEventDrop = async (info: any) => {
+    try {
+      const id = info.event.id;
+      const newStart = info.event.start!;
+      const newEnd =
+        info.event.end || new Date(newStart.getTime() + 30 * 60 * 1000);
+
+      // Get the new date in ISO format
+      const newDate = toISODate(newStart);
+
+      // Get the new day name
+      const newDay = getDayName(newStart);
+
+      // Format the new time range
+      const newTime = `${fmtTime(newStart)} - ${fmtTime(newEnd)}`;
+
+      console.log("Updating appointment:", {
+        date: newDate,
+        day: newDay,
+        time: newTime,
+      });
+
+      await updateAppointment(id, {
+        date: newDate,
+        day: newDay,
+        time: newTime,
+      });
+
+      loadAppointments(); // Reload events
+    } catch (e) {
+      console.error("Error rescheduling:", e);
+      info.revert();
+      alert("Failed to reschedule appointment");
+    }
+  };
+
+  // Handle event resize (change duration) - Update time range
+  const handleEventResize = async (info: any) => {
+    try {
+      const id = info.event.id;
+      const newStart = info.event.start!;
+      const newEnd =
+        info.event.end || new Date(newStart.getTime() + 30 * 60 * 1000);
+
+      const newTime = `${fmtTime(newStart)} - ${fmtTime(newEnd)}`;
+
+      console.log("Updating time:", newTime);
+
+      await updateAppointment(id, {
+        time: newTime,
+      });
+
+      loadAppointments(); // Reload events
+    } catch (e) {
+      console.error("Error resizing:", e);
+      info.revert();
+      alert("Failed to update appointment time");
+    }
+  };
+
+  // Remove tooltip when mouse leaves
+  const removeTooltip = () => {
+    if (tooltipRef.current) {
+      tooltipRef.current.remove();
+      tooltipRef.current = null;
+    }
+  };
+
+  // Initial load and auto-refresh
+  useEffect(() => {
+    loadAppointments();
+
+    // Auto-refresh every 30 seconds
+    const intervalId = setInterval(() => {
+      loadAppointments();
+    }, 30000);
+
+    return () => {
+      clearInterval(intervalId);
+      removeTooltip();
+    };
+  }, [doctorId]);
 
   return (
-    <div className="p-8 bg-gray-50 min-h-screen">
-      
-      {/* --- STYLES FOR TOOLTIP AND CALENDAR (Theme applied) --- */}
+    <div className="p-4 sm:p-8 bg-gray-50 min-h-screen">
+      {/* Styles for calendar customization */}
       <style>
         {`
           .fc-tooltip {
-            background: #ffffff;
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
             color: #1f2937;
-            padding: 12px;
-            border-radius: 8px;
+            padding: 16px;
+            border-radius: 12px;
             font-size: 0.875rem;
-            z-index: 100;
-            position: absolute;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+            position: fixed;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15), 0 4px 10px rgba(0, 0, 0, 0.08);
             border: 1px solid #e5e7eb;
-            max-width: 250px;
+            max-width: 280px;
+            min-width: 240px;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+          }
+          .fc-tooltip::before {
+            content: '';
+            position: absolute;
+            top: -6px;
+            left: 20px;
+            width: 12px;
+            height: 12px;
+            background: white;
+            border-left: 1px solid #e5e7eb;
+            border-top: 1px solid #e5e7eb;
+            transform: rotate(45deg);
           }
           .fc-tooltip strong {
             color: #0ea5e9;
             font-weight: 600;
+            font-size: 0.95rem;
             display: block;
-            margin-bottom: 4px;
+            margin-bottom: 8px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #e0f2fe;
           }
-          /* Custom Button Styles */
+          .fc-tooltip-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 6px 0;
+            color: #4b5563;
+          }
+          .fc-tooltip-icon {
+            color: #06b6d4;
+            flex-shrink: 0;
+          }
+          .fc-tooltip-label {
+            font-weight: 500;
+            color: #6b7280;
+          }
+          .fc-tooltip-value {
+            color: #1f2937;
+            font-weight: 500;
+          }
           .fc .fc-button {
-              background-color: #f0f9ff; border: 1px solid #a5f3fc; color: #0891b2;
-              font-weight: 600; text-transform: capitalize; box-shadow: none; transition: all 0.2s ease;
+            background-color: #f0f9ff;
+            border: 1px solid #a5f3fc;
+            color: #0891b2;
+            font-weight: 600;
+            text-transform: capitalize;
+            box-shadow: none;
+            transition: all 0.2s ease;
+            border-radius: 8px;
+            padding: 8px 16px;
           }
-          .fc .fc-button:hover, .fc .fc-button:focus {
-              background-color: #ecfeff; border-color: #67e8f9; box-shadow: none;
+          .fc .fc-button:hover,
+          .fc .fc-button:focus {
+            background-color: #ecfeff;
+            border-color: #67e8f9;
+            box-shadow: 0 2px 8px rgba(6, 182, 212, 0.2);
+            transform: translateY(-1px);
           }
-          .fc .fc-button-primary:not(:disabled).fc-button-active, 
+          .fc .fc-button-primary:not(:disabled).fc-button-active,
           .fc .fc-button-primary:not(:disabled):active {
-              background-color: #06b6d4; border-color: #06b6d4; color: white;
+            background-color: #06b6d4;
+            border-color: #06b6d4;
+            color: white;
+            box-shadow: 0 4px 12px rgba(6, 182, 212, 0.3);
           }
-          .fc .fc-day-today { background-color: #ecfeff !important; }
+          .fc .fc-day-today {
+            background-color: #ecfeff !important;
+          }
+          .fc-event {
+            cursor: pointer;
+            transition: all 0.2s ease;
+          }
+          .fc-event:hover {
+            transform: scale(1.02);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+          }
+          .fc-timegrid-event {
+            border-radius: 4px;
+            padding: 2px 4px;
+          }
+          .fc-timegrid-slot {
+            height: 3em;
+          }
         `}
       </style>
-      {/* --- END STYLES --- */}
 
-      <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md">
-        <h2 className="text-xl font-bold mb-4">My Calendar</h2>
+      <div className="bg-white p-4 sm:p-6 rounded-xl shadow-lg border border-gray-100">
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-800">My Calendar</h2>
+            <p className="text-sm text-gray-500 mt-1">
+              Manage your appointments - Drag to reschedule
+            </p>
+          </div>
+          {doctor?.firstName && (
+            <div className="text-right">
+              <p className="text-sm text-gray-500">Logged in as</p>
+              <p className="font-semibold text-cyan-600">
+                Dr. {doctor.firstName} {doctor.lastName}
+              </p>
+            </div>
+          )}
+        </div>
 
         <FullCalendar
           plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-          initialView="dayGridMonth"
+          initialView="timeGridWeek"
           height="80vh"
           events={events}
           eventClick={handleEventClick}
           eventDisplay="block"
-          displayEventTime={false}
+          displayEventTime={true}
           editable={true}
           droppable={false}
           eventDurationEditable={true}
-          
-          eventDrop={(info) => {
-              try {
-                const id = String(info.event.id);
-                const newStart = info.event.start!;
-                const newEnd = info.event.end || new Date(newStart.getTime() + 30*60*1000);
-                const stored = JSON.parse(localStorage.getItem("appointments") || "[]");
-                const updated = stored.map((apt: any) => {
-                  if (String(apt.id) !== id) return apt;
-                  const newDateUS = fmtUS(newStart);
-                  const newTimeSlot = `${fmtTime(newStart)} - ${fmtTime(newEnd)}`;
-                  return {
-                    ...apt,
-                    date: newDateUS, // Note: Your parseTimeRange uses ISO. Make sure this format is consistent
-                    timeSlot: newTimeSlot,
-                  };
-                });
-                localStorage.setItem("appointments", JSON.stringify(updated));
-                const user = JSON.parse(localStorage.getItem("user") || "null");
-                setEvents(rebuildEventsForDoctor(updated, user?.name));
-              } catch (e) {
-                info.revert();
-              }
-          }}
-
-          eventResize={(info) => {
-              try {
-                const id = String(info.event.id);
-                const newStart = info.event.start!;
-                const newEnd = info.event.end || new Date(newStart.getTime() + 30*60*1000);
-                const stored = JSON.parse(localStorage.getItem("appointments") || "[]");
-                const updated = stored.map((apt: any) => {
-                  if (String(apt.id) !== id) return apt;
-                  const newTimeSlot = `${fmtTime(newStart)} - ${fmtTime(newEnd)}`;
-                  return { ...apt, timeSlot: newTimeSlot };
-                });
-                localStorage.setItem("appointments", JSON.stringify(updated));
-                const user = JSON.parse(localStorage.getItem("user") || "null");
-                setEvents(rebuildEventsForDoctor(updated, user?.name));
-              } catch (e) {
-                info.revert();
-              }
-          }}
-
+          eventDrop={handleEventDrop}
+          eventResize={handleEventResize}
+          slotMinTime="06:00:00"
+          slotMaxTime="22:00:00"
+          slotDuration="00:30:00"
           headerToolbar={{
             left: "prev,next today",
             center: "title",
             right: "dayGridMonth,timeGridWeek,timeGridDay",
           }}
-          buttonText={{ today: "Today", month: "Month", week: "Week", day: "Day" }}
-
-          eventContent={(info) => ({
-            html: `
-              <div style="width:100%; text-align:center; font-weight:600; font-size:12px; line-height:1.2; display:flex; align-items:center; justify-content:center; padding:2px 4px;">
-                ${info.event.title}
-              </div>
-            `,
-          })}
-
+          buttonText={{
+            today: "Today",
+            month: "Month",
+            week: "Week",
+            day: "Day",
+          }}
+          eventContent={(info) => {
+            const isList = info.view.type === "dayGridMonth";
+            if (isList) {
+              return {
+                html: `
+                  <div style="width:100%; text-align:center; font-weight:600; font-size:11px; line-height:1.2; display:flex; align-items:center; justify-content:center; padding:2px 4px; border-radius:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                    ${info.event.title}
+                  </div>
+                `,
+              };
+            }
+            return {
+              html: `
+                <div style="padding:4px 6px; height:100%; display:flex; flex-direction:column; overflow:hidden;">
+                  <div style="font-weight:600; font-size:12px; margin-bottom:2px;">${info.timeText}</div>
+                  <div style="font-size:11px; font-weight:500; line-height:1.3;">${info.event.title}</div>
+                </div>
+              `,
+            };
+          }}
           eventMouseEnter={(info) => {
+            removeTooltip();
+
             const { event, jsEvent } = info;
             const tooltip = document.createElement("div");
             tooltip.className = "fc-tooltip";
-            tooltip.id = `fc-tooltip-${event.id}`;
             tooltip.innerHTML = `
               <strong>${event.title}</strong>
-              Date: ${event.start?.toLocaleDateString()}<br/>
-              Time: ${event.extendedProps.time ?? "-"}<br/>
-              Status: ${event.extendedProps.status ?? "-"}
+              <div class="fc-tooltip-row">
+                <svg class="fc-tooltip-icon" width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2" stroke-width="2"/>
+                  <line x1="16" y1="2" x2="16" y2="6" stroke-width="2"/>
+                  <line x1="8" y1="2" x2="8" y2="6" stroke-width="2"/>
+                  <line x1="3" y1="10" x2="21" y2="10" stroke-width="2"/>
+                </svg>
+                <span class="fc-tooltip-value">${event.start?.toLocaleDateString(
+                  "en-US",
+                  {
+                    weekday: "short",
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  }
+                )}</span>
+              </div>
+              <div class="fc-tooltip-row">
+                <svg class="fc-tooltip-icon" width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="10" stroke-width="2"/>
+                  <polyline points="12 6 12 12 16 14" stroke-width="2"/>
+                </svg>
+                <span class="fc-tooltip-value">${
+                  event.extendedProps.time ?? "Not set"
+                }</span>
+              </div>
+              <div class="fc-tooltip-row">
+                <svg class="fc-tooltip-icon" width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="10" stroke-width="2"/>
+                  <line x1="12" y1="16" x2="12" y2="12" stroke-width="2"/>
+                  <line x1="12" y1="8" x2="12.01" y2="8" stroke-width="2"/>
+                </svg>
+                <span class="fc-tooltip-label">Status:</span>
+                <span class="fc-tooltip-value" style="color: ${
+                  statusColors[event.extendedProps.status] || "#6366f1"
+                }">${event.extendedProps.status}</span>
+              </div>
+              ${
+                event.extendedProps.visitType
+                  ? `
+                <div class="fc-tooltip-row">
+                  <svg class="fc-tooltip-icon" width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path d="M9 11l3 3L22 4" stroke-width="2"/>
+                    <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" stroke-width="2"/>
+                  </svg>
+                  <span class="fc-tooltip-value">${event.extendedProps.visitType} Visit</span>
+                </div>
+              `
+                  : ""
+              }
             `;
             document.body.appendChild(tooltip);
-            tooltip.style.left = jsEvent.pageX + 10 + "px";
-            tooltip.style.top = jsEvent.pageY + 10 + "px";
+            tooltipRef.current = tooltip;
+
+            const rect = (
+              jsEvent.target as HTMLElement
+            ).getBoundingClientRect();
+            tooltip.style.left = rect.left + rect.width / 2 - 120 + "px";
+            tooltip.style.top = rect.bottom + 10 + "px";
           }}
-         eventMouseLeave={(info) => {
-           const tooltip = document.getElementById(`fc-tooltip-${info.event.id}`);
-           if (tooltip) {
-             tooltip.remove();
-           }
-         }}
+          eventMouseLeave={() => {
+            removeTooltip();
+          }}
         />
       </div>
 
-      {/* --- RESTYLED MODAL --- */}
+      {/* Appointment Details Modal */}
       {showModal && selectedEvent && (
-        <div 
-          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
-          onClick={() => setShowModal(false)} // Close on overlay click
+        <div
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          onClick={() => setShowModal(false)}
         >
-          <div 
-            className="bg-white rounded-2xl w-full max-w-md shadow-xl overflow-hidden"
-            onClick={(e) => e.stopPropagation()} // Prevent modal from closing when clicking inside
+          <div
+            className="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden transform transition-all"
+            onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
-            <div className="p-4 bg-cyan-500 text-white flex justify-between items-center">
-              <h3 className="text-lg font-semibold">
-                {selectedEvent.title}
-              </h3>
-              <button onClick={() => setShowModal(false)} className="p-1 rounded-full text-cyan-100 hover:bg-cyan-600">
-                <X size={20} />
-              </button>
+            <div className="p-6 bg-linear-to-r from-cyan-500 to-cyan-600 text-white">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="text-xl font-bold mb-1">
+                    {selectedEvent.title}
+                  </h3>
+                  <div className="flex items-center gap-3 text-cyan-100 text-sm">
+                    <span>Token #{selectedEvent.extendedProps.token}</span>
+                    {selectedEvent.extendedProps.visitType && (
+                      <>
+                        <span>•</span>
+                        <span>
+                          {selectedEvent.extendedProps.visitType} Visit
+                        </span>
+                      </>
+                    )}
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowModal(false)}
+                  className="p-2 rounded-full text-cyan-100 hover:bg-cyan-600 transition"
+                >
+                  <X size={20} />
+                </button>
+              </div>
             </div>
-            
+
             {/* Modal Body */}
-            <div className="p-5 space-y-4">
+            <div className="p-6 space-y-5">
               {/* Appointment Info */}
-              <div className="space-y-2">
-                <div className="flex items-center gap-3">
-                  <CalendarIcon className="w-4 h-4 text-gray-500" />
-                  <span className="text-sm text-gray-700"><strong>Date:</strong> {selectedEvent.start.toLocaleDateString()}</span>
+              <div className="space-y-3">
+                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                  <CalendarIcon className="w-5 h-5 text-cyan-500" />
+                  <div className="flex-1">
+                    <p className="text-xs text-gray-500 font-medium">Date</p>
+                    <p className="text-sm font-semibold text-gray-800">
+                      {selectedEvent.start.toLocaleDateString("en-US", {
+                        weekday: "long",
+                        month: "long",
+                        day: "numeric",
+                        year: "numeric",
+                      })}
+                    </p>
+                  </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <Clock className="w-4 h-4 text-gray-500" />
-                  <span className="text-sm text-gray-700"><strong>Time:</strong> {selectedEvent.extendedProps.time}</span>
+
+                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                  <Clock className="w-5 h-5 text-cyan-500" />
+                  <div className="flex-1">
+                    <p className="text-xs text-gray-500 font-medium">Time</p>
+                    <p className="text-sm font-semibold text-gray-800">
+                      {selectedEvent.extendedProps.time}
+                    </p>
+                  </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <Info className="w-4 h-4 text-gray-500" />
-                  <span className="text-sm text-gray-700">
-                    <strong>Status:</strong> <span className="font-semibold" style={{ color: statusColors[selectedEvent.extendedProps.status] || '#6366f1' }}>
+
+                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                  <Info className="w-5 h-5 text-cyan-500" />
+                  <div className="flex-1">
+                    <p className="text-xs text-gray-500 font-medium">Status</p>
+                    <p
+                      className="text-sm font-bold"
+                      style={{
+                        color:
+                          statusColors[selectedEvent.extendedProps.status] ||
+                          "#6366f1",
+                      }}
+                    >
                       {selectedEvent.extendedProps.status}
-                    </span>
-                  </span>
+                    </p>
+                  </div>
                 </div>
+
+                {selectedEvent.extendedProps.type && (
+                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                    <MapPin className="w-5 h-5 text-cyan-500" />
+                    <div className="flex-1">
+                      <p className="text-xs text-gray-500 font-medium">Type</p>
+                      <p className="text-sm font-semibold text-gray-800">
+                        {selectedEvent.extendedProps.type}
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Patient Details */}
-              <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                <p className="font-semibold text-gray-800 mb-2 flex items-center gap-2"><User size={16} /> Patient Details</p>
-                <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                  {/* --- FIX: Read from extendedProps --- */}
-                  <p className="text-gray-600"><strong>Name:</strong> {selectedEvent.extendedProps.name}</p>
-                  <p className="text-gray-600"><strong>Age:</strong> {selectedEvent.extendedProps.age}</p>
-                  <p className="text-gray-600"><strong>Gender:</strong> {selectedEvent.extendedProps.gender}</p>
-                  <p className="text-gray-600"><strong>Phone:</strong> {selectedEvent.extendedProps.phone}</p>
-                  <p className="text-gray-600 col-span-2"><strong>Problem:</strong> {selectedEvent.extendedProps.problem}</p>
-                  {/* --- END FIX --- */}
+              <div className="bg-gradient-to-br from-cyan-50 to-blue-50 p-5 rounded-xl border border-cyan-100">
+                <p className="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                  <User size={18} className="text-cyan-600" /> Patient
+                  Information
+                </p>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="text-gray-500 text-xs font-medium mb-1">
+                      Name
+                    </p>
+                    <p className="font-semibold text-gray-800">
+                      {selectedEvent.extendedProps.name}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500 text-xs font-medium mb-1">
+                      Age
+                    </p>
+                    <p className="font-semibold text-gray-800">
+                      {selectedEvent.extendedProps.age}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500 text-xs font-medium mb-1">
+                      Gender
+                    </p>
+                    <p className="font-semibold text-gray-800">
+                      {selectedEvent.extendedProps.gender}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500 text-xs font-medium mb-1">
+                      Phone
+                    </p>
+                    <p className="font-semibold text-gray-800">
+                      {selectedEvent.extendedProps.phone}
+                    </p>
+                  </div>
+                  <div className="col-span-2">
+                    <p className="text-gray-500 text-xs font-medium mb-1">
+                      Problem
+                    </p>
+                    <p className="font-semibold text-gray-800">
+                      {selectedEvent.extendedProps.problem}
+                    </p>
+                  </div>
                 </div>
               </div>
 
               {/* Action Buttons */}
-              <div className="space-y-2 pt-2">
-                {/* Only show Mark as Completed if it's Upcoming or Waiting */}
-                {(selectedEvent.extendedProps.status === "Upcoming" || selectedEvent.extendedProps.status === "Waiting") && (
-                  <Button
-                    variant="default"
-                    className="w-full bg-green-500 hover:bg-green-600"
-                    onClick={() => updateAppointmentStatus("Completed")}
-                  >
-                    Mark as Completed
-                  </Button>
-                )}
-                {/* Only show Cancel if it's Upcoming or Waiting */}
-                {(selectedEvent.extendedProps.status === "Upcoming" || selectedEvent.extendedProps.status === "Waiting") && (
-                  <Button
-                    variant="destructive"
-                    className="w-full"
-                    onClick={() => updateAppointmentStatus("Cancelled")}
-                  >
-                    Cancel Appointment
-                  </Button>
+              <div className="space-y-3 pt-2">
+                {(selectedEvent.extendedProps.status === "Upcoming" ||
+                  selectedEvent.extendedProps.status === "Waiting") && (
+                  <>
+                    <Button
+                      variant="default"
+                      className="w-full bg-green-500 hover:bg-green-600 shadow-lg shadow-green-500/30"
+                      onClick={() => updateAppointmentStatus("Completed")}
+                    >
+                      ✓ Mark as Completed
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      className="w-full shadow-lg shadow-red-500/30"
+                      onClick={() => updateAppointmentStatus("Cancelled")}
+                    >
+                      ✕ Cancel Appointment
+                    </Button>
+                  </>
                 )}
                 <Button
                   variant="outline"
-                  className="w-full"
+                  className="w-full border-2 hover:bg-gray-50"
                   onClick={() => setShowModal(false)}
                 >
                   Close
@@ -368,8 +700,6 @@ export default function CalendarPage() {
           </div>
         </div>
       )}
-      {/* --- END RESTYLED MODAL --- */}
-
     </div>
   );
 }

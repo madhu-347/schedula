@@ -6,14 +6,13 @@ import {
   LogOut,
   Calendar,
   Users,
-  Settings,
-  Clock,
   Bell,
   UserPlus,
   X,
   Video,
   ChevronRight,
   Star,
+  Clock,
 } from "lucide-react";
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/dist/style.css";
@@ -27,28 +26,10 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-import mockData from "@/lib/mockData.json";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { Appointment } from "@/lib/types/appointment";
-import { Doctor } from "@/lib/types/doctor";
 import { useAuth } from "@/context/AuthContext";
 import { getLatestAppointmentsForDoctor } from "@/app/services/appointments.api";
-
-// --- Type Definitions ---
-type AccountInfo = {
-  id: number | string;
-  name: string;
-  email: string;
-  type: "user" | "doctor";
-  specialty?: string;
-};
-
-type MockDoctorData = {
-  id: string;
-  firstName: string;
-  lastName: string;
-  specialty: string;
-};
 
 type DashboardStats = {
   todayAppointments: number;
@@ -61,17 +42,6 @@ type VisitTypeBreakdown = {
   value: number;
 };
 
-type FeedbackData = {
-  appointmentId: number | string;
-  doctorName: string;
-  consultingRating: number;
-  hospitalRating: number;
-  waitingTimeRating: number;
-  wouldRecommend: boolean | null;
-  feedbackText: string;
-  submittedAt: string;
-};
-
 type ReviewDisplay = {
   id: string;
   patientName: string;
@@ -80,24 +50,28 @@ type ReviewDisplay = {
   feedbackText: string;
   date: string;
 };
-// --- End Type Definitions ---
+
+type Notification = {
+  id: string;
+  message: string;
+  timestamp: string;
+  read: boolean;
+};
 
 export default function DoctorDashboardPage() {
   const { doctor, loading } = useAuth();
-  console.log("doctor data: ", doctor);
   const router = useRouter();
-  // const [doctorInfo, setDoctorInfo] = useState<AccountInfo | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
 
-  const [notifications, setNotifications] = useState<any[]>([]);
+  const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loadingNotifications, setLoadingNotifications] = useState(true);
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
-  // LocalStorage based states
+
   const [upcomingAppointments, setUpcomingAppointments] = useState<
     Appointment[]
   >([]);
+  const [allAppointments, setAllAppointments] = useState<Appointment[]>([]);
   const [stats, setStats] = useState<DashboardStats>({
     todayAppointments: 0,
     totalPatients: 0,
@@ -108,178 +82,60 @@ export default function DoctorDashboardPage() {
   >([]);
   const [appointmentDates, setAppointmentDates] = useState<Date[]>([]);
   const [reviews, setReviews] = useState<ReviewDisplay[]>([]);
+  const [isLoadingData, setIsLoadingData] = useState(true);
 
-  const STORAGE_KEY = "appointments";
-  const FEEDBACK_KEY = "appointmentFeedback";
+  // Fetch appointments and calculate all data
+  const fetchAndProcessAppointments = async () => {
+    if (!doctor?.id) return;
 
-  const fetchLatestAppointments = async () => {
+    setIsLoadingData(true);
     try {
-      const appointments = await getLatestAppointmentsForDoctor(
-        doctor?.id || ""
+      const appointments: Appointment[] = await getLatestAppointmentsForDoctor(
+        doctor.id
       );
-      console.log("upcoming appts : ", appointments);
-      setUpcomingAppointments(appointments);
+      console.log("Fetched appointments:", appointments);
+
+      setAllAppointments(appointments);
+
+      // Process upcoming appointments (top 5)
+      const upcoming = appointments
+        .filter((a) => a.status === "Upcoming")
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+        .slice(0, 5);
+      setUpcomingAppointments(upcoming);
+
+      // Calculate stats
+      calculateStats(appointments);
+
+      // Calculate visit type breakdown
+      calculateVisitTypes(appointments);
+
+      // Extract appointment dates for calendar
+      extractAppointmentDates(appointments);
+
+      // Process reviews from feedback
+      processReviews(appointments);
     } catch (error) {
       console.error("Error fetching appointments:", error);
-    }
-  };
-  // --- Load Reviews from LocalStorage ---
-  const loadReviewsFromStorage = (doctorName: string) => {
-    try {
-      const feedbackStr = localStorage.getItem(FEEDBACK_KEY);
-      if (!feedbackStr) {
-        setReviews([]);
-        return;
-      }
-
-      const allFeedback: FeedbackData[] = JSON.parse(feedbackStr);
-
-      // Filter feedback for this doctor (case-insensitive)
-      const doctorFeedback = allFeedback.filter(
-        (feedback) =>
-          feedback.doctorName?.trim().toLowerCase() ===
-          doctorName.trim().toLowerCase()
-      );
-
-      // Get appointments to find patient names
-      const appointmentsStr = localStorage.getItem(STORAGE_KEY);
-      let appointments: any[] = [];
-      if (appointmentsStr) {
-        const parsed = JSON.parse(appointmentsStr);
-        appointments = Array.isArray(parsed) ? parsed : [parsed];
-      }
-
-      // Transform feedback to review format
-      const reviewsData: ReviewDisplay[] = doctorFeedback
-        .map((feedback) => {
-          // Find the appointment to get patient name
-          const appointment = appointments.find(
-            (apt) => apt.id === feedback.appointmentId
-          );
-
-          const patientName =
-            appointment?.patientDetails?.fullName || "Anonymous Patient";
-
-          // Get feedback text or generate default comment
-          const userFeedbackText = feedback.feedbackText?.trim() || "";
-
-          // Generate a comment based on ratings (only if no user feedback text)
-          let generatedComment = "";
-          const avgRating =
-            (feedback.consultingRating +
-              feedback.hospitalRating +
-              feedback.waitingTimeRating) /
-            3;
-
-          if (!userFeedbackText) {
-            if (avgRating >= 4.5) {
-              generatedComment = "Excellent doctor! Highly recommend.";
-            } else if (avgRating >= 3.5) {
-              generatedComment =
-                "Very helpful and understanding. Explained everything clearly.";
-            } else if (avgRating >= 2.5) {
-              generatedComment = "Good consultation, but could be improved.";
-            } else {
-              generatedComment = "The experience needs improvement.";
-            }
-
-            // Add specific feedback based on individual ratings
-            if (feedback.waitingTimeRating <= 2) {
-              generatedComment += " The wait time was a bit long.";
-            }
-          }
-
-          return {
-            id: `${feedback.appointmentId}-${feedback.submittedAt}`,
-            patientName,
-            rating: Math.round(avgRating),
-            comment: generatedComment,
-            feedbackText: userFeedbackText,
-            date: feedback.submittedAt,
-          };
-        })
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-        .slice(0, 3); // Show only top 3 most recent
-
-      setReviews(reviewsData);
-    } catch (e) {
-      console.error("Error loading reviews:", e);
-      setReviews([]);
+    } finally {
+      setIsLoadingData(false);
     }
   };
 
-  // --- Load Appointments from LocalStorage ---
-  // const loadAppointmentsFromStorage = (doctorName: string) => {
-  //   try {
-  //     const raw = localStorage.getItem(STORAGE_KEY);
-  //     if (!raw) {
-  //       resetDashboardData();
-  //       return;
-  //     }
+  // Calculate dashboard stats
+  const calculateStats = (appointments: Appointment[]) => {
+    const today = format(new Date(), "yyyy-MM-dd");
 
-  //     const parsed = JSON.parse(raw);
-  //     const arr = Array.isArray(parsed) ? parsed : [parsed];
-
-  //     // Filter appointments for this doctor (case-insensitive)
-  //     const doctorAppointments = arr.filter(
-  //       (a: any) =>
-  //         a?.doctorName &&
-  //         a.doctorName.trim().toLowerCase() === doctorName.trim().toLowerCase()
-  //     );
-
-  //     // Process appointments
-  //     processAppointments(doctorAppointments);
-
-  //     // Load reviews
-  //     loadReviewsFromStorage(doctorName);
-  //   } catch (e) {
-  //     console.error("Error loading appointments:", e);
-  //     resetDashboardData();
-  //   }
-  // };
-
-  const resetDashboardData = () => {
-    setUpcomingAppointments([]);
-    setStats({
-      todayAppointments: 0,
-      totalPatients: 0,
-      pendingRequests: 0,
-    });
-    setVisitTypeBreakdown([]);
-    setAppointmentDates([]);
-    setReviews([]);
-  };
-
-  const processAppointments = (appointments: any[]) => {
-    const today = format(new Date(), "MMM dd, yyyy");
-
-    // Filter and sort appointments
-    const upcomingAppts = appointments
-      .filter((a) => a.status === "Upcoming" || a.status === "Waiting")
-      .sort((a, b) => {
-        // Sort by date
-        const dateA = new Date(a.date).getTime();
-        const dateB = new Date(b.date).getTime();
-        return dateA - dateB;
-      })
-      .slice(0, 5); // Show only top 5 upcoming
-
-    setUpcomingAppointments(upcomingAppts);
-
-    // Calculate stats
     const todayAppointmentsCount = appointments.filter(
-      (a) =>
-        a.date === today && (a.status === "Upcoming" || a.status === "Waiting")
+      (a) => a.date === today && a.status === "Upcoming"
     ).length;
 
     // Count unique patients
-    const uniquePatients = new Set(
-      appointments.map((a) => a.patientDetails?.fullName)
-    ).size;
+    const uniquePatients = new Set(appointments.map((a) => a.patientId)).size;
 
-    // Count pending/waiting appointments
+    // Count upcoming appointments as pending
     const pendingCount = appointments.filter(
-      (a) => a.status === "Waiting"
+      (a) => a.status === "Upcoming"
     ).length;
 
     setStats({
@@ -287,14 +143,18 @@ export default function DoctorDashboardPage() {
       totalPatients: uniquePatients,
       pendingRequests: pendingCount,
     });
+  };
 
-    // Calculate visit type breakdown (First, Report, Follow-up)
+  // Calculate visit type breakdown for pie chart
+  const calculateVisitTypes = (appointments: Appointment[]) => {
     const firstVisitCount = appointments.filter(
       (a) => a.visitType === "First" && a.status !== "Cancelled"
     ).length;
+
     const reportVisitCount = appointments.filter(
       (a) => a.visitType === "Report" && a.status !== "Cancelled"
     ).length;
+
     const followUpCount = appointments.filter(
       (a) => a.visitType === "Follow-up" && a.status !== "Cancelled"
     ).length;
@@ -304,8 +164,10 @@ export default function DoctorDashboardPage() {
       { name: "Report", value: reportVisitCount },
       { name: "Follow-up", value: followUpCount },
     ]);
+  };
 
-    // Extract appointment dates for calendar
+  // Extract dates for calendar marking
+  const extractAppointmentDates = (appointments: Appointment[]) => {
     const dates = appointments
       .filter((a) => a.date && a.status !== "Cancelled")
       .map((a) => {
@@ -320,8 +182,59 @@ export default function DoctorDashboardPage() {
     setAppointmentDates(dates);
   };
 
+  // Process reviews from appointment feedback
+  const processReviews = (appointments: Appointment[]) => {
+    const reviewsData: ReviewDisplay[] = appointments
+      .filter((a) => a.feedback && a.status === "Completed")
+      .map((a) => {
+        const feedback = a.feedback!;
+        const patientName = a.patientDetails?.fullName || "Anonymous Patient";
+
+        // Calculate average rating
+        const avgRating = Math.round(
+          (feedback.consulting + feedback.hospital + feedback.waitingTime) / 3
+        );
+
+        // Generate default comment if no feedback text
+        let comment = feedback.feedbackText || "";
+        if (!comment) {
+          if (avgRating >= 4.5) {
+            comment = "Excellent doctor! Highly recommend.";
+          } else if (avgRating >= 3.5) {
+            comment =
+              "Very helpful and understanding. Explained everything clearly.";
+          } else if (avgRating >= 2.5) {
+            comment = "Good consultation, but could be improved.";
+          } else {
+            comment = "The experience needs improvement.";
+          }
+        }
+
+        return {
+          id: `${a.id}-${feedback.submittedAt}`,
+          patientName,
+          rating: avgRating,
+          comment,
+          feedbackText: feedback.feedbackText || "",
+          date: feedback.submittedAt,
+        };
+      })
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, 3); // Show only top 3 most recent
+
+    setReviews(reviewsData);
+  };
+
+  // Fetch appointments on mount and when doctor changes
   useEffect(() => {
-    if (!doctor?.id) return; // Changed from doctor?.name to doctor?.id
+    if (doctor?.id) {
+      fetchAndProcessAppointments();
+    }
+  }, [doctor?.id]);
+
+  // Fetch notifications
+  useEffect(() => {
+    if (!doctor?.id) return;
 
     const fetchNotifications = async () => {
       try {
@@ -340,10 +253,11 @@ export default function DoctorDashboardPage() {
     };
 
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 10000);
+    const interval = setInterval(fetchNotifications, 30000); // Poll every 30 seconds
     return () => clearInterval(interval);
   }, [doctor?.id]);
 
+  // Close dropdown on outside click
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -357,23 +271,31 @@ export default function DoctorDashboardPage() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // --- Logout Function ---
   const handleLogout = () => {
     localStorage.removeItem("user");
     localStorage.removeItem("userExpiry");
     router.push("/doctor/login");
   };
 
-  // --- Loading State ---
-  // if (loading || isLoading) {
-  //   return (
-  //     <div className="min-h-screen flex justify-center items-center bg-gray-100">
-  //       Verifying session...
-  //     </div>
-  //   );
-  // }
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen flex justify-center items-center bg-gray-100">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Verifying session...</p>
+        </div>
+      </div>
+    );
+  }
 
-  // --- Calendar Modifiers ---
+  // Redirect if no doctor
+  if (!doctor) {
+    // router.push("/doctor/login");
+    return null;
+  }
+
+  // Calendar modifiers
   const appointmentDayModifier = { appointment: appointmentDates };
   const appointmentDotStyleCSS = `
     .rdp-day_appointment { position: relative; }
@@ -384,10 +306,8 @@ export default function DoctorDashboardPage() {
     }
   `;
 
-  // --- Pie Chart Colors ---
   const PIE_COLORS = ["#06b6d4", "#f59e0b", "#10b981"];
 
-  // --- Main Dashboard UI ---
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-gray-50">
@@ -395,16 +315,12 @@ export default function DoctorDashboardPage() {
         <header className="bg-linear-to-r from-cyan-500 to-teal-500 text-white shadow-md">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
             <div>
-              {doctor && (
-                <div>
-                  <h1 className="text-2xl font-bold">
-                    {doctor.firstName} 's Dashboard
-                  </h1>
-                  <p className="text-sm text-cyan-100 mt-1">
-                    {doctor.specialty || "Specialist"}
-                  </p>
-                </div>
-              )}
+              <h1 className="text-2xl font-bold">
+                Dr. {doctor.firstName} {doctor.lastName}'s Dashboard
+              </h1>
+              <p className="text-sm text-cyan-100 mt-1">
+                {doctor.specialty || "Specialist"}
+              </p>
             </div>
             <div className="flex items-center gap-4 relative" ref={dropdownRef}>
               {/* Notification Bell */}
@@ -472,238 +388,241 @@ export default function DoctorDashboardPage() {
 
         {/* Main Content Area */}
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:items-start">
-            {/* Left Column Wrapper */}
-            <div className="lg:col-span-1 space-y-6">
-              {/* Calendar Section */}
-              <section className="bg-white p-4 rounded-lg shadow-md">
-                <style>{appointmentDotStyleCSS}</style>
-                <DayPicker
-                  mode="single"
-                  month={currentMonth}
-                  onMonthChange={setCurrentMonth}
-                  modifiers={appointmentDayModifier}
-                  modifiersClassNames={{ appointment: "rdp-day_appointment" }}
-                  styles={{
-                    caption_label: { fontWeight: "bold" },
-                    head_cell: { color: "#666", fontSize: "0.8rem" },
-                  }}
-                  footer={
-                    <p className="text-center text-sm mt-2 text-gray-500">
-                      Today is {format(new Date(), "PPP")}.
+          {isLoadingData ? (
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-500 mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading dashboard data...</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:items-start">
+              {/* Left Column */}
+              <div className="lg:col-span-1 space-y-6">
+                {/* Calendar Section */}
+                <section className="bg-white p-4 rounded-lg shadow-md">
+                  <style>{appointmentDotStyleCSS}</style>
+                  <DayPicker
+                    mode="single"
+                    month={currentMonth}
+                    onMonthChange={setCurrentMonth}
+                    modifiers={appointmentDayModifier}
+                    modifiersClassNames={{ appointment: "rdp-day_appointment" }}
+                    styles={{
+                      caption_label: { fontWeight: "bold" },
+                      head_cell: { color: "#666", fontSize: "0.8rem" },
+                    }}
+                    footer={
+                      <p className="text-center text-sm mt-2 text-gray-500">
+                        Today is {format(new Date(), "PPP")}.
+                      </p>
+                    }
+                    showOutsideDays
+                    className="w-full"
+                  />
+                </section>
+
+                {/* Quick Actions Section */}
+                <section className="bg-white p-6 rounded-lg shadow-md">
+                  <h2 className="text-lg font-semibold text-gray-700 mb-3">
+                    Quick Actions
+                  </h2>
+                  <div className="flex flex-wrap gap-2">
+                    <Link
+                      href="/doctor/calendar"
+                      className="text-sm bg-cyan-500 hover:bg-cyan-600 text-white px-3 py-2 rounded-md transition-colors"
+                    >
+                      Open Full Calendar
+                    </Link>
+                    <Link
+                      href="/doctor/appointments"
+                      className="text-sm bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-2 rounded-md transition-colors"
+                    >
+                      View All Appointments
+                    </Link>
+                  </div>
+                </section>
+
+                {/* Recent Reviews Section */}
+                <section className="bg-white p-4 sm:p-6 rounded-lg shadow-md">
+                  <h2 className="text-xl font-semibold text-gray-800 mb-4">
+                    Recent Reviews
+                  </h2>
+                  {reviews.length > 0 ? (
+                    <ul className="space-y-4">
+                      {reviews.map((review) => (
+                        <li
+                          key={review.id}
+                          className="border-b border-gray-100 pb-3 last:border-b-0 last:pb-0"
+                        >
+                          <div className="flex justify-between items-center mb-1">
+                            <span className="font-medium text-gray-700 text-sm">
+                              {review.patientName}
+                            </span>
+                            <div className="flex items-center">
+                              {[...Array(5)].map((_, i) => (
+                                <Star
+                                  key={i}
+                                  size={14}
+                                  className={`${
+                                    i < review.rating
+                                      ? "text-yellow-400 fill-yellow-400"
+                                      : "text-gray-300"
+                                  }`}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                          <p className="text-gray-600 text-sm mb-1">
+                            {review.feedbackText || review.comment}
+                          </p>
+                          <p className="text-xs text-gray-400 text-right">
+                            {format(new Date(review.date), "PP")}
+                          </p>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-gray-500 text-sm">
+                      No reviews received yet.
                     </p>
-                  }
-                  showOutsideDays
-                  className="w-full"
-                />
-              </section>
-
-              {/* Quick Actions Section */}
-              <section className="bg-white p-6 rounded-lg shadow-md">
-                <h2 className="text-lg font-semibold text-gray-700 mb-3">
-                  Quick Actions
-                </h2>
-                <div className="flex flex-wrap gap-2">
-                  <button className="text-sm bg-cyan-500 hover:bg-cyan-600 text-white px-3 py-1.5 rounded-md transition-colors">
-                    Add New Patient
-                  </button>
-                  <Link
-                    href={"/doctor/calendar"}
-                    className="text-sm bg-cyan-500 hover:bg-cyan-600 text-white px-3 py-2 rounded-md"
+                  )}
+                  <button
+                    onClick={() => router.push("/doctor/reviews")}
+                    className="text-sm text-cyan-600 hover:underline mt-4 font-medium"
                   >
-                    Open Full Calendar
-                  </Link>
-                  <button className="text-sm bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-1.5 rounded-md transition-colors">
-                    Manage Availability
+                    View All Reviews
                   </button>
-                </div>
-              </section>
+                </section>
+              </div>
 
-              {/* Recent Reviews Section */}
-              <section className="bg-white p-4 sm:p-6 rounded-lg shadow-md">
-                <h2 className="text-xl font-semibold text-gray-800 mb-4">
-                  Recent Reviews
-                </h2>
-                {reviews.length > 0 ? (
-                  <ul className="space-y-4">
-                    {reviews.map((review) => (
-                      <li
-                        key={review.id}
-                        className="border-b border-gray-100 pb-3 last:border-b-0 last:pb-0"
-                      >
-                        <div className="flex justify-between items-center mb-1">
-                          <span className="font-medium text-gray-700 text-sm">
-                            {review.patientName}
-                          </span>
-                          <div className="flex items-center">
-                            {[...Array(5)].map((_, i) => (
-                              <Star
-                                key={i}
-                                size={14}
-                                className={` ${
-                                  i < review.rating
-                                    ? "text-yellow-400 fill-yellow-400"
-                                    : "text-gray-300"
-                                }`}
+              {/* Right Column */}
+              <section className="lg:col-span-2 space-y-6">
+                {/* Quick Stats Row */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <StatBox
+                    title="Today's Appointments"
+                    value={stats.todayAppointments}
+                    icon={Calendar}
+                    color="text-cyan-600 bg-cyan-100"
+                  />
+                  <StatBox
+                    title="Total Patients"
+                    value={stats.totalPatients}
+                    icon={Users}
+                    color="text-blue-600 bg-blue-100"
+                  />
+                  <StatBox
+                    title="Upcoming"
+                    value={stats.pendingRequests}
+                    icon={UserPlus}
+                    color="text-amber-600 bg-amber-100"
+                  />
+                </div>
+
+                {/* Pie Chart Section */}
+                <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md">
+                  <h2 className="text-xl font-semibold text-gray-800 mb-4">
+                    Visit Types Distribution
+                  </h2>
+                  {visitTypeBreakdown.some((item) => item.value > 0) ? (
+                    <div style={{ width: "100%", height: 300 }}>
+                      <ResponsiveContainer>
+                        <PieChart>
+                          <Pie
+                            data={visitTypeBreakdown}
+                            cx="50%"
+                            cy="50%"
+                            labelLine={false}
+                            outerRadius={100}
+                            fill="#8884d8"
+                            dataKey="value"
+                            label={({ name, value }) => `${name}: ${value}`}
+                          >
+                            {visitTypeBreakdown.map((entry, index) => (
+                              <Cell
+                                key={`cell-${index}`}
+                                fill={PIE_COLORS[index % PIE_COLORS.length]}
                               />
                             ))}
+                          </Pie>
+                          <Tooltip
+                            formatter={(value) => `${value} appointments`}
+                          />
+                          <Legend
+                            iconType="circle"
+                            verticalAlign="bottom"
+                            height={36}
+                          />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                  ) : (
+                    <p className="text-gray-500 text-sm text-center py-8">
+                      No visit type data available yet.
+                    </p>
+                  )}
+                </div>
+
+                {/* Upcoming Appointments List */}
+                <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md">
+                  <h2 className="text-xl font-semibold text-gray-800 mb-4">
+                    Upcoming Appointments
+                  </h2>
+                  {upcomingAppointments.length > 0 ? (
+                    <ul className="space-y-4">
+                      {upcomingAppointments.map((appt) => (
+                        <li
+                          key={appt.id}
+                          className="border border-gray-100 rounded-lg p-3 hover:bg-gray-50 transition-colors flex items-center justify-between cursor-pointer"
+                          onClick={() =>
+                            router.push(`/doctor/appointments/${appt.id}`)
+                          }
+                        >
+                          <div className="flex items-center gap-3">
+                            {appt.type === "Virtual" ? (
+                              <Video className="w-5 h-5 text-purple-500 shrink-0" />
+                            ) : (
+                              <Clock className="w-5 h-5 text-cyan-500 shrink-0" />
+                            )}
+                            <div>
+                              <p className="font-medium text-gray-700">
+                                {appt?.patientDetails?.fullName || "Patient"}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                {appt.date} • {appt.time}
+                              </p>
+                              {appt.patientDetails?.problem && (
+                                <p className="text-xs text-gray-400 mt-1">
+                                  {appt.patientDetails.problem}
+                                </p>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                        <p className="text-gray-600 text-sm mb-1">
-                          {review.feedbackText || review.comment}
-                        </p>
-                        <p className="text-xs text-gray-400 text-right">
-                          {format(new Date(review.date), "PP")}
-                        </p>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-gray-500 text-sm">
-                    No reviews received yet.
-                  </p>
-                )}
-                <button
-                  onClick={() => router.push("/doctor/reviews")}
-                  className="text-sm text-cyan-600 hover:underline mt-4 font-medium"
-                >
-                  View All Reviews
-                </button>
+                          <ChevronRight size={18} className="text-gray-400" />
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-gray-500 text-sm">
+                      No upcoming appointments scheduled.
+                    </p>
+                  )}
+                  <Link
+                    href="/doctor/appointments"
+                    className="text-sm text-cyan-600 hover:underline mt-4 font-medium inline-block"
+                  >
+                    View Full Schedule
+                  </Link>
+                </div>
               </section>
             </div>
-
-            {/* Right Column: Stats, Pie, Appointments, Activity */}
-            <section className="lg:col-span-2 space-y-6">
-              {/* Quick Stats Row */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <StatBox
-                  title="Today's Appointments"
-                  value={stats.todayAppointments}
-                  icon={Calendar}
-                  color="text-cyan-600 bg-cyan-100"
-                />
-                <StatBox
-                  title="Total Patients"
-                  value={stats.totalPatients}
-                  icon={Users}
-                  color="text-blue-600 bg-blue-100"
-                />
-                <StatBox
-                  title="Pending Requests"
-                  value={stats.pendingRequests}
-                  icon={UserPlus}
-                  color="text-amber-600 bg-amber-100"
-                />
-              </div>
-
-              {/* Pie Chart Section - Visit Types */}
-              <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md">
-                <h2 className="text-xl font-semibold text-gray-800 mb-4">
-                  Visit Types Distribution
-                </h2>
-                {visitTypeBreakdown.some((item) => item.value > 0) ? (
-                  <div style={{ width: "100%", height: 300 }}>
-                    <ResponsiveContainer>
-                      <PieChart>
-                        <Pie
-                          data={visitTypeBreakdown}
-                          cx="50%"
-                          cy="50%"
-                          labelLine={false}
-                          outerRadius={130}
-                          fill="#8884d8"
-                          dataKey="value"
-                          nameKey="name"
-                        >
-                          {visitTypeBreakdown.map((entry, index) => (
-                            <Cell
-                              key={`cell-${index}`}
-                              fill={PIE_COLORS[index % PIE_COLORS.length]}
-                            />
-                          ))}
-                        </Pie>
-                        <Tooltip
-                          formatter={(value) => `${value} appointments`}
-                        />
-                        <Legend
-                          iconType="circle"
-                          verticalAlign="bottom"
-                          height={36}
-                        />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                ) : (
-                  <p className="text-gray-500 text-sm text-center py-8">
-                    No visit type data available yet.
-                  </p>
-                )}
-              </div>
-
-              {/* Upcoming Appointments List */}
-              <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md">
-                <h2 className="text-xl font-semibold text-gray-800 mb-4">
-                  Upcoming Appointments
-                </h2>
-                {upcomingAppointments.length > 0 ? (
-                  <ul className="space-y-4">
-                    {upcomingAppointments.map((appt) => (
-                      <li
-                        key={appt.id}
-                        className="border border-gray-100 rounded-lg p-3 hover:bg-gray-50 transition-colors flex items-center justify-between"
-                      >
-                        <div className="flex items-center gap-3">
-                          {appt.type === "Virtual" ? (
-                            <Video className="w-5 h-5 text-purple-500 shrink-0" />
-                          ) : (
-                            <Clock className="w-5 h-5 text-cyan-500 shrink-0" />
-                          )}
-                          <div>
-                            <p className="font-medium text-gray-700">
-                              {appt?.patientDetails?.fullName}
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              {appt.time} - {appt.patientDetails?.problem}
-                            </p>
-                          </div>
-                        </div>
-                        <button className="text-cyan-600 hover:text-cyan-800 p-1">
-                          <ChevronRight size={18} />
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-gray-500 text-sm">
-                    No upcoming appointments scheduled.
-                  </p>
-                )}
-                <Link
-                  href="/doctor/appointments"
-                  className="text-sm text-cyan-600 hover:underline mt-4 font-medium inline-block"
-                >
-                  View Full Schedule
-                </Link>
-              </div>
-
-              {/* Recent Patient Activity */}
-              <div className="bg-white p-6 rounded-lg shadow-md">
-                <h2 className="text-lg font-semibold text-gray-700 mb-3">
-                  Recent Patient Activity
-                </h2>
-                <p className="text-gray-500 text-sm">
-                  Patient activity feed goes here...
-                </p>
-              </div>
-            </section>
-          </div>
+          )}
         </main>
       </div>
     </ProtectedRoute>
   );
 }
 
-// --- Helper Component for Stat Boxes ---
+// StatBox Component
 interface StatBoxProps {
   title: string;
   value: string | number;

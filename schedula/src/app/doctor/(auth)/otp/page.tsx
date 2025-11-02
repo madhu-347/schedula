@@ -50,21 +50,20 @@ export default function DoctorOtpPage() {
     // Don't start timer if validity check hasn't run, session is invalid, or timer already finished
     if (isValidSession === null || !isValidSession || timer <= 0) return;
 
-    console.log("Starting timer..."); // Debug log
+    // console.log("Starting timer..."); // Debug log
     const countdown = setInterval(() => {
       setTimer((prev) => (prev > 0 ? prev - 1 : 0));
     }, 1000);
 
     // Cleanup interval on unmount or if timer reaches 0
     return () => {
-      console.log("Cleaning up timer interval."); // Debug log
+      // console.log("Cleaning up timer interval."); // Debug log
       clearInterval(countdown);
     };
   }, [timer, isValidSession]); // Depend on timer and session validity
 
   // Verify OTP
   const handleVerifyOtp = () => {
-    // ... (Keep your existing handleVerifyOtp logic here) ...
     const storedOtp = localStorage.getItem("generatedOtp");
     const otpExpiry = Number(localStorage.getItem("otpExpiry"));
     const pendingUser = localStorage.getItem("pendingUser");
@@ -75,7 +74,6 @@ export default function DoctorOtpPage() {
       return;
     }
     if (enteredOtp === storedOtp && pendingUser) {
-      // ... (rest of verification: parse user, check type, set user, clear items, redirect) ...
       const user = JSON.parse(pendingUser);
       if (user.type !== "doctor") {
         toast.error("Authentication error. Not a doctor account.");
@@ -83,7 +81,9 @@ export default function DoctorOtpPage() {
         return;
       }
       const expiryTime = Date.now() + 60 * 60 * 1000;
-      localStorage.setItem("user", JSON.stringify(user));
+      // Set userId in localStorage for AuthContext
+      localStorage.setItem("userId", user.id);
+      localStorage.setItem("userRole", "doctor"); // Set user role in localStorage
       localStorage.setItem("userExpiry", expiryTime.toString());
       localStorage.removeItem("pendingUser");
       localStorage.removeItem("generatedOtp");
@@ -99,7 +99,6 @@ export default function DoctorOtpPage() {
 
   // Resend OTP
   const handleResendOtp = () => {
-    // ... (Keep your existing handleResendOtp logic here) ...
     const newOtp = Math.floor(1000 + Math.random() * 9000).toString();
     localStorage.setItem("generatedOtp", newOtp);
     localStorage.setItem("otpExpiry", (Date.now() + 2 * 60 * 1000).toString());

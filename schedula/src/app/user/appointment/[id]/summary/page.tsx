@@ -140,7 +140,7 @@ const PatientDetailsPage = () => {
 
       // Navigate back to review page after a short delay
       setTimeout(() => {
-        router.push("/user/appointment/review");
+        router.push(`/user/appointment/${appointmentId}/review`);
       }, 1000);
     } catch (error) {
       console.error("Error processing payment:", error);

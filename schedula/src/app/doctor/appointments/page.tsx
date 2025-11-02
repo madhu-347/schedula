@@ -9,132 +9,85 @@ import {
   Video,
   CheckCircle2,
   X,
+  Edit,
+  XCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "@/hooks/useToast";
-
-interface AppointmentUI {
-  id: number | string;
-  patientName: string;
-  type: "In-person" | "Online";
-  date: string;
-  time: string;
-  status: "Upcoming" | "Completed" | "Cancelled";
-  problem?: string;
-  raw?: any;
-}
+import {
+  getAppointmentsByDoctor,
+  updateAppointment,
+} from "@/app/services/appointments.api";
+import { useAuth } from "@/context/AuthContext";
+import { Appointment } from "@/lib/types/appointment";
 
 type TabStatus = "Upcoming" | "Completed" | "Cancelled";
 
 export default function DoctorAppointmentsPage() {
+  const { doctor } = useAuth();
+  // console.log(doctor);
   const router = useRouter();
-  const [appointments, setAppointments] = useState<AppointmentUI[]>([]);
+
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [activeTab, setActiveTab] = useState<TabStatus>("Upcoming");
-  const [doctorName, setDoctorName] = useState<string | null>(null);
   const [selectedAppointment, setSelectedAppointment] =
-    useState<AppointmentUI | null>(null);
-  const STORAGE_KEY = "appointments";
+    useState<Appointment | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isUpdating, setIsUpdating] = useState(false);
 
-  // Transform data from your localStorage JSON
-  const transformStoredToUI = (item: any): AppointmentUI => {
-    const patientName = item?.patientDetails?.fullName || "Patient";
-    const type: "In-person" | "Online" =
-      item?.type === "Online" ? "Online" : "In-person";
+  // Load appointments from API
+  const loadAppointments = async () => {
+    if (!doctor?.id) return;
 
-    const date = item?.date ?? "";
-    const time = item?.timeSlot ?? item?.time ?? "";
-
-    // Normalize status to match our type
-    let status: TabStatus = "Upcoming";
-    const rawStatus = String(item?.status ?? "Upcoming").trim();
-    if (rawStatus === "Completed") {
-      status = "Completed";
-    } else if (rawStatus === "Cancelled") {
-      status = "Cancelled";
-    } else if (rawStatus === "Waiting") {
-      status = "Upcoming";
-    } else {
-      status = "Upcoming";
-    }
-
-    const problem = item?.patientDetails?.problem ?? item?.problem ?? "";
-
-    return {
-      id: item?.id ?? `${item?.doctorName}-${item?.tokenNo ?? Math.random()}`,
-      patientName,
-      type,
-      date,
-      time,
-      status,
-      problem,
-      raw: item,
-    };
-  };
-
-  // Load and filter for logged-in doctor
-  const loadAppointments = () => {
+    setIsLoading(true);
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) {
-        setAppointments([]);
-        return;
-      }
-
-      const parsed = JSON.parse(raw);
-      const arr = Array.isArray(parsed) ? parsed : [parsed];
-      processAndSet(arr);
-    } catch (e) {
-      console.error("Error loading appointments:", e);
+      const appts = await getAppointmentsByDoctor(doctor.id);
+      console.log("Fetched appointments:", appts);
+      setAppointments(appts || []);
+      console.log("appointments: ", appointments);
+    } catch (error) {
+      console.error("Error loading appointments:", error);
       setAppointments([]);
+      toast({
+        title: "Error",
+        description: "Failed to load appointments",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const completeAppointment = () => {
-    if (!selectedAppointment) return;
+  useEffect(() => {
+    loadAppointments();
+  }, [doctor?.id]);
 
+  // Filter appointments by active tab
+  const filteredAppointments = useMemo(
+    () => appointments.filter((a) => a.status === activeTab),
+    [appointments, activeTab]
+  );
+
+  // Complete appointment
+  const handleCompleteAppointment = async (appointmentId: string) => {
+    setIsUpdating(true);
     try {
-      // Get all appointments from localStorage
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return;
-
-      const parsed = JSON.parse(raw);
-      const arr = Array.isArray(parsed) ? parsed : [parsed];
-
-      // Find and update the appointment status
-      const updatedAppointments = arr.map((apt: any) => {
-        if (apt.id === selectedAppointment.raw.id) {
-          return { ...apt, status: "Completed" };
-        }
-        return apt;
+      const response = await updateAppointment(appointmentId, {
+        status: "Completed",
       });
 
-      // Save back to localStorage
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedAppointments));
+      if (response.success) {
+        toast({
+          title: "Appointment Completed",
+          description: "The appointment has been marked as completed.",
+        });
 
-      // Also update currentAppointment if it's the same appointment
-      const currentAppointmentStr = localStorage.getItem("currentAppointment");
-      if (currentAppointmentStr) {
-        const currentAppointment = JSON.parse(currentAppointmentStr);
-        if (currentAppointment.id === selectedAppointment.raw.id) {
-          localStorage.setItem(
-            "currentAppointment",
-            JSON.stringify({ ...currentAppointment, status: "Completed" })
-          );
-        }
+        // Reload appointments
+        await loadAppointments();
+        closeModal();
       }
-
-      toast({
-        title: "Appointment Completed",
-        description: "The appointment has been marked as completed.",
-      });
-
-      // Reload appointments to reflect changes
-      loadAppointments();
-
-      // Close modal
-      closeModal();
     } catch (error) {
       console.error("Error completing appointment:", error);
       toast({
@@ -142,66 +95,49 @@ export default function DoctorAppointmentsPage() {
         description: "Failed to complete appointment. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsUpdating(false);
     }
   };
 
-  const processAndSet = (arr: any[]) => {
+  // Cancel appointment
+  const handleCancelAppointment = async (appointmentId: string) => {
+    if (!confirm("Are you sure you want to cancel this appointment?")) {
+      return;
+    }
+
+    setIsUpdating(true);
     try {
-      const userStr = localStorage.getItem("user");
-      const expiryStr = localStorage.getItem("userExpiry");
-      const expiry = expiryStr ? Number(expiryStr) : 0;
-
-      if (!userStr || !expiry || Date.now() >= expiry) {
-        setDoctorName(null);
-        setAppointments([]);
-        return;
-      }
-
-      const user = JSON.parse(userStr);
-      if (!user || user.type !== "doctor") {
-        setDoctorName(null);
-        setAppointments([]);
-        return;
-      }
-
-      const name = user.name?.trim().toLowerCase();
-      setDoctorName(user.name);
-
-      // Match doctorName case-insensitively
-      const filtered = arr.filter(
-        (a) =>
-          a?.doctorName && a.doctorName.trim().toLowerCase() === String(name)
-      );
-
-      const transformed = filtered.map(transformStoredToUI);
-
-      // Optional: sort by date/time if needed
-      transformed.sort((a, b) => {
-        const dateA = new Date(`${a.date} ${a.time}`).getTime();
-        const dateB = new Date(`${b.date} ${b.time}`).getTime();
-        return dateA - dateB;
+      const response = await updateAppointment(appointmentId, {
+        status: "Cancelled",
       });
 
-      setAppointments(transformed);
-    } catch (err) {
-      console.error("Error processing appointments", err);
-      setAppointments([]);
+      if (response.success) {
+        toast({
+          title: "Appointment Cancelled",
+          description: "The appointment has been cancelled.",
+        });
+
+        // Reload appointments
+        await loadAppointments();
+        closeModal();
+      }
+    } catch (error) {
+      console.error("Error cancelling appointment:", error);
+      toast({
+        title: "Error",
+        description: "Failed to cancel appointment. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpdating(false);
     }
   };
 
-  useEffect(() => {
-    loadAppointments();
-    const onStorage = (e: StorageEvent) => {
-      if (e.key === STORAGE_KEY) loadAppointments();
-    };
-    window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
-  }, []);
-
-  const filteredAppointments = useMemo(
-    () => appointments.filter((a) => a.status === activeTab),
-    [appointments, activeTab]
-  );
+  // Edit appointment
+  const handleEditAppointment = (appointmentId: string) => {
+    router.push(`/doctor/appointments/${appointmentId}/edit`);
+  };
 
   const closeModal = () => setSelectedAppointment(null);
 
@@ -214,6 +150,17 @@ export default function DoctorAppointmentsPage() {
 
   const tabs: TabStatus[] = ["Upcoming", "Completed", "Cancelled"];
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading appointments...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 relative">
       {/* Header */}
@@ -222,7 +169,7 @@ export default function DoctorAppointmentsPage() {
           <div className="flex items-center gap-3">
             <Link
               href="/doctor/dashboard"
-              className="p-2 -ml-2 rounded-full hover:bg-cyan-600/30 cursor-pointer"
+              className="p-2 -ml-2 rounded-full hover:bg-cyan-50 transition-colors"
             >
               <ArrowLeft className="w-5 h-5" />
             </Link>
@@ -230,9 +177,9 @@ export default function DoctorAppointmentsPage() {
               <h1 className="text-xl font-semibold text-gray-900">
                 My Appointments
               </h1>
-              {doctorName && (
+              {doctor && (
                 <p className="text-sm text-gray-500 mt-1">
-                  Doctor: {doctorName}
+                  Dr. {doctor.firstName} {doctor.lastName}
                 </p>
               )}
             </div>
@@ -249,8 +196,8 @@ export default function DoctorAppointmentsPage() {
               onClick={() => setActiveTab(tab)}
               className={`pb-2 font-medium transition-colors ${
                 activeTab === tab
-                  ? "text-[#46C2DE] border-b-2 border-[#46C2DE]"
-                  : "text-gray-600 hover:text-[#46C2DE]"
+                  ? "text-cyan-600 border-b-2 border-cyan-600"
+                  : "text-gray-600 hover:text-cyan-600"
               }`}
             >
               {tab}
@@ -261,59 +208,71 @@ export default function DoctorAppointmentsPage() {
         {/* Appointment Cards */}
         {filteredAppointments.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {filteredAppointments.map((a) => (
+            {filteredAppointments.map((appointment) => (
               <div
-                key={a.id}
+                key={appointment.id}
                 className="bg-white shadow-sm border border-gray-200 rounded-2xl p-5 space-y-3 hover:shadow-md transition-shadow"
               >
                 <div className="flex justify-between items-start">
-                  <div>
+                  <div className="flex-1">
                     <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-                      <User className="w-5 h-5 text-[#46C2DE]" />
-                      {a.patientName}
+                      <User className="w-5 h-5 text-cyan-600" />
+                      {appointment.patientDetails?.fullName || "Patient"}
                     </h2>
-                    {a.problem && (
-                      <p className="text-sm text-gray-500 mt-1">{a.problem}</p>
+                    {appointment.patientDetails?.problem && (
+                      <p className="text-sm text-gray-500 mt-1">
+                        {appointment.patientDetails.problem}
+                      </p>
                     )}
                   </div>
                   <span
-                    className={`text-sm px-3 py-1 rounded-full font-medium ${
-                      a.status === "Upcoming"
+                    className={`text-sm px-3 py-1 rounded-full font-medium whitespace-nowrap ${
+                      appointment.status === "Upcoming"
                         ? "bg-cyan-50 text-cyan-600"
-                        : a.status === "Completed"
+                        : appointment.status === "Completed"
                         ? "bg-green-50 text-green-600"
-                        : "bg-red-50 text-red-500"
+                        : "bg-red-50 text-red-600"
                     }`}
                   >
-                    {a.status}
+                    {appointment.status}
                   </span>
                 </div>
 
-                <div className="flex items-center gap-3 text-sm text-gray-600 mt-3">
-                  <CalendarDays className="w-4 h-4" />
-                  {a.raw?.day && `${a.raw.day}, `}
-                  {a.date}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-3 text-sm text-gray-600">
+                    <CalendarDays className="w-4 h-4" />
+                    {appointment.day && `${appointment.day}, `}
+                    {appointment.date}
+                  </div>
+
+                  <div className="flex items-center gap-3 text-sm text-gray-600">
+                    <Clock className="w-4 h-4" />
+                    {appointment.time}
+                  </div>
+
+                  <div className="flex items-center gap-3 text-sm text-gray-600">
+                    {appointment.type === "Virtual" ? (
+                      <Video className="w-4 h-4 text-purple-500" />
+                    ) : (
+                      <CheckCircle2 className="w-4 h-4 text-green-500" />
+                    )}
+                    {appointment.type || "In-person"}
+                  </div>
+
+                  <div className="flex items-center gap-3 text-sm text-gray-600">
+                    <span className="font-medium">Token:</span>
+                    <span className="text-cyan-600 font-semibold">
+                      #{appointment.tokenNo}
+                    </span>
+                  </div>
                 </div>
 
-                <div className="flex items-center gap-3 text-sm text-gray-600">
-                  <Clock className="w-4 h-4" />
-                  {a.time}
-                </div>
-
-                <div className="flex items-center gap-3 text-sm text-gray-600">
-                  {a.type === "Online" ? (
-                    <Video className="w-4 h-4 text-cyan-500" />
-                  ) : (
-                    <CheckCircle2 className="w-4 h-4 text-green-500" />
-                  )}
-                  {a.type}
-                </div>
-
-                <div className="flex justify-end gap-3 mt-4">
+                <div className="flex justify-end gap-3 mt-4 pt-3 border-t border-gray-100">
                   <Button
                     variant="outline"
-                    className="border-[#46C2DE] text-[#46C2DE] hover:bg-[#E6F7FA]"
-                    onClick={() => setSelectedAppointment(a)}
+                    size="sm"
+                    className="border-cyan-600 text-cyan-600 hover:bg-cyan-50"
+                    onClick={() => setSelectedAppointment(appointment)}
                   >
                     View Details
                   </Button>
@@ -329,7 +288,6 @@ export default function DoctorAppointmentsPage() {
               fill="none"
               xmlns="http://www.w3.org/2000/svg"
             >
-              {/* Clipboard illustration */}
               <g transform="translate(120, 140) rotate(-15)">
                 <rect
                   x="0"
@@ -347,12 +305,11 @@ export default function DoctorAppointmentsPage() {
                   width="60"
                   height="30"
                   rx="6"
-                  fill="#46C2DE"
+                  fill="#06b6d4"
                 />
                 <circle cx="50" cy="10" r="4" fill="white" />
                 <circle cx="70" cy="10" r="4" fill="white" />
               </g>
-
               <g transform="translate(180, 150) rotate(10)">
                 <rect
                   x="0"
@@ -370,7 +327,7 @@ export default function DoctorAppointmentsPage() {
                   width="70"
                   height="35"
                   rx="8"
-                  fill="#46C2DE"
+                  fill="#06b6d4"
                 />
                 <circle cx="60" cy="12" r="5" fill="white" />
                 <circle cx="85" cy="12" r="5" fill="white" />
@@ -387,7 +344,7 @@ export default function DoctorAppointmentsPage() {
         )}
       </div>
 
-      {/* Modal for Patient Details */}
+      {/* Modal for Appointment Details */}
       {selectedAppointment && (
         <>
           <div
@@ -396,97 +353,168 @@ export default function DoctorAppointmentsPage() {
           ></div>
 
           <div className="fixed inset-0 z-30 flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 relative">
+            <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 relative max-h-[90vh] overflow-y-auto">
               <button
                 onClick={closeModal}
-                className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
+                className="absolute top-3 right-3 text-gray-500 hover:text-gray-700 transition-colors"
                 aria-label="Close modal"
               >
                 <X className="w-5 h-5" />
               </button>
 
-              <h2 className="text-lg font-semibold text-gray-800 mb-4 text-center">
+              <h2 className="text-lg font-semibold text-gray-800 mb-4 text-center pr-6">
                 Appointment Details
               </h2>
 
               <div className="space-y-3 text-sm text-gray-700">
-                {selectedAppointment.raw?.tokenNo && (
-                  <p>
-                    <span className="font-medium">Token No:</span>{" "}
-                    {selectedAppointment.raw.tokenNo}
+                <div className="bg-cyan-50 rounded-lg p-3 border border-cyan-100">
+                  <p className="text-cyan-800 font-semibold text-center">
+                    Token No: #{selectedAppointment.tokenNo}
                   </p>
-                )}
-                <p>
-                  <span className="font-medium">Patient Name:</span>{" "}
-                  {selectedAppointment.raw?.patientDetails?.fullName}
-                </p>
-                {selectedAppointment.raw?.patientDetails?.age && (
-                  <p>
-                    <span className="font-medium">Age:</span>{" "}
-                    {selectedAppointment.raw.patientDetails.age}
-                  </p>
-                )}
-                {selectedAppointment.raw?.patientDetails?.gender && (
-                  <p>
-                    <span className="font-medium">Gender:</span>{" "}
-                    {selectedAppointment.raw.patientDetails.gender}
-                  </p>
-                )}
-                {selectedAppointment.raw?.patientDetails?.phone && (
-                  <p>
-                    <span className="font-medium">Phone:</span>{" "}
-                    {selectedAppointment.raw.patientDetails.phone}
-                  </p>
-                )}
-                {selectedAppointment.problem && (
-                  <p>
-                    <span className="font-medium">Problem:</span>{" "}
-                    {selectedAppointment.problem}
-                  </p>
-                )}
-                <p>
-                  <span className="font-medium">Date:</span>{" "}
-                  {selectedAppointment.raw?.day &&
-                    `${selectedAppointment.raw.day}, `}
-                  {selectedAppointment.date}
-                </p>
-                <p>
-                  <span className="font-medium">Time Slot:</span>{" "}
-                  {selectedAppointment.time}
-                </p>
-                <p>
-                  <span className="font-medium">Type:</span>{" "}
-                  {selectedAppointment.type}
-                </p>
-                {selectedAppointment.raw?.paymentStatus && (
-                  <p>
-                    <span className="font-medium">Payment Status:</span>{" "}
-                    {selectedAppointment.raw.paymentStatus}
-                  </p>
-                )}
+                </div>
+
+                <div className="space-y-2 pt-2">
+                  <DetailRow
+                    label="Patient Name"
+                    value={selectedAppointment.patientDetails?.fullName}
+                  />
+                  <DetailRow
+                    label="Age"
+                    value={selectedAppointment.patientDetails?.age?.toString()}
+                  />
+                  <DetailRow
+                    label="Gender"
+                    value={selectedAppointment.patientDetails?.gender}
+                  />
+                  <DetailRow
+                    label="Phone"
+                    value={selectedAppointment.patientDetails?.phone}
+                  />
+                  {selectedAppointment.patientDetails?.weight && (
+                    <DetailRow
+                      label="Weight"
+                      value={`${selectedAppointment.patientDetails.weight} kg`}
+                    />
+                  )}
+                  <DetailRow
+                    label="Relationship"
+                    value={selectedAppointment.patientDetails?.relationship}
+                  />
+                  {selectedAppointment.patientDetails?.problem && (
+                    <DetailRow
+                      label="Problem"
+                      value={selectedAppointment.patientDetails.problem}
+                      fullWidth
+                    />
+                  )}
+                  <DetailRow
+                    label="Date"
+                    value={`${selectedAppointment.day}, ${selectedAppointment.date}`}
+                  />
+                  <DetailRow label="Time" value={selectedAppointment.time} />
+                  <DetailRow
+                    label="Type"
+                    value={selectedAppointment.type || "In-person"}
+                  />
+                  <DetailRow
+                    label="Visit Type"
+                    value={selectedAppointment.visitType}
+                  />
+                  <DetailRow
+                    label="Payment Status"
+                    value={selectedAppointment.paid ? "Paid" : "Not Paid"}
+                    highlight={selectedAppointment.paid ? "green" : "red"}
+                  />
+                </div>
               </div>
 
-              <div className="flex justify-around mt-6 gap-3">
+              {/* Action Buttons */}
+              <div className="flex flex-col gap-3 mt-6">
+                {selectedAppointment.status === "Upcoming" && (
+                  <>
+                    <Button
+                      className="w-full cursor-pointer bg-green-500 hover:bg-green-600 text-white"
+                      onClick={() =>
+                        handleCompleteAppointment(selectedAppointment.id)
+                      }
+                      disabled={isUpdating}
+                    >
+                      <CheckCircle2 className="w-4 h-4 mr-2" />
+                      {isUpdating ? "Completing..." : "Mark as Completed"}
+                    </Button>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <Button
+                        variant="outline"
+                        className="border-cyan-600 cursor-pointer text-cyan-600 hover:bg-cyan-50"
+                        onClick={() =>
+                          handleEditAppointment(selectedAppointment.id)
+                        }
+                        disabled={isUpdating}
+                      >
+                        <Edit className="w-4 h-4 mr-2" />
+                        Edit
+                      </Button>
+
+                      <Button
+                        variant="outline"
+                        className="cursor-pointer border-red-500 text-red-500 hover:bg-red-50"
+                        onClick={() =>
+                          handleCancelAppointment(selectedAppointment.id)
+                        }
+                        disabled={isUpdating}
+                      >
+                        <XCircle className="w-4 h-4 mr-2" />
+                        Cancel
+                      </Button>
+                    </div>
+                  </>
+                )}
+
                 <Button
                   variant="outline"
-                  className="flex-1"
                   onClick={closeModal}
+                  className="w-full cursor-pointer"
                 >
                   Close
                 </Button>
-                {selectedAppointment.status === "Upcoming" && (
-                  <Button
-                    className="flex-1 bg-green-500 hover:bg-green-600 text-white"
-                    onClick={completeAppointment}
-                  >
-                    Complete
-                  </Button>
-                )}
               </div>
             </div>
           </div>
         </>
       )}
+    </div>
+  );
+}
+
+// Helper component for detail rows
+function DetailRow({
+  label,
+  value,
+  fullWidth = false,
+  highlight,
+}: {
+  label: string;
+  value?: string;
+  fullWidth?: boolean;
+  highlight?: "green" | "red";
+}) {
+  if (!value) return null;
+
+  return (
+    <div className={`${fullWidth ? "" : "grid grid-cols-2 gap-2"} py-1`}>
+      <span className="font-medium text-gray-600">{label}:</span>
+      <span
+        className={`${fullWidth ? "mt-1" : ""} ${
+          highlight === "green"
+            ? "text-green-600 font-semibold"
+            : highlight === "red"
+            ? "text-red-600 font-semibold"
+            : "text-gray-900"
+        }`}
+      >
+        {value}
+      </span>
     </div>
   );
 }
