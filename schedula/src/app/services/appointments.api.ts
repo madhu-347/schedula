@@ -69,7 +69,7 @@ export async function getAppointmentsByDoctor(doctorId: string) {
       `/api/appointment?doctorId=${encodeURIComponent(doctorId)}`
     );
     const result = await response.json();
-
+    console.log("all appts: ", result);
     if (result.success) {
       return result.data;
     }

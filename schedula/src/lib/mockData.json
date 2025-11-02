@@ -109,27 +109,6 @@
   ],
   "appointments": [
     {
-      "id": "1",
-      "patientId": "1",
-      "doctorId": "1",
-      "patientDetails": {
-        "fullName": "Divya Sharma",
-        "age": "25",
-        "gender": "female",
-        "phone": "9876543210",
-        "weight": "55",
-        "problem": "Migraine",
-        "relationship": "Sister"
-      },
-      "date": "3-11-25",
-      "tokenNo": "A001",
-      "day": "Monday",
-      "time": "09:30 AM",
-      "status": "Completed",
-      "notes": "Patient attended the appointment and showed improvement.",
-      "paid": false
-    },
-    {
       "id": "2",
       "tokenNo": "A002",
       "patientId": "2",
