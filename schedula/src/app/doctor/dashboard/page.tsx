@@ -318,7 +318,7 @@ export default function DoctorDashboardPage() {
             <div className="flex justify-between h-16 items-center">
               <div className="flex items-center">
                 <h1 className="text-xl font-semibold text-gray-900">
-                  Doctor Dashboard
+                  {doctor?.firstName}{doctor?.lastName}'s Dashboard
                 </h1>
               </div>
               <div className="flex items-center space-x-4">
@@ -400,17 +400,18 @@ export default function DoctorDashboardPage() {
                       Open Full Calendar
                     </Link>
                     <Link
-                      href="/doctor/appointments"
-                      className="text-sm bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-2 rounded-md transition-colors"
-                    >
-                      View All Appointments
-                    </Link>
-                    <Link
                       href="/doctor/availability"
                       className="text-sm bg-purple-500 hover:bg-purple-600 text-white px-3 py-2 rounded-md transition-colors"
                     >
                       Manage Availability
                     </Link>
+                    <Link
+                      href="/doctor/appointments"
+                      className="text-sm bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-2 rounded-md transition-colors"
+                    >
+                      View All Appointments
+                    </Link>
+                    
                   </div>
                 </section>
 
