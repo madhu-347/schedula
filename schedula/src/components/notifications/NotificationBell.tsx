@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from "react";
 import { Bell, X } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { useRouter } from "next/navigation";
+
 import {
   getNotifications,
   markNotificationAsRead,
@@ -14,6 +16,7 @@ interface NotificationBellProps {
 }
 
 export default function NotificationBell({ role }: NotificationBellProps) {
+  const router = useRouter();
   const { doctor, user } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -105,6 +108,10 @@ export default function NotificationBell({ role }: NotificationBellProps) {
                 {notifications.map((notification) => (
                   <li
                     key={notification.id}
+                    onClick={() => {
+                        if (!notification.read) handleMarkAsRead(notification.id);
+                        if (notification.targetUrl) router.push(notification.targetUrl);
+                      }}
                     className={`p-4 border-b border-gray-100 hover:bg-gray-50 ${
                       !notification.read ? "bg-blue-50" : ""
                     }`}

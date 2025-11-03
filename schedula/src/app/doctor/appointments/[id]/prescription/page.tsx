@@ -1,10 +1,11 @@
+// appointments/id/prescription/page.tsx
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { InputFieldComponent } from "@/components/ui/InputField";
-import { Plus, X, Upload } from "lucide-react";
+import { Plus, Upload } from "lucide-react";
 import { toast } from "@/hooks/useToast";
 import { useAuth } from "@/context/AuthContext";
 import { getAppointmentById, updateAppointment } from "@/app/services/appointments.api";
@@ -15,7 +16,7 @@ export default function PrescriptionFormPage() {
   const router = useRouter();
   const { doctor } = useAuth();
 
-  const [appointment, setAppointment] = useState(null);
+  const [appointment, setAppointment] = useState<any>(null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -33,15 +34,11 @@ export default function PrescriptionFormPage() {
     files, setFiles
   } = usePrescriptionForm(appointment?.prescription);
 
-  // Add Medicine
   const addMedicine = () => setMedicines([...medicines, { name: "", dosage: "", frequency: "", duration: "", instructions: "" }]);
   const removeMedicine = (i: number) => setMedicines(medicines.filter((_, idx) => idx !== i));
-
-  // Add Test
   const addTest = () => setTests([...tests, { name: "" }]);
   const removeTest = (i: number) => setTests(tests.filter((_, idx) => idx !== i));
 
-  // Files
   const handleFileUpload = async (e: any) => {
     const incoming = Array.from(e.target.files || []);
     const prepared = await Promise.all(
@@ -65,29 +62,65 @@ export default function PrescriptionFormPage() {
     e.preventDefault();
     setSaving(true);
 
-    const payload = {
-      appointmentId: id,
-      patientDetails: appointment?.patientDetails,
-      doctorDetails: {
-        id: doctor?.id,
-        name: `${doctor?.firstName} ${doctor?.lastName}`,
-      },
-      vitals,
-      medicines,
-      tests,
-      notes,
-      files,
-      createdAt: new Date().toISOString(),
-    };
+    try {
+      const payload = {
+        appointmentId: id,
+        patientDetails: appointment?.patientDetails,
+        doctorDetails: {
+          id: doctor?.id,
+          name: `${doctor?.firstName} ${doctor?.lastName}`,
+        },
+        vitals,
+        medicines,
+        tests,
+        notes,
+        files,
+        createdAt: new Date().toISOString(),
+      };
 
-    await updateAppointment(String(id), { prescription: payload });
+      // Update appointment with prescription (existing service)
+      await updateAppointment(String(id), { prescription: payload });
 
-    toast({
-      title: isEdit ? "Prescription Updated ✅" : "Prescription Saved ✅",
-      description: "Changes have been stored.",
-    });
+      // Create notification for patient
+      // Determine recipient user id: prefer patientDetails.id or appointment.patientId
+      const recipientId = appointment?.patientDetails?.id ?? appointment?.patientId ?? null;
 
-    router.push("/doctor/appointments");
+      if (recipientId) {
+        try {
+          await fetch("/api/notifications", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              recipientId,
+              doctorName: payload.doctorDetails.name,
+              message: isEdit ? "Your prescription has been updated." : "A new prescription has been added by your doctor.",
+              appointmentId: id,
+              // route user should open to view the prescription
+              targetUrl: `/user/appointment/${id}/prescription`
+            }),
+          });
+        } catch (err) {
+          console.error("Failed to send notification:", err);
+        }
+      } else {
+        console.warn("No patient id found on appointment. Skipping notification.");
+      }
+
+      toast({
+        title: isEdit ? "Prescription Updated ✅" : "Prescription Saved ✅",
+        description: "Changes have been stored.",
+      });
+
+      router.push("/doctor/appointments");
+    } catch (err) {
+      console.error(err);
+      toast({
+        title: "Save failed",
+        description: "Could not save prescription. Try again.",
+      });
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (!appointment) return <p className="p-6">Loading...</p>;
@@ -99,71 +132,36 @@ export default function PrescriptionFormPage() {
       </h1>
 
       <form className="space-y-6" onSubmit={handleSubmit}>
-
         {/* Vitals */}
         <div className="bg-white p-4 rounded-lg shadow border space-y-2">
-            <h2 className="text-sm font-medium mb-1">Vitals</h2>
-
-            <div className="grid grid-cols-2 gap-2">
-
-                {/* BP */}
-                <div className="flex items-center gap-1">
-                <label className="text-gray-600 w-15">BP</label>
-                <InputFieldComponent
-                    type="text"
-                    placeholder="120/80"
-                    value={vitals.bp}
-                    onChange={(e) => setVitals({ ...vitals, bp: e.target.value })}
-                />
-                </div>
-
-                {/* Pulse */}
-                <div className="flex items-center gap-1">
-                <label className=" text-gray-600 w-15">Pulse</label>
-                <InputFieldComponent
-                    type="text"   
-                    placeholder="75"
-                    value={vitals.pulse}
-                    onChange={(e) => setVitals({ ...vitals, pulse: e.target.value })}
-                />
-                </div>
-
-                {/* Temperature */}
-                <div className="flex items-center gap-1">
-                <label className=" text-gray-600 w-15">Temp</label>
-                <InputFieldComponent
-                    type="text"
-                    placeholder="98.6°F"
-                    value={vitals.temperature}
-                    onChange={(e) => setVitals({ ...vitals, temperature: e.target.value })}
-                />
-                </div>
-
-                {/* SpO2 */}
-                <div className="flex items-center gap-1">
-                <label className=" text-gray-600 w-15">SpO₂</label>
-                <InputFieldComponent
-                    type="text"
-                    placeholder="98%"
-                    value={vitals.spo2}
-                    onChange={(e) => setVitals({ ...vitals, spo2: e.target.value })}
-                />
-                </div>
-
-                {/* Weight */}
-                <div className="flex items-center gap-1">
-                <label className=" text-gray-600 w-15">Wt</label>
-                <InputFieldComponent
-                    type="text"
-                    placeholder="65kg"
-                    value={vitals.weight}
-                    onChange={(e) => setVitals({ ...vitals, weight: e.target.value })}
-                />
-                </div>
-
-            </div>
+          <h2 className="text-sm font-medium mb-1">Vitals</h2>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="flex items-center gap-1">
+              <label className="text-gray-600 w-15">BP</label>
+              <InputFieldComponent type="text" placeholder="120/80" value={vitals.bp} onChange={(e) => setVitals({ ...vitals, bp: e.target.value })} />
             </div>
 
+            <div className="flex items-center gap-1">
+              <label className=" text-gray-600 w-15">Pulse</label>
+              <InputFieldComponent type="text" placeholder="75" value={vitals.pulse} onChange={(e) => setVitals({ ...vitals, pulse: e.target.value })} />
+            </div>
+
+            <div className="flex items-center gap-1">
+              <label className=" text-gray-600 w-15">Temp</label>
+              <InputFieldComponent type="text" placeholder="98.6°F" value={vitals.temperature} onChange={(e) => setVitals({ ...vitals, temperature: e.target.value })} />
+            </div>
+
+            <div className="flex items-center gap-1">
+              <label className=" text-gray-600 w-15">SpO₂</label>
+              <InputFieldComponent type="text" placeholder="98%" value={vitals.spo2} onChange={(e) => setVitals({ ...vitals, spo2: e.target.value })} />
+            </div>
+
+            <div className="flex items-center gap-1">
+              <label className=" text-gray-600 w-15">Wt</label>
+              <InputFieldComponent type="text" placeholder="65kg" value={vitals.weight} onChange={(e) => setVitals({ ...vitals, weight: e.target.value })} />
+            </div>
+          </div>
+        </div>
 
         {/* Medicines */}
         <div className="bg-white p-4 rounded-lg shadow border">
@@ -172,117 +170,64 @@ export default function PrescriptionFormPage() {
             <Button type="button" size="sm" onClick={addMedicine}><Plus className="w-4" /></Button>
           </div>
 
-         {medicines.map((m, i) => (
+          {medicines.map((m, i) => (
             <div key={i} className=" rounded-lg p-3 space-y-3 mb-3">
-
-                {/* Medicine Name */}
-                <div className="space-y-1">
+              <div className="space-y-1">
                 <label className="text-xs font-medium text-gray-600">Medicine Name</label>
-                <InputFieldComponent
-                    type="text"
-                    placeholder="Paracetamol"
-                    value={m.name}
-                    onChange={(e) =>
-                    setMedicines(medicines.map((x, idx) => idx === i ? { ...x, name: e.target.value } : x))
-                    }
-                />
-                </div>
+                <InputFieldComponent type="text" placeholder="Paracetamol" value={m.name} onChange={(e) => setMedicines(medicines.map((x, idx) => idx === i ? { ...x, name: e.target.value } : x))} />
+              </div>
 
-                <div className="grid grid-cols-2 gap-2">
-                {/* Dosage */}
+              <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
-                    <label className="text-xs font-medium text-gray-600">Dosage</label>
-                    <InputFieldComponent
-                     type="text"
-                    placeholder="500mg"
-                    value={m.dosage}
-                    onChange={(e) =>
-                        setMedicines(medicines.map((x, idx) => idx === i ? { ...x, dosage: e.target.value } : x))
-                    }
-                    />
+                  <label className="text-xs font-medium text-gray-600">Dosage</label>
+                  <InputFieldComponent type="text" placeholder="500mg" value={m.dosage} onChange={(e) => setMedicines(medicines.map((x, idx) => idx === i ? { ...x, dosage: e.target.value } : x))} />
                 </div>
 
-                {/* Frequency */}
                 <div className="space-y-1">
-                    <label className="text-xs font-medium text-gray-600">Frequency</label>
-                    <InputFieldComponent
-                        type="text"
-                        placeholder="2 times/day"
-                        value={m.frequency}
-                        onChange={(e) =>
-                        setMedicines(medicines.map((x, idx) => idx === i ? { ...x, frequency: e.target.value } : x))
-                    }
-                    />
+                  <label className="text-xs font-medium text-gray-600">Frequency</label>
+                  <InputFieldComponent type="text" placeholder="2 times/day" value={m.frequency} onChange={(e) => setMedicines(medicines.map((x, idx) => idx === i ? { ...x, frequency: e.target.value } : x))} />
                 </div>
-                </div>
+              </div>
 
-                <div className="grid grid-cols-2 gap-2">
-                {/* Duration */}
+              <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
-                    <label className="text-xs font-medium text-gray-600">Duration</label>
-                    <InputFieldComponent
-                     type="text"
-                    placeholder="5 days"
-                    value={m.duration}
-                    onChange={(e) =>
-                        setMedicines(medicines.map((x, idx) => idx === i ? { ...x, duration: e.target.value } : x))
-                    }
-                    />
+                  <label className="text-xs font-medium text-gray-600">Duration</label>
+                  <InputFieldComponent type="text" placeholder="5 days" value={m.duration} onChange={(e) => setMedicines(medicines.map((x, idx) => idx === i ? { ...x, duration: e.target.value } : x))} />
                 </div>
 
-                {/* Instructions */}
                 <div className="space-y-1">
-                    <label className="text-xs font-medium text-gray-600">Instructions</label>
-                    <InputFieldComponent
-                     type="text"
-                    placeholder="After food"
-                    value={m.instructions}
-                    onChange={(e) =>
-                        setMedicines(medicines.map((x, idx) => idx === i ? { ...x, instructions: e.target.value } : x))
-                    }
-                    />
+                  <label className="text-xs font-medium text-gray-600">Instructions</label>
+                  <InputFieldComponent type="text" placeholder="After food" value={m.instructions} onChange={(e) => setMedicines(medicines.map((x, idx) => idx === i ? { ...x, instructions: e.target.value } : x))} />
                 </div>
-                </div>
+              </div>
 
-                <button
-                type="button"
-                onClick={() => removeMedicine(i)}
-                className="text-red-600 text-xs font-medium hover:underline"
-                >
+              <button type="button" onClick={() => removeMedicine(i)} className="text-red-600 text-xs font-medium hover:underline">
                 Remove Medicine
-                </button>
-
+              </button>
             </div>
-            ))}
+          ))}
         </div>
 
         {/* Tests */}
         <div className="bg-white p-4 rounded-lg shadow border space-y-3">
-        <div className="flex justify-between items-center">
+          <div className="flex justify-between items-center">
             <h2 className="font-medium mb-2">Test Suggestions</h2>
             <Button type="button" size="sm" onClick={addTest}>+</Button>
-        </div>
+          </div>
 
-        {tests.map((t, i) => (
+          {tests.map((t, i) => (
             <div key={i} className="flex gap-3 items-center mb-2">
-            <div className="flex-1">
+              <div className="flex-1">
                 <label className="text-xs font-medium text-gray-600">Test Name</label>
-                <InputFieldComponent
-                placeholder="CBC, Thyroid, X-Ray"
-                value={t.name}
-                onChange={(e) =>
-                    setTests(tests.map((x, idx) => idx === i ? { name: e.target.value } : x))
-                }
-                />
-            </div>
+                <InputFieldComponent placeholder="CBC, Thyroid, X-Ray" value={t.name} onChange={(e) => setTests(tests.map((x, idx) => idx === i ? { name: e.target.value } : x))} />
+              </div>
 
-            <Button variant="destructive" size="sm" onClick={() => removeTest(i)}>
+              <Button variant="destructive" size="sm" onClick={() => removeTest(i)}>
                 ✕
-            </Button>
+              </Button>
             </div>
-        ))}
+          ))}
         </div>
-
 
         {/* Notes */}
         <div className="bg-white p-4 rounded-lg shadow border">

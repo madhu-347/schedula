@@ -1,30 +1,34 @@
+// app/api/notifications/route.ts
 import { NextRequest, NextResponse } from "next/server";
 
 interface Notification {
   id: number;
+  recipientId?: string | number; // user who should receive the notification
   doctorName: string;
   message: string;
+  appointmentId?: string | number;
+  targetUrl?: string; // client route to open when clicked
   timestamp: string;
   read: boolean;
 }
 
-// In-memory notifications store
+// In-memory notifications store (replace with DB in prod)
 let notifications: Notification[] = [];
 
-// --------------------
-// GET - Fetch notifications
-// --------------------
+// GET - fetch notifications. Optional query: recipientId
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const doctorName = searchParams.get("doctorName");
+    const recipientId = searchParams.get("recipientId");
 
-    // If doctorName is provided → filter for that doctor
-    const filtered = doctorName
-      ? notifications.filter((n) => n.doctorName === doctorName)
+    const filtered = recipientId
+      ? notifications.filter((n) => String(n.recipientId) === String(recipientId))
       : notifications;
 
-    return NextResponse.json({ success: true, data: filtered });
+    // return newest first
+    const sorted = filtered.slice().sort((a, b) => Number(b.id) - Number(a.id));
+
+    return NextResponse.json({ success: true, data: sorted });
   } catch (error) {
     console.error("Error fetching notifications:", error);
     return NextResponse.json(
@@ -34,25 +38,27 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// --------------------
-// POST - Create new notification
-// --------------------
+// POST - create new notification
+// Expected body: { recipientId, doctorName, message, appointmentId?, targetUrl? }
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { doctorName, message } = body;
+    const { recipientId, doctorName, message, appointmentId, targetUrl } = body;
 
-    if (!doctorName || !message) {
+    if (!recipientId || !doctorName || !message) {
       return NextResponse.json(
-        { success: false, error: "doctorName and message are required" },
+        { success: false, error: "recipientId, doctorName and message are required" },
         { status: 400 }
       );
     }
 
     const newNotification: Notification = {
       id: Date.now(),
+      recipientId,
       doctorName,
       message,
+      appointmentId,
+      targetUrl,
       timestamp: new Date().toISOString(),
       read: false,
     };
@@ -76,9 +82,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// --------------------
-// PUT - Mark notification as read
-// --------------------
+// PUT - mark notification as read (body: { id })
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
