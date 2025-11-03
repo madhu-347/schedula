@@ -469,7 +469,24 @@ export default function DoctorAppointmentsPage() {
                     </div>
                   </>
                 )}
-
+                {selectedAppointment.status === "Completed" && (
+                  <>
+                    {!selectedAppointment.prescription ? (
+                      <Button 
+                        onClick={() => router.push(`/doctor/appointments/${selectedAppointment.id}/prescription`)}
+                      >
+                        Add Prescription
+                      </Button>
+                    ) : (
+                      <Button 
+                        variant="outline"
+                        onClick={() => router.push(`/doctor/appointments/${selectedAppointment.id}/prescription/view`)}
+                      >
+                        View Prescription
+                      </Button>
+                    )}
+                  </>
+                )}
                 <Button
                   variant="outline"
                   onClick={closeModal}
