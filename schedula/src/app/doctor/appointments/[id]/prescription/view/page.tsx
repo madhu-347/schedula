@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
-import { getAppointmentById } from "@/app/services/appointments.api";
+import { getAppointmentById , updateAppointment} from "@/app/services/appointments.api";
 import type { Appointment } from "@/lib/types/appointment";
+import { toast } from "@/hooks/useToast";;
 
 export default function DoctorPrescriptionViewPage() {
   const { id } = useParams();
@@ -147,13 +148,39 @@ export default function DoctorPrescriptionViewPage() {
       )}
 
       {/* Buttons */}
-      <div className="flex justify-between mt-8">
-        <Button variant="outline" onClick={() => router.push("/doctor/appointments")}>
+      <div className="flex justify-between  mt-8">
+        <Button className="mr-2" variant="outline" onClick={() => router.push("/doctor/appointments")}>
           Back to Appointments
         </Button>
-        <Button onClick={() => window.print()}>
-          Print Prescription
+        <Button className="mr-2" onClick={() => window.print()}>
+          Print 
         </Button>
+        <div className="flex ">
+          <Button className="mr-2" onClick={() => router.push(`/doctor/appointments/${appointment.id}/prescription`)}>
+            Edit
+          </Button>
+
+          <Button
+            variant="destructive"
+            className="mr-2"
+            onClick={async () => {
+              if (!confirm("Delete this prescription?")) return;
+
+              await updateAppointment(String(appointment.id), { prescription: null } as unknown as Partial<Appointment>);
+
+              toast({
+                title: "Error",
+                description: "Prescription deleted successfully.",
+                variant: "destructive",
+              });
+
+              router.push("/doctor/appointments");
+            }}
+          >
+            Delete
+          </Button>
+      </div>
+
       </div>
     </div>
   );
