@@ -33,7 +33,7 @@ export default function AppointmentDetailPage() {
   const doctorId = Number(id);
 
   // Find the doctor data
-  const doctor: DoctorData | undefined = (mockData.doctors as MockDoctorEntry[] || []).find(
+  const doctor: DoctorData | undefined = (mockData.doctors as unknown as MockDoctorEntry[] || []).find(
     (d: MockDoctorEntry) => d.id === doctorId
   ) as DoctorData | undefined;
 

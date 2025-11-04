@@ -29,61 +29,99 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [doctor, setDoctor] = useState<Doctor | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Load user/doctor from localStorage when the app starts
+  // Extract a safe ID
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const normalizeId = (data: Record<string, any>, fallbackId: string): string => {
+    return (
+      data?.id ??
+      data?._id ??
+      data?.patientId ??
+      data?.doctorId ??
+      fallbackId
+    );
+  };
+
+  // Load from localStorage
   useEffect(() => {
     const storedUserId = localStorage.getItem("userId");
     const storedRole = localStorage.getItem("userRole");
 
-    if (storedUserId && storedRole) {
-      if (storedRole === "doctor") {
-        console.log("getting doctor data in context");
-        getDoctorById(storedUserId)
-          .then((doctorData) => {
-            if (doctorData && doctorData.doctor) {
-              setDoctor(doctorData.doctor);
-            }
-          })
-          .catch((error) => {
-            console.error("Failed to fetch doctor data:", error);
-          })
-          .finally(() => {
-            setLoading(false);
-          });
-      } else {
-        getUserById(storedUserId)
-          .then((userData) => {
-            if (userData && userData.data) {
-              setUser(userData.data);
-            }
-          })
-          .catch((error) => {
-            console.error("Failed to fetch user data:", error);
-          })
-          .finally(() => {
-            setLoading(false);
-          });
+    const initialize = async () => {
+      if (!storedUserId || !storedRole) {
+        setLoading(false);
+        return;
       }
-    } else {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setLoading(false);
-    }
+
+      try {
+        if (storedRole === "doctor") {
+          const response = await getDoctorById(storedUserId);
+          const doctorData: Doctor =
+            response?.data?.doctor ??
+            response?.doctor ??
+            response?.data ??
+            response;
+
+          if (doctorData) {
+            const normalizedDoctor: Doctor = {
+              ...doctorData,
+              id: normalizeId(doctorData, storedUserId),
+            };
+            setDoctor(normalizedDoctor);
+          }
+        } else {
+          const response = await getUserById(storedUserId);
+          // Unwrap only `.data` if it exists
+          const userData: User = response?.data ?? response;
+
+          if (userData) {
+            const normalizedUser: User = {
+              ...userData,
+              id: normalizeId(userData, storedUserId),
+            };
+            setUser(normalizedUser);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to initialize auth context:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initialize();
   }, []);
 
-  // Function to log in user/doctor
+  // Login
   const login = async (userId: string, role: "user" | "doctor") => {
     try {
       if (role === "doctor") {
-        const fetchedDoctor = await getDoctorById(userId);
-        if (fetchedDoctor && fetchedDoctor.data) {
-          setDoctor(fetchedDoctor.data);
-          localStorage.setItem("userId", userId);
+        const response = await getDoctorById(userId);
+        const doctorData: Doctor =
+          response?.data?.doctor ??
+          response?.doctor ??
+          response?.data ??
+          response;
+
+        if (doctorData) {
+          const normalizedDoctor: Doctor = {
+            ...doctorData,
+            id: normalizeId(doctorData, userId),
+          };
+          setDoctor(normalizedDoctor);
+          localStorage.setItem("userId", normalizedDoctor.id);
           localStorage.setItem("userRole", "doctor");
         }
       } else {
-        const fetchedUser = await getUserById(userId);
-        if (fetchedUser && fetchedUser.data) {
-          setUser(fetchedUser.data);
-          localStorage.setItem("userId", userId);
+        const response = await getUserById(userId);
+        const userData: User = response?.data ?? response;
+
+        if (userData) {
+          const normalizedUser: User = {
+            ...userData,
+            id: normalizeId(userData, userId),
+          };
+          setUser(normalizedUser);
+          localStorage.setItem("userId", normalizedUser.id);
           localStorage.setItem("userRole", "user");
         }
       }
@@ -93,7 +131,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // Function to log out user/doctor
   const logout = () => {
     setUser(null);
     setDoctor(null);
@@ -109,7 +146,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
-// ✅ Custom hook for easier usage
+// Hook
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {

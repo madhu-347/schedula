@@ -49,7 +49,7 @@ export default function PrescriptionFormPage() {
     setNotes,
     files,
     setFiles,
-  } = usePrescriptionForm(appointment?.prescription);
+  } = usePrescriptionForm(appointment?.prescription ?? undefined);
 
   const addMedicine = () =>
     setMedicines([
