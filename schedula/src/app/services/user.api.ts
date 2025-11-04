@@ -34,19 +34,31 @@ export async function createUser(user: User) {
   }
 }
 
-export async function getUserById(id: string) {
+export async function getUserById(id: string): Promise<{ data: User }> {
   try {
     const response = await fetch(`/api/user?id=${id}`);
-    // console.log("response for get user by id: ", response);
     if (!response.ok) {
       throw new Error("Network response was not ok " + response.statusText);
     }
-    return response.json();
+
+    const result = await response.json();
+
+    // Normalize output: always return { data: User }
+    if (result?.user) {
+      return { data: { ...result.user, id: result.user.id || result.user._id || id } };
+    }
+
+    if (result?.data) {
+      return { data: { ...result.data, id: result.data.id || result.data._id || id } };
+    }
+
+    return { data: { ...result, id: result.id || result._id || id } };
   } catch (error) {
     console.error("Error fetching user:", error);
     throw error;
   }
 }
+
 
 export async function updateUser(user: User) {
   try {

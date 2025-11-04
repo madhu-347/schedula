@@ -14,11 +14,14 @@ export type Appointment = {
   tokenNo?: string;
   paymentStatus?: string;
   day?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   patientDetails?: any; // To hold the raw patientDetails
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   raw?: any; // To hold the full raw object
 };
 
 // Initial data (This will load ONCE when the server starts)
+// eslint-disable-next-line prefer-const
 let appointments: Appointment[] = [
   // Example data, adjust to match your structure
   { id: 1, doctorId: 1, doctorName: "Dr. Prakash das", patientName: "Sudharkar Murti", date: "2025-10-30", time: "12:30 pm - 01:00 pm", reason: "Follow-up", status: "Upcoming", tokenNo: "#TKN-443", paymentStatus: "Paid", day: "Oct 30, 2025" },
@@ -54,6 +57,7 @@ export function updateAppointment(id: number | string, updatedData: Partial<Omit
       const stored = localStorage.getItem("appointments");
       let storedAppts = stored ? JSON.parse(stored) : [];
       if (!Array.isArray(storedAppts)) storedAppts = [];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const storeIndex = storedAppts.findIndex((a: any) => a.id.toString() === id.toString());
       if(storeIndex > -1) {
            storedAppts[storeIndex] = { ...storedAppts[storeIndex], ...updatedData };

@@ -29,8 +29,9 @@ export default function NotificationBell({ role }: NotificationBellProps) {
         return;
       }
 
-      const doctorId = role === "doctor" ? doctor?.id : undefined;
-      const fetchedNotifications = await getNotifications(doctorId);
+      const recipientId = role === "doctor" ? doctor?.id : user?.id;
+      const fetchedNotifications = await getNotifications(recipientId);
+
       setNotifications(fetchedNotifications);
 
       // Count unread notifications

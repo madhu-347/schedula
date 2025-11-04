@@ -24,6 +24,7 @@ export interface Doctor {
   };
   bio?: string; // Make optional
   is_favorited?: boolean;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   reviews?: any[];
   fee?: number; // Make optional
 }
