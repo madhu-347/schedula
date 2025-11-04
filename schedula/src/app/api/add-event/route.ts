@@ -1,10 +1,24 @@
 import { google } from "googleapis";
 import { getServerSession } from "next-auth";
-import { authOptions } from "../auth/[...nextauth]/route";
+import { authOptions } from "../auth/options";
+
+// Extend the Session type to include our custom properties
+interface CustomSession {
+  accessToken?: string;
+  refreshToken?: string;
+  expiresAt?: number;
+  user?: {
+    name?: string;
+    email?: string;
+    image?: string;
+  };
+}
 
 export async function POST(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = (await getServerSession(
+      authOptions
+    )) as CustomSession | null;
 
     if (!session || !session.accessToken) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });

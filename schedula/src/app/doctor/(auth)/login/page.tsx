@@ -5,7 +5,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { InputFieldComponent } from "@/components/ui/InputField";
-import { doctors } from "@/lib/mockData.json";
+import mockData from "@/lib/mockData.json";
 import AuthBanner from "@/components/auth/AuthBanner";
 import AuthHeader from "@/components/auth/AuthHeader";
 import { useAuth } from "@/context/AuthContext";
@@ -59,8 +59,9 @@ export default function LoginPage() {
     console.log("🔐 Checking mock DOCTOR credentials...");
 
     try {
-      const foundAccount: Doctor | undefined = doctors.find(
-        (d) => d.email === formData.email && d.password === formData.password
+      const foundAccount: Doctor | undefined = mockData.doctors.find(
+        (d: Doctor) =>
+          d.email === formData.email && d.password === formData.password
       );
 
       if (foundAccount) {

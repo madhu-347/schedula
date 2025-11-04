@@ -1,235 +1,263 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Calendar, Clock, User } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
-import { InputFieldComponent } from '@/components/ui/InputField';
+import React, { useState, useEffect } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { ArrowLeft, Calendar, Clock, User } from "lucide-react";
+import { Button } from "@/components/ui/Button";
+import { InputFieldComponent } from "@/components/ui/InputField";
 import mockData from "@/lib/mockData.json"; // To get doctor info
-
-// Type for the Doctor (from mockData)
-type Doctor = {
-  id: number;
-  name: string;
-  specialty: string;
-  imageUrl?: string;
-  time?: string;
-};
+import { Doctor } from "@/lib/types/doctor";
+import Image from "next/image";
+import Link from "next/link";
 
 // Type for the User (from localStorage)
 type UserInfo = {
-    name: string;
-    email: string;
-    phone: string;
-    [key: string]: any; // Allow other properties
+  name: string;
+  email: string;
+  phone: string;
+  [key: string]: any; // Allow other properties
 };
 
 export default function BookAppointmentPage() {
-    const router = useRouter();
-    const params = useParams();
-    const doctorId = params?.doctorId as string;
+  const router = useRouter();
+  const params = useParams();
+  const doctorId = params?.doctorId as string;
 
-    const [doctor, setDoctor] = useState<Doctor | null>(null);
-    const [user, setUser] = useState<UserInfo | null>(null);
-    const [formData, setFormData] = useState({
-        date: '',
-        time: '',
-        problem: ''
-    });
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+  const [doctor, setDoctor] = useState<Doctor | null>(null);
+  const [user, setUser] = useState<UserInfo | null>(null);
+  const [formData, setFormData] = useState({
+    date: "",
+    time: "",
+    problem: "",
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-    // Get Doctor and User info on load
-    useEffect(() => {
-        if (doctorId) {
-            // Find the doctor from mock data
-            const foundDoctor = (mockData.doctors as Doctor[]).find(d => d.id.toString() === doctorId);
-            if (foundDoctor) {
-                setDoctor(foundDoctor);
-            } else {
-                setError("Doctor not found.");
-            }
-        }
-        
-        // Get user data from localStorage
-        const userString = localStorage.getItem("user");
-        if (userString) {
-            try {
-                setUser(JSON.parse(userString));
-            } catch (e) {
-                console.error("Failed to parse user data", e);
-                setError("You must be logged in to book.");
-            }
-        } else {
-            setError("You must be logged in to book.");
-        }
-    }, [doctorId]);
-
-    const handleInputChange = (field: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        setFormData(prev => ({ ...prev, [field]: e.target.value }));
-    };
-
-    // --- Handle Booking Submission ---
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!doctor || !user || !formData.date || !formData.time || !formData.problem) {
-            setError("Please fill out all fields.");
-            return;
-        }
-        setIsSubmitting(true);
-        setError(null);
-
-        const appointmentData = {
-            doctorId: doctor.id,
-            doctorName: doctor.name,
-            specialty: doctor.specialty,
-            doctorImage: doctor.imageUrl || "/male-doctor.png",
-            
-            patientName: user.name,
-            patientDetails: {
-                fullName: user.name,
-                email: user.email,
-                phone: user.phone,
-                // Add other patient details if you have them
-                age: 30, // Placeholder
-                gender: "Other", // Placeholder
-                relationship: "Self" // Placeholder
-            },
-            
-            date: formData.date,
-            timeSlot: formData.time, // e.g., "10:00 AM"
-            day: new Date(formData.date).toLocaleDateString('en-US', { weekday: 'long' }), // e.g., "Monday"
-            
-            reason: formData.problem,
-            type: "In-person", // Default
-            status: "Upcoming", // Default
-            paymentStatus: "Not paid" // Default
-        };
-
-        try {
-            // Send the data to our new API route
-            const response = await fetch('/api/appointments', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(appointmentData),
-            });
-
-            if (!response.ok) {
-                const err = await response.json();
-                throw new Error(err.error || "Booking failed.");
-            }
-
-            // Success!
-            alert("Appointment booked successfully! (Simulated)");
-            // Send user to their appointment list
-            router.push('/user/appointment'); 
-
-        } catch (err: any) {
-            console.error(err);
-            setError(err.message);
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-    // --- End Submit ---
-
-    if (!doctor || !user) {
-        return (
-            <div className="min-h-screen flex items-center justify-center p-4">
-                 <div className="text-center">
-                    <p className="text-lg text-red-600">{error || "Loading..."}</p>
-                    <Link href="/user/dashboard">
-                        <span className="text-cyan-600 hover:underline mt-4 inline-block">Go to Dashboard</span>
-                    </Link>
-                 </div>
-            </div>
-        );
+  // Get Doctor and User info on load
+  useEffect(() => {
+    if (doctorId) {
+      // Find the doctor from mock data
+      const foundDoctor = mockData.doctors.find(
+        (d: Doctor) => d.id === doctorId
+      );
+      if (foundDoctor) {
+        setDoctor(foundDoctor);
+      } else {
+        setError("Doctor not found.");
+      }
     }
 
+    // Get user data from localStorage
+    const userString = localStorage.getItem("user");
+    if (userString) {
+      try {
+        setUser(JSON.parse(userString));
+      } catch (e) {
+        console.error("Failed to parse user data", e);
+        setError("You must be logged in to book.");
+      }
+    } else {
+      setError("You must be logged in to book.");
+    }
+  }, [doctorId]);
+
+  const handleInputChange =
+    (field: string) =>
+    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      setFormData((prev) => ({ ...prev, [field]: e.target.value }));
+    };
+
+  // --- Handle Booking Submission ---
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (
+      !doctor ||
+      !user ||
+      !formData.date ||
+      !formData.time ||
+      !formData.problem
+    ) {
+      setError("Please fill out all fields.");
+      return;
+    }
+    setIsSubmitting(true);
+    setError(null);
+
+    const appointmentData = {
+      doctorId: doctor.id,
+      doctorName: `${doctor.firstName} ${doctor.lastName}`,
+      specialty: doctor.specialty,
+      doctorImage: doctor.image || "/male-doctor.png",
+
+      patientName: user.name,
+      patientDetails: {
+        fullName: user.name,
+        email: user.email,
+        phone: user.phone,
+        // Add other patient details if you have them
+        age: 30, // Placeholder
+        gender: "Other", // Placeholder
+        relationship: "Self", // Placeholder
+      },
+
+      date: formData.date,
+      timeSlot: formData.time, // e.g., "10:00 AM"
+      day: new Date(formData.date).toLocaleDateString("en-US", {
+        weekday: "long",
+      }), // e.g., "Monday"
+
+      reason: formData.problem,
+      type: "In-person", // Default
+      status: "Upcoming", // Default
+      paymentStatus: "Not paid", // Default
+    };
+
+    try {
+      // Send the data to our new API route
+      const response = await fetch("/api/appointments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(appointmentData),
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || "Booking failed.");
+      }
+
+      // Success!
+      alert("Appointment booked successfully! (Simulated)");
+      // Send user to their appointment list
+      router.push("/user/appointment");
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+  // --- End Submit ---
+
+  if (!doctor || !user) {
     return (
-        <div className="min-h-screen bg-gray-50">
-            {/* Header */}
-            <header className="bg-white shadow-sm sticky top-0 z-10">
-                <div className="max-w-3xl mx-auto p-4 flex items-center gap-3">
-                    <button onClick={() => router.back()} className="p-2 text-gray-600 hover:text-gray-900">
-                        <ArrowLeft size={20} />
-                    </button>
-                    <h1 className="text-lg font-semibold text-gray-800">Book Appointment</h1>
-                </div>
-            </header>
-
-            {/* Form */}
-            <main className="max-w-3xl mx-auto p-4 sm:p-6">
-                <div className="bg-white p-6 rounded-lg shadow-md">
-                    {/* Doctor Info */}
-                    <div className="flex items-center gap-4 mb-6 pb-4 border-b border-gray-200">
-                        <Image
-                            src={doctor.imageUrl || "/male-doctor.png"}
-                            alt={doctor.name}
-                            width={64} height={64}
-                            className="rounded-full w-16 h-16 object-cover"
-                        />
-                        <div>
-                            <h2 className="text-xl font-semibold">{doctor.name}</h2>
-                            <p className="text-cyan-600">{doctor.specialty}</p>
-                        </div>
-                    </div>
-
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                        {/* Date Input */}
-                        <div>
-                            <label htmlFor="date" className="block text-sm font-medium text-gray-700 mb-1">Date</label>
-                            <InputFieldComponent
-                                id="date"
-                                type="date"
-                                value={formData.date}
-                                onChange={handleInputChange('date')}
-                                required
-                            />
-                        </div>
-
-                        {/* Time Input */}
-                        <div>
-                            <label htmlFor="time" className="block text-sm font-medium text-gray-700 mb-1">Time</label>
-                            <InputFieldComponent
-                                id="time"
-                                type="time"
-                                value={formData.time}
-                                onChange={handleInputChange('time')}
-                                required
-                            />
-                        </div>
-
-                        {/* Reason Input */}
-                        <div>
-                            <label htmlFor="problem" className="block text-sm font-medium text-gray-700 mb-1">Reason for Visit</label>
-                            <textarea
-                                id="problem"
-                                value={formData.problem}
-                                onChange={handleInputChange('problem')}
-                                required
-                                rows={3}
-                                className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-cyan-400 transition"
-                                placeholder="Briefly describe your health problem"
-                            />
-                        </div>
-
-                        {/* Error Display */}
-                        {error && <p className="text-red-500 text-sm">{error}</p>}
-
-                        {/* Submit Button */}
-                        <div className="pt-4">
-                            <Button
-                                type="submit"
-                                disabled={isSubmitting}
-                                className="w-full bg-cyan-500 hover:bg-cyan-600 text-white font-semibold rounded-lg transition-colors duration-200 px-6 py-3"
-                            >
-                                {isSubmitting ? 'Booking...' : 'Confirm Appointment'}
-                            </Button>
-                        </div>
-                    </form>
-                </div>
-            </main>
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="text-center">
+          <p className="text-lg text-red-600">{error || "Loading..."}</p>
+          <Link href="/user/dashboard">
+            <span className="text-cyan-600 hover:underline mt-4 inline-block">
+              Go to Dashboard
+            </span>
+          </Link>
         </div>
+      </div>
     );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white shadow-sm sticky top-0 z-10">
+        <div className="max-w-3xl mx-auto p-4 flex items-center gap-3">
+          <button
+            onClick={() => router.back()}
+            className="p-2 text-gray-600 hover:text-gray-900"
+          >
+            <ArrowLeft size={20} />
+          </button>
+          <h1 className="text-lg font-semibold text-gray-800">
+            Book Appointment
+          </h1>
+        </div>
+      </header>
+
+      {/* Form */}
+      <main className="max-w-3xl mx-auto p-4 sm:p-6">
+        <div className="bg-white p-6 rounded-lg shadow-md">
+          {/* Doctor Info */}
+          <div className="flex items-center gap-4 mb-6 pb-4 border-b border-gray-200">
+            <Image
+              src={doctor.image || "/male-doctor.png"}
+              alt={`${doctor.firstName} ${doctor.lastName}`}
+              width={64}
+              height={64}
+              className="rounded-full w-16 h-16 object-cover"
+            />
+            <div>
+              <h2 className="text-xl font-semibold">{`${doctor.firstName} ${doctor.lastName}`}</h2>
+              <p className="text-cyan-600">{doctor.specialty}</p>
+            </div>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Date Input */}
+            <div>
+              <label
+                htmlFor="date"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Date
+              </label>
+              <InputFieldComponent
+                id="date"
+                type="date"
+                value={formData.date}
+                onChange={handleInputChange("date")}
+                required
+              />
+            </div>
+
+            {/* Time Input */}
+            <div>
+              <label
+                htmlFor="time"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Time
+              </label>
+              <InputFieldComponent
+                id="time"
+                type="time"
+                value={formData.time}
+                onChange={handleInputChange("time")}
+                required
+              />
+            </div>
+
+            {/* Reason Input */}
+            <div>
+              <label
+                htmlFor="problem"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Reason for Visit
+              </label>
+              <textarea
+                id="problem"
+                value={formData.problem}
+                onChange={handleInputChange("problem")}
+                required
+                rows={3}
+                className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-cyan-400 transition"
+                placeholder="Briefly describe your health problem"
+              />
+            </div>
+
+            {/* Error Display */}
+            {error && <p className="text-red-500 text-sm">{error}</p>}
+
+            {/* Submit Button */}
+            <div className="pt-4">
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full bg-cyan-500 hover:bg-cyan-600 text-white font-semibold rounded-lg transition-colors duration-200 px-6 py-3"
+              >
+                {isSubmitting ? "Booking..." : "Confirm Appointment"}
+              </Button>
+            </div>
+          </form>
+        </div>
+      </main>
+    </div>
+  );
 }

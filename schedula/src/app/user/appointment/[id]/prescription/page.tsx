@@ -15,7 +15,7 @@ import { Download } from "lucide-react";
  */
 
 export default function UserPrescriptionView() {
-  const { id } = useParams();
+  const { id } = useParams() as { id: string | undefined };
   const [appointment, setAppointment] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [generatingPdf, setGeneratingPdf] = useState(false);
@@ -39,16 +39,26 @@ export default function UserPrescriptionView() {
   if (!appointment) return <p className="p-6">Appointment not found</p>;
 
   const prescription = appointment?.prescription;
-  if (!prescription) return <p className="p-6">No prescription available for this appointment</p>;
+  if (!prescription)
+    return (
+      <p className="p-6">No prescription available for this appointment</p>
+    );
 
-  const doctorName = prescription.doctorDetails?.name ?? appointment?.doctor?.name ?? "Doctor";
-  const patientName = prescription.patientDetails?.fullName ?? appointment?.patient?.name ?? "Patient";
+  const doctorName =
+    prescription.doctorDetails?.name ?? appointment?.doctor?.name ?? "Doctor";
+  const patientName =
+    prescription.patientDetails?.fullName ??
+    appointment?.patient?.name ??
+    "Patient";
   const createdAt = prescription.createdAt ?? new Date().toISOString();
 
   const safe = (v: any) => (v !== undefined && v !== null ? v : "");
 
-  const isDataUrl = (s: string) => typeof s === "string" && s.startsWith("data:");
-  const isHttpUrl = (s: string) => typeof s === "string" && (s.startsWith("http://") || s.startsWith("https://"));
+  const isDataUrl = (s: string) =>
+    typeof s === "string" && s.startsWith("data:");
+  const isHttpUrl = (s: string) =>
+    typeof s === "string" &&
+    (s.startsWith("http://") || s.startsWith("https://"));
 
   // Generate PDF. Includes text sections and attempts to embed image files if present as data URLs or remote images.
   const downloadPDF = async () => {
@@ -99,7 +109,7 @@ export default function UserPrescriptionView() {
         `Pulse: ${safe(vitals.pulse)}`,
         `Temperature: ${safe(vitals.temperature)}`,
         `SpO₂: ${safe(vitals.spo2)}`,
-        `Weight: ${safe(vitals.weight)}`
+        `Weight: ${safe(vitals.weight)}`,
       ];
       // print two columns if space allows
       const colGap = 220;
@@ -121,13 +131,19 @@ export default function UserPrescriptionView() {
       doc.text("Medicines", margin, y);
       y += 14;
       doc.setFont("helvetica", "normal");
-      const medicines = Array.isArray(prescription.medicines) ? prescription.medicines : [];
+      const medicines = Array.isArray(prescription.medicines)
+        ? prescription.medicines
+        : [];
       if (medicines.length === 0) {
         doc.text("No medicines prescribed.", margin, y);
         y += 14;
       } else {
         medicines.forEach((m: any, idx: number) => {
-          const line = `${idx + 1}. ${safe(m.name)}${m.dosage ? ` — ${safe(m.dosage)}` : ""}${m.frequency ? `, ${safe(m.frequency)}` : ""}${m.duration ? `, ${safe(m.duration)}` : ""}`;
+          const line = `${idx + 1}. ${safe(m.name)}${
+            m.dosage ? ` — ${safe(m.dosage)}` : ""
+          }${m.frequency ? `, ${safe(m.frequency)}` : ""}${
+            m.duration ? `, ${safe(m.duration)}` : ""
+          }`;
           // wrap text if needed
           const split = doc.splitTextToSize(line, pageWidth - margin * 2);
           doc.text(split, margin, y);
@@ -174,7 +190,10 @@ export default function UserPrescriptionView() {
         doc.text("Doctor Notes", margin, y);
         y += 14;
         doc.setFont("helvetica", "normal");
-        const notesSplit = doc.splitTextToSize(String(prescription.notes), pageWidth - margin * 2);
+        const notesSplit = doc.splitTextToSize(
+          String(prescription.notes),
+          pageWidth - margin * 2
+        );
         doc.text(notesSplit, margin, y);
         y += notesSplit.length * 12 + 8;
       }
@@ -197,8 +216,16 @@ export default function UserPrescriptionView() {
 
           // If it's an image and we have a dataUrl or http url, try to embed
           const url = file.dataUrl ?? file.url ?? file.data ?? null;
-          const type = file.type ?? (typeof url === "string" && url.startsWith("data:") ? url.split(";")[0].replace("data:", "") : "");
-          if (url && (isDataUrl(url) || isHttpUrl(url)) && (type.startsWith("image/") || isDataUrl(url))) {
+          const type =
+            file.type ??
+            (typeof url === "string" && url.startsWith("data:")
+              ? url.split(";")[0].replace("data:", "")
+              : "");
+          if (
+            url &&
+            (isDataUrl(url) || isHttpUrl(url)) &&
+            (type.startsWith("image/") || isDataUrl(url))
+          ) {
             try {
               // Add small inline image if fits
               const maxImgW = pageWidth - margin * 2;
@@ -261,11 +288,15 @@ export default function UserPrescriptionView() {
     <div className="min-h-screen bg-sky-50 py-8 pb-28 overflow-y-auto">
       <div className="max-w-3xl mx-auto px-4">
         <div className="flex items-start justify-between mb-4">
-          <h1 className="text-2xl font-semibold text-slate-800">Prescription Details</h1>
+          <h1 className="text-2xl font-semibold text-slate-800">
+            Prescription Details
+          </h1>
           <button
             onClick={downloadPDF}
             disabled={generatingPdf}
-            className={`inline-flex items-center gap-2 px-4 py-2 rounded shadow text-white ${generatingPdf ? "bg-sky-300" : "bg-sky-600 hover:bg-sky-700"}`}
+            className={`inline-flex items-center gap-2 px-4 py-2 rounded shadow text-white ${
+              generatingPdf ? "bg-sky-300" : "bg-sky-600 hover:bg-sky-700"
+            }`}
           >
             <Download className="w-4 h-4" />
             {generatingPdf ? "Generating..." : "Download PDF"}
@@ -279,55 +310,126 @@ export default function UserPrescriptionView() {
             {/* Header row */}
             <div className="flex justify-between items-start mb-4">
               <div>
-                <p className="text-sm text-slate-600"><span className="font-medium text-slate-800">Doctor:</span> {doctorName}</p>
-                <p className="text-sm text-slate-600"><span className="font-medium text-slate-800">Patient:</span> {patientName}</p>
+                <p className="text-sm text-slate-600">
+                  <span className="font-medium text-slate-800">Doctor:</span>{" "}
+                  {doctorName}
+                </p>
+                <p className="text-sm text-slate-600">
+                  <span className="font-medium text-slate-800">Patient:</span>{" "}
+                  {patientName}
+                </p>
               </div>
               <div className="text-right text-sm text-slate-600">
-                <p><span className="font-medium text-slate-800">Date:</span> {new Date(createdAt).toLocaleString()}</p>
-                <p className="text-xs text-gray-400 mt-1">Appointment ID: {appointment?.id}</p>
+                <p>
+                  <span className="font-medium text-slate-800">Date:</span>{" "}
+                  {new Date(createdAt).toLocaleString()}
+                </p>
+                <p className="text-xs text-gray-400 mt-1">
+                  Appointment ID: {appointment?.id}
+                </p>
               </div>
             </div>
 
             {/* Vitals */}
             <div className="mb-6">
-              <h3 className="text-lg font-medium text-slate-800 mb-3">Vitals</h3>
+              <h3 className="text-lg font-medium text-slate-800 mb-3">
+                Vitals
+              </h3>
               <div className="grid grid-cols-2 gap-3 text-sm text-slate-700">
-                <div>BP: <span className="font-medium">{safe(prescription.vitals?.bp)}</span></div>
-                <div>Pulse: <span className="font-medium">{safe(prescription.vitals?.pulse)}</span></div>
-                <div>Temperature: <span className="font-medium">{safe(prescription.vitals?.temperature)}</span></div>
-                <div>SpO₂: <span className="font-medium">{safe(prescription.vitals?.spo2)}</span></div>
-                <div>Weight: <span className="font-medium">{safe(prescription.vitals?.weight)}</span></div>
+                <div>
+                  BP:{" "}
+                  <span className="font-medium">
+                    {safe(prescription.vitals?.bp)}
+                  </span>
+                </div>
+                <div>
+                  Pulse:{" "}
+                  <span className="font-medium">
+                    {safe(prescription.vitals?.pulse)}
+                  </span>
+                </div>
+                <div>
+                  Temperature:{" "}
+                  <span className="font-medium">
+                    {safe(prescription.vitals?.temperature)}
+                  </span>
+                </div>
+                <div>
+                  SpO₂:{" "}
+                  <span className="font-medium">
+                    {safe(prescription.vitals?.spo2)}
+                  </span>
+                </div>
+                <div>
+                  Weight:{" "}
+                  <span className="font-medium">
+                    {safe(prescription.vitals?.weight)}
+                  </span>
+                </div>
               </div>
             </div>
 
             {/* Medicines */}
             <div className="mb-6">
-              <h3 className="text-lg font-medium text-slate-800 mb-3">Medicines</h3>
-              {Array.isArray(prescription.medicines) && prescription.medicines.length > 0 ? (
+              <h3 className="text-lg font-medium text-slate-800 mb-3">
+                Medicines
+              </h3>
+              {Array.isArray(prescription.medicines) &&
+              prescription.medicines.length > 0 ? (
                 <div className="space-y-3">
                   {prescription.medicines.map((m: any, idx: number) => (
-                    <div key={idx} className="rounded-lg border p-4 bg-slate-50">
-                      <div className="text-sm text-slate-800 font-semibold mb-1">{safe(m.name) || "—"}</div>
+                    <div
+                      key={idx}
+                      className="rounded-lg border p-4 bg-slate-50"
+                    >
+                      <div className="text-sm text-slate-800 font-semibold mb-1">
+                        {safe(m.name) || "—"}
+                      </div>
                       <div className="text-sm text-slate-700">
-                        <div>Dosage: <span className="font-medium">{safe(m.dosage)}</span></div>
-                        <div>Frequency: <span className="font-medium">{safe(m.frequency)}</span></div>
-                        <div>Duration: <span className="font-medium">{safe(m.duration)}</span></div>
-                        <div>Instructions: <span className="font-medium">{safe(m.instructions)}</span></div>
+                        <div>
+                          Dosage:{" "}
+                          <span className="font-medium">{safe(m.dosage)}</span>
+                        </div>
+                        <div>
+                          Frequency:{" "}
+                          <span className="font-medium">
+                            {safe(m.frequency)}
+                          </span>
+                        </div>
+                        <div>
+                          Duration:{" "}
+                          <span className="font-medium">
+                            {safe(m.duration)}
+                          </span>
+                        </div>
+                        <div>
+                          Instructions:{" "}
+                          <span className="font-medium">
+                            {safe(m.instructions)}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="text-sm text-gray-500">No medicines prescribed.</div>
+                <div className="text-sm text-gray-500">
+                  No medicines prescribed.
+                </div>
               )}
             </div>
 
             {/* Tests */}
             <div className="mb-6">
-              <h3 className="text-lg font-medium text-slate-800 mb-3">Test Suggestions</h3>
-              {Array.isArray(prescription.tests) && prescription.tests.length > 0 ? (
+              <h3 className="text-lg font-medium text-slate-800 mb-3">
+                Test Suggestions
+              </h3>
+              {Array.isArray(prescription.tests) &&
+              prescription.tests.length > 0 ? (
                 <ul className="list-disc pl-5 text-sm text-slate-700">
-                  {prescription.tests.map((t: any, i: number) => <li key={i}>{safe(t.name)}</li>)}
+                  {prescription.tests.map((t: any, i: number) => (
+                    <li key={i}>{safe(t.name)}</li>
+                  ))}
                 </ul>
               ) : (
                 <div className="text-sm text-gray-500">No tests suggested.</div>
@@ -336,38 +438,71 @@ export default function UserPrescriptionView() {
 
             {/* Notes */}
             <div className="mb-6">
-              <h3 className="text-lg font-medium text-slate-800 mb-3">Doctor Notes</h3>
+              <h3 className="text-lg font-medium text-slate-800 mb-3">
+                Doctor Notes
+              </h3>
               <div className="bg-slate-50 rounded p-3 text-sm text-slate-700">
-                {safe(prescription.notes) || <span className="text-gray-400">No notes provided.</span>}
+                {safe(prescription.notes) || (
+                  <span className="text-gray-400">No notes provided.</span>
+                )}
               </div>
             </div>
 
             {/* Attachments */}
             <div>
-              <h3 className="text-lg font-medium text-slate-800 mb-3">Attachments</h3>
-              {Array.isArray(prescription.files) && prescription.files.length > 0 ? (
+              <h3 className="text-lg font-medium text-slate-800 mb-3">
+                Attachments
+              </h3>
+              {Array.isArray(prescription.files) &&
+              prescription.files.length > 0 ? (
                 <div className="grid grid-cols-3 gap-3">
                   {prescription.files.map((file: any, i: number) => {
                     const url = file.dataUrl ?? file.url ?? file.data ?? null;
                     const name = file.name ?? `file-${i + 1}`;
                     const type = (file.type ?? "").toString();
-                    if (url && (isDataUrl(url) || isHttpUrl(url)) && (type.startsWith("image/") || isDataUrl(url))) {
+                    if (
+                      url &&
+                      (isDataUrl(url) || isHttpUrl(url)) &&
+                      (type.startsWith("image/") || isDataUrl(url))
+                    ) {
                       // image preview
                       return (
-                        <a key={i} href={url} download={name} className="block border rounded overflow-hidden bg-white shadow-sm">
-                          <img src={url} alt={name} className="object-cover h-28 w-full" />
-                          <div className="text-xs text-center p-2 text-slate-700">{name}</div>
+                        <a
+                          key={i}
+                          href={url}
+                          download={name}
+                          className="block border rounded overflow-hidden bg-white shadow-sm"
+                        >
+                          <img
+                            src={url}
+                            alt={name}
+                            className="object-cover h-28 w-full"
+                          />
+                          <div className="text-xs text-center p-2 text-slate-700">
+                            {name}
+                          </div>
                         </a>
                       );
                     } else {
                       // non-image
                       return (
-                        <div key={i} className="border rounded p-3 bg-white flex flex-col items-center justify-center text-xs text-slate-700">
+                        <div
+                          key={i}
+                          className="border rounded p-3 bg-white flex flex-col items-center justify-center text-xs text-slate-700"
+                        >
                           <div className="mb-2">{name}</div>
                           {url ? (
-                            <a href={url} download={name} className="text-sm text-sky-600 hover:underline">Download</a>
+                            <a
+                              href={url}
+                              download={name}
+                              className="text-sm text-sky-600 hover:underline"
+                            >
+                              Download
+                            </a>
                           ) : (
-                            <div className="text-xs text-gray-400">No file URL</div>
+                            <div className="text-xs text-gray-400">
+                              No file URL
+                            </div>
                           )}
                         </div>
                       );
@@ -375,10 +510,11 @@ export default function UserPrescriptionView() {
                   })}
                 </div>
               ) : (
-                <div className="text-sm text-gray-500">No attachments provided.</div>
+                <div className="text-sm text-gray-500">
+                  No attachments provided.
+                </div>
               )}
             </div>
-
           </div>
         </div>
       </div>

@@ -12,17 +12,21 @@ import { NextRequest, NextResponse } from "next/server";
 import { Appointment } from "@/lib/types/appointment";
 import { Doctor } from "@/lib/types/doctor";
 import { User } from "@/lib/types/user";
-import { doctors, users, appointments } from "@/lib/mockData.json";
+import mockData from "@/lib/mockData.json";
 
 // In-memory storage (resets on server restart)
 const appointmentsData: Appointment[] = JSON.parse(
-  JSON.stringify(appointments)
+  JSON.stringify(mockData.appointments)
 ) as Appointment[];
 
 // Helper function to enrich appointment with patient and doctor data
 function enrichAppointment(appointment: Appointment) {
-  const patient = users.find((u: User) => u.id === appointment.patientId);
-  const doctor = doctors.find((d: Doctor) => d.id === appointment.doctorId);
+  const patient = mockData.users.find(
+    (u: User) => u.id === appointment.patientId
+  );
+  const doctor = mockData.doctors.find(
+    (d: Doctor) => d.id === appointment.doctorId
+  );
 
   return {
     ...appointment,
@@ -163,7 +167,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate patientId exists in users
-    const patientExists = users.some((user: User) => user.id === body.patientId);
+    const patientExists = mockData.users.some(
+      (user: User) => user.id === body.patientId
+    );
     if (!patientExists) {
       return NextResponse.json(
         {
@@ -175,7 +181,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate doctorId exists in doctors
-    const doctorExists = doctors.some(
+    const doctorExists = mockData.doctors.some(
       (doctor: Doctor) => doctor.id === body.doctorId
     );
     if (!doctorExists) {
