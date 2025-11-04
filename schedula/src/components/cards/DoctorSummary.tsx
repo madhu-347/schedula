@@ -8,6 +8,7 @@ function DoctorSummary({ doctor }: { doctor: Doctor }) {
     if (doctor.firstName || doctor.lastName) {
       return `${doctor.firstName || ""} ${doctor.lastName || ""}`.trim();
     }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return (doctor as any).name || "Doctor";
   };
 

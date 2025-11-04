@@ -7,7 +7,7 @@ import { User } from "@/lib/types/user";
 
 // In-memory storage (simulating database)
 // Note: This will reset on server restart. For persistence, use a real database.
-let usersData: User[] = JSON.parse(JSON.stringify(mockData.users)) as User[];
+const usersData: User[] = JSON.parse(JSON.stringify(mockData.users)) as User[];
 
 // GET - Retrieve user(s)
 export async function GET(req: NextRequest) {
