@@ -84,12 +84,12 @@ export default function PrescriptionFormPage() {
               r.onerror = (err) => rej(err);
               r.readAsDataURL(file);
             }),
-          } as {
+          }) as {
             name: string;
             type: string;
             size: number;
             dataUrl: string;
-          })
+          }
       )
     );
 
@@ -197,7 +197,9 @@ export default function PrescriptionFormPage() {
                 type="text"
                 placeholder="120/80"
                 value={vitals.bp}
-                onChange={(e) => setVitals({ ...vitals, bp: e.target.value })}
+                onChange={(e) =>
+                  setVitals({ ...vitals, bp: e.target.value })
+                }
               />
             </div>
             <div className="flex items-center gap-1">
@@ -228,7 +230,9 @@ export default function PrescriptionFormPage() {
                 type="text"
                 placeholder="98%"
                 value={vitals.spo2}
-                onChange={(e) => setVitals({ ...vitals, spo2: e.target.value })}
+                onChange={(e) =>
+                  setVitals({ ...vitals, spo2: e.target.value })
+                }
               />
             </div>
             <div className="flex items-center gap-1">
