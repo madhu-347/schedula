@@ -24,6 +24,7 @@ const AppointmentsPage: React.FC = () => {
   const { user } = useAuth();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabType>("Upcoming");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [appointments, setAppointments] = useState<any[]>([]);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -244,7 +245,7 @@ const AppointmentsPage: React.FC = () => {
                 </g>
               </svg>
               <h3 className="text-xl font-bold text-gray-900 mb-2">
-                You don't have an appointment yet
+                You dont have an appointment yet
               </h3>
               <p className="text-gray-600 text-center mb-8">
                 Please click the button below to book an appointment.

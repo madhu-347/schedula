@@ -1,3 +1,6 @@
+// src/lib/types/appointment.ts
+import type { Prescription } from "./prescription";
+
 export interface Appointment {
   id: string;
   tokenNo: string;
@@ -6,10 +9,11 @@ export interface Appointment {
   day: string;
   date: string;
   time: string;
+  timeSlot?: string;
   type?: "In-person" | "Virtual";
   queuePosition?: number;
-
   patientDetails?: {
+    id?: string | number;
     fullName: string;
     age: number;
     gender: "Male" | "Female" | "Other";
@@ -17,20 +21,14 @@ export interface Appointment {
     weight?: number;
     problem?: string;
     relationship:
-      | "Self"
-      | "Son"
-      | "Daughter"
-      | "Brother"
-      | "Sister"
-      | "Father"
-      | "Mother"
-      | "Spouse"
-      | "Other";
+      | "Self" | "Son" | "Daughter" | "Brother" | "Sister"
+      | "Father" | "Mother" | "Spouse" | "Other";
+    location?: string;
   };
-
   visitType?: "Follow-up" | "Report" | "First";
-  status: "Upcoming" | "Completed" | "Cancelled";
+  status: "Upcoming" | "Completed" | "Cancelled" | "Waiting";
   paid?: boolean;
+  paymentStatus?: "Paid" | "Not paid";
   feedback?: {
     consulting: number;
     hospital: number;
@@ -40,4 +38,7 @@ export interface Appointment {
     submittedAt: string;
   };
   postFeeling?: "Feeling Better" | "No improvements";
+
+  // --- keep this reference ---
+  prescription?: Prescription | null;
 }

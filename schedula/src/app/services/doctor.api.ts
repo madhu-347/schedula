@@ -36,6 +36,7 @@ export async function getDoctorById(id: string) {
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function updateDoctor(id: string, doctorData: any) {
   try {
     const res = await fetch(`/api/doctor`, {

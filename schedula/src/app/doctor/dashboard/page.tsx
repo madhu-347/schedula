@@ -318,7 +318,7 @@ export default function DoctorDashboardPage() {
             <div className="flex justify-between h-16 items-center">
               <div className="flex items-center">
                 <h1 className="text-xl font-semibold text-gray-900">
-                  {doctor?.firstName}{doctor?.lastName}'s Dashboard
+                  {doctor?.firstName}{doctor?.lastName} Dashboard
                 </h1>
               </div>
               <div className="flex items-center space-x-4">

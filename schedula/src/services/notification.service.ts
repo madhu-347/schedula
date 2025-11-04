@@ -2,10 +2,12 @@
 
 export interface Notification {
   id: number;
+  recipientId: string;
   doctorName: string;
   message: string;
   timestamp: string;
   read: boolean;
+  targetUrl?: string;
 }
 
 // Fetch notifications for a doctor
