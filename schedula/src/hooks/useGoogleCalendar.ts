@@ -61,6 +61,18 @@ export const useGoogleCalendar = ({
         }),
       });
 
+      // Check if response is HTML (likely a redirect to signin page)
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.includes("text/html")) {
+        // Handle unauthorized access by initiating auth flow
+        return {
+          success: false,
+          message: "Authentication required",
+          requiresAuth: true,
+        };
+      }
+
+      // Parse JSON response
       const result = await response.json();
       console.log("API Response:", result);
 
@@ -89,6 +101,17 @@ export const useGoogleCalendar = ({
       }
     } catch (error: any) {
       console.error("Error adding to calendar:", error);
+
+      // If it's a syntax error (likely from trying to parse HTML as JSON),
+      // treat it as an auth issue
+      if (error instanceof SyntaxError) {
+        return {
+          success: false,
+          message: "Authentication required. Please sign in with Google.",
+          requiresAuth: true,
+        };
+      }
+
       return {
         success: false,
         message: error.message || "Failed to add appointment to calendar",

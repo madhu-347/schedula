@@ -77,7 +77,8 @@ export async function POST(req: Request) {
     const oauth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,
-      process.env.GOOGLE_CALENDAR_REDIRECT_URI
+      process.env.GOOGLE_CALENDAR_REDIRECT_URI ||
+        "http://localhost:3000/api/auth/callback/google"
     );
 
     oauth2Client.setCredentials({
