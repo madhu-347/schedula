@@ -11,6 +11,7 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
+    // get the details from request body
     const { appointment, doctor, patient } = body;
 
     // Validate required data
