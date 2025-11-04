@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { ArrowLeft, Plus } from "lucide-react";
+import { ArrowLeft, Plus, CalendarPlus, ExternalLink } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { DoctorInfoCard } from "@/components/cards/DoctorReview";
 import { AppointmentDetailsCard } from "@/components/cards/AppointmentDetails";
@@ -13,6 +13,7 @@ import { getAppointmentById } from "@/app/services/appointments.api";
 import { useParams } from "next/navigation";
 import { Doctor } from "@/lib/types/doctor";
 import { User } from "@/lib/types/user";
+import { useGoogleCalendar } from "@/hooks/useGoogleCalendar";
 
 const AppointmentReviewPage = () => {
   const params = useParams();
@@ -23,6 +24,13 @@ const AppointmentReviewPage = () => {
   );
   const [doctor, setDoctor] = useState<Doctor>({} as Doctor);
   const [patient, setPatient] = useState<User>({} as User);
+
+  const { isLoading, isAdded, eventLink, addToCalendar, initiateAuth } =
+    useGoogleCalendar({
+      appointment,
+      doctor,
+      patient,
+    });
 
   const fetchAppointment = async () => {
     try {
@@ -39,12 +47,44 @@ const AppointmentReviewPage = () => {
     fetchAppointment();
   }, []);
 
-  const handleAddToCalendar = () => {
-    toast({
-      title: "Added to Calendar",
-      description: "Appointment has been added to your calendar.",
-      variant: "default",
-    });
+  const handleAddToCalendar = async () => {
+    const result = await addToCalendar();
+
+    if (result.success) {
+      toast({
+        title: "Added to Calendar",
+        description: "Appointment has been added to your Google Calendar.",
+        variant: "default",
+      });
+    } else {
+      // If unauthorized, initiate auth flow
+      if (result.requiresAuth) {
+        toast({
+          title: "Authentication Required",
+          description:
+            "Please sign in with Google to add appointments to your calendar.",
+          variant: "default",
+        });
+        // Give user time to read the toast before redirecting
+        setTimeout(() => {
+          initiateAuth();
+        }, 2000);
+      } else {
+        toast({
+          title: "Error",
+          description:
+            result.message ||
+            "Failed to add appointment to calendar. Please try again.",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
+  const handleViewCalendarEvent = () => {
+    if (eventLink) {
+      window.open(eventLink, "_blank");
+    }
   };
 
   const handleAddPatientDetails = () => {
@@ -92,7 +132,6 @@ const AppointmentReviewPage = () => {
             date={appointment.date}
             day={appointment.day}
             time={appointment.time}
-            onAddToCalendar={handleAddToCalendar}
             duration="30 minutes"
             fee="₹1000"
             clinicAddress="Wellora Health Center, Chennai"
@@ -155,6 +194,39 @@ const AppointmentReviewPage = () => {
               </div>
             </div>
           )}
+
+          {/* Add to Google Calendar Button */}
+          <div className="mt-4">
+            {isAdded ? (
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Button
+                  className="w-full md:w-auto flex items-center gap-2"
+                  onClick={handleViewCalendarEvent}
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  View in Google Calendar
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={handleAddToCalendar}
+                  disabled={isLoading}
+                  className="w-full md:w-auto flex items-center gap-2"
+                >
+                  <CalendarPlus className="w-4 h-4" />
+                  {isLoading ? "Adding to Calendar..." : "Add Again"}
+                </Button>
+              </div>
+            ) : (
+              <Button
+                onClick={handleAddToCalendar}
+                disabled={isLoading}
+                className="w-full md:w-auto flex items-center gap-2"
+              >
+                <CalendarPlus className="w-4 h-4" />
+                {isLoading ? "Adding to Calendar..." : "Add to Google Calendar"}
+              </Button>
+            )}
+          </div>
 
           {/* View My Appointment Button */}
           <div className="mt-3 md:mt-8 flex justify-around">

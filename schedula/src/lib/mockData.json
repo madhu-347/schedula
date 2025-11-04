@@ -107,5 +107,52 @@
       "phone": "7012345678"
     }
   ],
-  "appointments": []
+  "appointments": [
+    {
+      "id": "1762279667428",
+      "tokenNo": "T0001",
+      "patientId": "2",
+      "doctorId": "1",
+      "day": "Monday",
+      "date": "2025-11-10",
+      "time": "10:30",
+      "type": "In-person",
+      "queuePosition": 1,
+      "patientDetails": {
+        "fullName": "John Mathew",
+        "age": 35,
+        "gender": "Male",
+        "phone": "9998887776",
+        "weight": 75,
+        "problem": "Regular checkup",
+        "relationship": "Self"
+      },
+      "visitType": "First",
+      "status": "Upcoming",
+      "paid": true
+    },
+    {
+      "id": "1762282353187",
+      "tokenNo": "T0002",
+      "patientId": "2",
+      "doctorId": "1",
+      "day": "Tuesday",
+      "date": "2025-11-11",
+      "time": "14:30",
+      "type": "In-person",
+      "queuePosition": 2,
+      "patientDetails": {
+        "fullName": "John Mathew",
+        "age": 35,
+        "gender": "Male",
+        "phone": "9998887776",
+        "weight": 75,
+        "problem": "Follow-up consultation",
+        "relationship": "Self"
+      },
+      "visitType": "Follow-up",
+      "status": "Upcoming",
+      "paid": true
+    }
+  ]
 }

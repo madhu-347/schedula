@@ -1,7 +1,5 @@
 import React from "react";
 import { Card } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
-import { CalendarPlus } from "lucide-react";
 
 interface AppointmentDetailsCardProps {
   appointmentNumber: string;
@@ -9,7 +7,6 @@ interface AppointmentDetailsCardProps {
   date: string;
   day: string;
   time: string;
-  onAddToCalendar?: () => void;
   duration?: string;
   fee?: string;
   clinicAddress?: string;
@@ -21,7 +18,6 @@ export const AppointmentDetailsCard: React.FC<AppointmentDetailsCardProps> = ({
   date,
   day,
   time,
-  onAddToCalendar,
   duration,
   fee,
   clinicAddress,
@@ -88,18 +84,6 @@ export const AppointmentDetailsCard: React.FC<AppointmentDetailsCardProps> = ({
           </div>
         )}
       </div>
-
-      {/* Add to Calendar Button */}
-      {onAddToCalendar && (
-        <Button
-          variant="outline"
-          className="w-full md:w-auto"
-          onClick={onAddToCalendar}
-        >
-          <CalendarPlus className="w-4 h-4" />
-          Add to calendar
-        </Button>
-      )}
     </Card>
   );
 };
