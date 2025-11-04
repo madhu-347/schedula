@@ -7,7 +7,10 @@ import { InputFieldComponent } from "@/components/ui/InputField";
 import { Plus, X, Upload } from "lucide-react";
 import { toast } from "@/hooks/useToast";
 import { useAuth } from "@/context/AuthContext";
-import { getAppointmentById, updateAppointment } from "@/app/services/appointments.api";
+import {
+  getAppointmentById,
+  updateAppointment,
+} from "@/app/services/appointments.api";
 import usePrescriptionForm from "@/hooks/usePrescriptionForm";
 import type { Appointment } from "@/lib/types/appointment";
 import type { Prescription } from "@/lib/types/prescription";
@@ -58,7 +61,16 @@ export default function PrescriptionFormPage() {
     ]);
   const removeMedicine = (i: number) =>
     setMedicines(medicines.filter((_, idx) => idx !== i));
+  const addMedicine = () =>
+    setMedicines([
+      ...medicines,
+      { name: "", dosage: "", frequency: "", duration: "", instructions: "" },
+    ]);
+  const removeMedicine = (i: number) =>
+    setMedicines(medicines.filter((_, idx) => idx !== i));
   const addTest = () => setTests([...tests, { name: "" }]);
+  const removeTest = (i: number) =>
+    setTests(tests.filter((_, idx) => idx !== i));
   const removeTest = (i: number) =>
     setTests(tests.filter((_, idx) => idx !== i));
 
@@ -152,7 +164,9 @@ export default function PrescriptionFormPage() {
           console.error("Failed to send notification:", err);
         }
       } else {
-        console.warn("No patient id found on appointment. Skipping notification.");
+        console.warn(
+          "No patient id found on appointment. Skipping notification."
+        );
       }
 
       toast({
@@ -207,9 +221,25 @@ export default function PrescriptionFormPage() {
                   setVitals({ ...vitals, pulse: e.target.value })
                 }
               />
+              <InputFieldComponent
+                type="text"
+                placeholder="75"
+                value={vitals.pulse}
+                onChange={(e) =>
+                  setVitals({ ...vitals, pulse: e.target.value })
+                }
+              />
             </div>
             <div className="flex items-center gap-1">
               <label className=" text-gray-600 w-15">Temp</label>
+              <InputFieldComponent
+                type="text"
+                placeholder="98.6°F"
+                value={vitals.temperature}
+                onChange={(e) =>
+                  setVitals({ ...vitals, temperature: e.target.value })
+                }
+              />
               <InputFieldComponent
                 type="text"
                 placeholder="98.6°F"
@@ -240,6 +270,14 @@ export default function PrescriptionFormPage() {
                   setVitals({ ...vitals, weight: e.target.value })
                 }
               />
+              <InputFieldComponent
+                type="text"
+                placeholder="65kg"
+                value={vitals.weight}
+                onChange={(e) =>
+                  setVitals({ ...vitals, weight: e.target.value })
+                }
+              />
             </div>
           </div>
         </div>
@@ -251,10 +289,28 @@ export default function PrescriptionFormPage() {
             <Button type="button" size="sm" onClick={addMedicine}>
               <Plus className="w-4" />
             </Button>
+            <Button type="button" size="sm" onClick={addMedicine}>
+              <Plus className="w-4" />
+            </Button>
           </div>
           {medicines.map((m, i) => (
             <div key={i} className="rounded-lg p-3 space-y-3 mb-3">
               <div className="space-y-1">
+                <label className="text-xs font-medium text-gray-600">
+                  Medicine Name
+                </label>
+                <InputFieldComponent
+                  type="text"
+                  placeholder="Paracetamol"
+                  value={m.name}
+                  onChange={(e) =>
+                    setMedicines(
+                      medicines.map((x, idx) =>
+                        idx === i ? { ...x, name: e.target.value } : x
+                      )
+                    )
+                  }
+                />
                 <label className="text-xs font-medium text-gray-600">
                   Medicine Name
                 </label>
@@ -288,8 +344,38 @@ export default function PrescriptionFormPage() {
                       )
                     }
                   />
+                  <label className="text-xs font-medium text-gray-600">
+                    Dosage
+                  </label>
+                  <InputFieldComponent
+                    type="text"
+                    placeholder="500mg"
+                    value={m.dosage}
+                    onChange={(e) =>
+                      setMedicines(
+                        medicines.map((x, idx) =>
+                          idx === i ? { ...x, dosage: e.target.value } : x
+                        )
+                      )
+                    }
+                  />
                 </div>
                 <div className="space-y-1">
+                  <label className="text-xs font-medium text-gray-600">
+                    Frequency
+                  </label>
+                  <InputFieldComponent
+                    type="text"
+                    placeholder="2 times/day"
+                    value={m.frequency}
+                    onChange={(e) =>
+                      setMedicines(
+                        medicines.map((x, idx) =>
+                          idx === i ? { ...x, frequency: e.target.value } : x
+                        )
+                      )
+                    }
+                  />
                   <label className="text-xs font-medium text-gray-600">
                     Frequency
                   </label>
@@ -324,8 +410,38 @@ export default function PrescriptionFormPage() {
                       )
                     }
                   />
+                  <label className="text-xs font-medium text-gray-600">
+                    Duration
+                  </label>
+                  <InputFieldComponent
+                    type="text"
+                    placeholder="5 days"
+                    value={m.duration}
+                    onChange={(e) =>
+                      setMedicines(
+                        medicines.map((x, idx) =>
+                          idx === i ? { ...x, duration: e.target.value } : x
+                        )
+                      )
+                    }
+                  />
                 </div>
                 <div className="space-y-1">
+                  <label className="text-xs font-medium text-gray-600">
+                    Instructions
+                  </label>
+                  <InputFieldComponent
+                    type="text"
+                    placeholder="After food"
+                    value={m.instructions}
+                    onChange={(e) =>
+                      setMedicines(
+                        medicines.map((x, idx) =>
+                          idx === i ? { ...x, instructions: e.target.value } : x
+                        )
+                      )
+                    }
+                  />
                   <label className="text-xs font-medium text-gray-600">
                     Instructions
                   </label>
@@ -358,6 +474,9 @@ export default function PrescriptionFormPage() {
         <div className="bg-white p-4 rounded-lg shadow border space-y-3">
           <div className="flex justify-between items-center">
             <h2 className="font-medium mb-2">Test Suggestions</h2>
+            <Button type="button" size="sm" onClick={addTest}>
+              +
+            </Button>
             <Button type="button" size="sm" onClick={addTest}>
               +
             </Button>
@@ -402,12 +521,27 @@ export default function PrescriptionFormPage() {
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
           />
+          <InputFieldComponent
+            type="textarea"
+            rows={4}
+            placeholder="Example: Drink water, avoid cold food..."
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+          />
         </div>
 
         {/* Attachments */}
         <div className="bg-white p-4 rounded-lg shadow border">
           <h2 className="font-medium mb-2">Attachments</h2>
           <label className="border p-2 rounded cursor-pointer block w-max bg-gray-50">
+            <Upload className="w-5 inline-block mr-2" />
+            Upload Files
+            <InputFieldComponent
+              type="file"
+              multiple
+              className="hidden"
+              onChange={handleFileUpload}
+            />
             <Upload className="w-5 inline-block mr-2" />
             Upload Files
             <InputFieldComponent
@@ -431,6 +565,7 @@ export default function PrescriptionFormPage() {
                   ) : (
                     <div className="text-xs text-center pt-8">{f.name}</div>
                   )}
+                  )}
                 </div>
               ))}
             </div>
@@ -438,6 +573,11 @@ export default function PrescriptionFormPage() {
         </div>
 
         <Button type="submit" disabled={saving} className="w-full mt-6">
+          {saving
+            ? "Saving..."
+            : isEdit
+            ? "Update Prescription"
+            : "Save Prescription"}
           {saving
             ? "Saving..."
             : isEdit
