@@ -322,7 +322,7 @@ export default function PrescriptionDetailPage() {
               </Card>
 
               {/* Tests */}
-              {prescription.tests?.name && prescription.tests.length > 0 && (
+              {prescription.tests && prescription.tests.length > 0 && (
                 <Card className="bg-white rounded-xl shadow-sm border border-gray-100">
                   <CardHeader className="pb-4">
                     <div className="flex items-center gap-2">
