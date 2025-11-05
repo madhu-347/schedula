@@ -42,7 +42,7 @@ export default function DashboardPage() {
     if (!loading && user) {
       fetchAllDoctors();
     }
-  }, [user, loading, allDoctors.length]);
+  }, [user]);
 
   const handleToggleLike = (id: string) => {
     setAllDoctors((prevDoctors) =>

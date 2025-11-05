@@ -1,7 +1,7 @@
 export interface Prescription {
   createdAt: string;
   doctorDetails?: {
-    id?: string; // ✅ Add this line
+    id?: string;
     name?: string;
     qualifications?: string;
     specialty?: string;

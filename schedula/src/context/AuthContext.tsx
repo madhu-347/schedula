@@ -18,7 +18,7 @@ interface AuthContextType {
   doctor: Doctor | null;
   loading: boolean;
   login: (userId: string, role: "user" | "doctor") => Promise<void>;
-  logout: () => void;
+  logout: (role?: "user" | "doctor") => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -31,46 +31,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Extract a safe ID
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const normalizeId = (data: Record<string, any>, fallbackId: string): string => {
+  const normalizeId = (
+    data: Record<string, any>,
+    fallbackId: string
+  ): string => {
     return (
-      data?.id ??
-      data?._id ??
-      data?.patientId ??
-      data?.doctorId ??
-      fallbackId
+      data?.id ?? data?._id ?? data?.patientId ?? data?.doctorId ?? fallbackId
     );
   };
 
   // Load from localStorage
   useEffect(() => {
-    const storedUserId = localStorage.getItem("userId");
-    const storedRole = localStorage.getItem("userRole");
-
     const initialize = async () => {
-      if (!storedUserId || !storedRole) {
-        setLoading(false);
-        return;
-      }
-
-      try {
-        if (storedRole === "doctor") {
-          const response = await getDoctorById(storedUserId);
-          const doctorData: Doctor =
-            response?.data?.doctor ??
-            response?.doctor ??
-            response?.data ??
-            response;
-
-          if (doctorData) {
-            const normalizedDoctor: Doctor = {
-              ...doctorData,
-              id: normalizeId(doctorData, storedUserId),
-            };
-            setDoctor(normalizedDoctor);
-          }
-        } else {
+      // Load user if exists
+      const storedUserId = localStorage.getItem("userId");
+      if (storedUserId) {
+        try {
           const response = await getUserById(storedUserId);
-          // Unwrap only `.data` if it exists
           const userData: User = response?.data ?? response;
 
           if (userData) {
@@ -80,12 +57,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             };
             setUser(normalizedUser);
           }
+        } catch (error) {
+          console.error("Failed to initialize user:", error);
         }
-      } catch (error) {
-        console.error("Failed to initialize auth context:", error);
-      } finally {
-        setLoading(false);
       }
+
+      const storedDoctorId = localStorage.getItem("doctorId");
+      if (storedDoctorId) {
+        try {
+          const response = await getDoctorById(storedDoctorId);
+          const doctorData: Doctor =
+            response?.data?.doctor ??
+            response?.doctor ??
+            response?.data ??
+            response;
+
+          if (doctorData) {
+            const normalizedDoctor: Doctor = {
+              ...doctorData,
+              id: normalizeId(doctorData, storedDoctorId),
+            };
+            setDoctor(normalizedDoctor);
+          }
+        } catch (error) {
+          console.error("Failed to initialize doctor:", error);
+        }
+      }
+
+      setLoading(false);
     };
 
     initialize();
@@ -108,8 +107,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             id: normalizeId(doctorData, userId),
           };
           setDoctor(normalizedDoctor);
-          localStorage.setItem("userId", normalizedDoctor.id);
-          localStorage.setItem("userRole", "doctor");
+          localStorage.setItem("doctorId", normalizedDoctor.id);
         }
       } else {
         const response = await getUserById(userId);
@@ -122,7 +120,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           };
           setUser(normalizedUser);
           localStorage.setItem("userId", normalizedUser.id);
-          localStorage.setItem("userRole", "user");
         }
       }
     } catch (error) {
@@ -131,12 +128,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const logout = () => {
-    setUser(null);
-    setDoctor(null);
-    localStorage.removeItem("userId");
-    localStorage.removeItem("userRole");
-    router.push("/user/login");
+  const logout = (role?: "user" | "doctor") => {
+    if (!role) {
+      // Logout both
+      setUser(null);
+      setDoctor(null);
+      localStorage.removeItem("userId");
+      localStorage.removeItem("doctorId");
+      router.push("/user/login");
+    } else if (role === "doctor") {
+      // Logout only doctor
+      setDoctor(null);
+      localStorage.removeItem("doctorId");
+    } else {
+      // Logout only user
+      setUser(null);
+      localStorage.removeItem("userId");
+    }
   };
 
   return (

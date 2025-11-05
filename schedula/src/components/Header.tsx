@@ -48,7 +48,7 @@ function Header({ setShowNotifications }: HeaderProps) {
             <NotificationBell role="patient" />
 
             <button
-              onClick={logout}
+              onClick={() => logout("user")}
               className="text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2 font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors"
             >
               Logout
