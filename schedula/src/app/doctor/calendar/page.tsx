@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
@@ -64,6 +65,19 @@ export default function CalendarPage() {
   const [doctorAvailability, setDoctorAvailability] =
     useState<DoctorAvailability | null>(null);
   const tooltipRef = useRef<HTMLDivElement | null>(null);
+  const searchParams = useSearchParams();
+  const calendarRef = useRef(null);
+
+  const dateParam = searchParams?.get("date"); 
+  const selectedDate = dateParam ? new Date(dateParam) : new Date();
+
+  useEffect(() => {
+    if (calendarRef.current && selectedDate) {
+      const calendarApi = calendarRef.current.getApi();
+      calendarApi.gotoDate(selectedDate); // 👈 jump to selected date
+      calendarApi.changeView("timeGridDay"); // 👈 ensure daily view
+    }
+  }, [selectedDate]);
 
   const statusColors: Record<string, string> = {
     Upcoming: "#0ea5e9",
@@ -364,6 +378,7 @@ export default function CalendarPage() {
         </div>
 
         <FullCalendar
+          ref={calendarRef}
           plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
           initialView="timeGridWeek"
           height="80vh"

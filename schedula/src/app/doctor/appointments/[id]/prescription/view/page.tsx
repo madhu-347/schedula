@@ -3,204 +3,272 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
-import { getAppointmentById, updateAppointment } from "@/app/services/appointments.api";
-import type { Appointment } from "@/lib/types/appointment";
-import type { Prescription } from "@/lib/types/prescription"; // add if you have this type
 import { toast } from "@/hooks/useToast";
+import { getAppointmentById } from "@/app/services/appointments.api";
+import { getPrescriptionsByAppointmentId ,deletePrescription } from "@/app/services/prescription.api";
+import generatePrescriptionPDF from "@/utils/generatePrescriptionPDF";
+import type { Prescription } from "@/lib/types/prescription";
+import { Stethoscope , User , Heart, Pill , TestTubeDiagonal , NotebookPen, Paperclip} from "lucide-react"
+import DeleteConfirmModal from "@/components/ui/DeleteConfirmModal";
+
 
 export default function DoctorPrescriptionViewPage() {
-  const params = useParams<{ id: string }>();
+  const { id } = useParams() as { id: string }; // appointment id
   const router = useRouter();
 
-  const [appointment, setAppointment] = useState<Appointment | null>(null);
+  const [doctorInfo, setDoctorInfo] = useState<any>(null);
+  const [patientInfo, setPatientInfo] = useState<any>(null);
+
+
+  const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+
+  const [deleting, setDeleting] = useState(false);
+  const latestRx = prescriptions[prescriptions.length - 1];
+
+
+
+  const handleDeletePrescription = async () => {
+   if (!latestRx?.id) return;
+
+   setDeleting(true);
+  const success = await deletePrescription(latestRx.id);
+  setDeleting(false);
+
+  if (success) {
+    toast({
+      title: "Prescription Deleted ✅",
+      description: "The prescription has been removed.",
+    });
+
+    router.push("/doctor/appointments");
+  } else {
+    toast({
+      title: "Error",
+      description: "Failed to delete prescription. Try again.",
+      variant: "destructive",
+    });
+  }
+};
 
   useEffect(() => {
     (async () => {
-      if (!params?.id) return;
+      try {
+        if (!id) return;
+        
+        const appt = await getAppointmentById(id);
+        console.log("Fetched appointment:", appt);
+        if (!appt) {
+          toast({ title: "Error", description: "Appointment not found", variant: "destructive" });
+          router.push("/doctor/appointments");
+          return;
+        }
+        setDoctorInfo(appt.doctor);
 
-      const appt = await getAppointmentById(params.id);
-      if (!appt || !appt.prescription) {
-        router.replace(`/doctor/appointments/${params.id}`);
-        return;
+        // set patient info directly from appointment
+        setPatientInfo({
+          fullName: appt.patientDetails?.fullName ?? `${appt.patient?.firstName} ${appt.patient?.lastName}`,
+          age: appt.patientDetails?.age,
+          gender: appt.patientDetails?.gender,
+          phone: appt.patientDetails?.phone,
+          weight: appt.patientDetails?.weight,
+        });
+        const rxList = await getPrescriptionsByAppointmentId(id);
+        if (!rxList || rxList.length === 0) {
+          toast({ title: "No prescriptions", description: "No prescriptions found for this appointment." });
+          router.push(`/doctor/appointments`);
+          return;
+        }
+
+        setPrescriptions(rxList);
+      } catch (err) {
+        console.error(err);
+        toast({ title: "Error", description: "Failed to load prescriptions", variant: "destructive" });
+      } finally {
+        setLoading(false);
       }
-      setAppointment(appt);
-      setLoading(false);
     })();
-  }, [params, router]);
+  }, [id, router]);
 
   if (loading) return <div className="p-6">Loading...</div>;
-  if (!appointment || !appointment.prescription)
-    return <div className="p-6">No prescription found.</div>;
+  
+  if (prescriptions.length === 0)
+    return <div className="p-6">No prescriptions found.</div>;
 
-  const rx: Prescription = appointment.prescription;
-  const rd = appointment;
+  
+  
+return (
+  <div className="min-h-screen bg-[#F7FAFC] w-full">
+    <div className="max-w-5xl mx-auto px-6 py-6">
 
-  return (
-    <div className="max-w-3xl mx-auto bg-white p-6 md:p-10 mt-6 mb-10 border rounded-xl shadow-md">
+      {/* Top Bar */}
+      <div className="flex justify-between items-center mb-6">
+        <button
+          onClick={() => router.push(`/doctor/appointments/`)}
+          className="flex items-center gap-2 text-sky-500 hover:text-sky-600 text-sm font-medium"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-4 w-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
+          Back to Appointments
+        </button>
 
-      {/* Header */}
-      <div className="border-b pb-4 mb-4">
-        <h1 className="text-xl font-semibold text-gray-900">
-          Dr. {rx.doctorDetails?.name}
-        </h1>
-        <p className="text-gray-700 text-sm">
-          {rx.doctorDetails?.qualifications}
-        </p>
-        {rx.doctorDetails?.specialty && (
-          <p className="text-gray-500 text-xs">{rx.doctorDetails.specialty}</p>
-        )}
+        <Button
+          onClick={() =>
+          generatePrescriptionPDF({
+            doctorInfo,
+            patientInfo,
+            rx: latestRx
+          })
+        }
+          className="bg-sky-500 hover:bg-sky-600 text-white flex items-center gap-2"
+        >
+          <span>📄</span> Download PDF
+        </Button>
       </div>
 
-      {/* Patient Section */}
-      <div className="mb-6 text-sm">
-        <p>
-          <span className="font-semibold">Patient:</span>{" "}
-          {rx.patientDetails?.fullName}
-        </p>
-        <p>
-          <span className="font-semibold">Age/Gender:</span>{" "}
-          {rx.patientDetails?.age} yrs / {rx.patientDetails?.gender}
-        </p>
-        <p>
-          <span className="font-semibold">Date:</span>{" "}
-          {rx.createdAt ? new Date(rx.createdAt).toLocaleDateString() : "—"}
-        </p>
+      {/* Header */}
+      <h1 className="text-2xl font-semibold text-gray-900">Prescription Details</h1>
+      <p className="text-sm text-gray-500 mb-5">
+        Prescription issued on {new Date(latestRx.createdAt).toLocaleDateString()}
+      </p>
+
+      {/* Doctor & Patient section */}
+      <div className="bg-white rounded-xl  p-5 mb-6 shadow-sm">
+        <div className="grid md:grid-cols-2 gap-4">
+          {/* Doctor */}
+          <div className="bg-sky-50 p-4 rounded-lg ">
+            <h2 className="flex items-center gap-2 font-semibold mb-2 text-sky-700 text-sm">
+              <span><Stethoscope /></span> Doctor Information
+            </h2>
+            <p className="text-sm"><b>Name:</b> Dr. {doctorInfo?.firstName} {doctorInfo?.lastName}</p>
+            <p className="text-sm"><b>Specialty:</b> {doctorInfo?.specialty}</p>
+            <p className="text-sm"><b>Qualifications:</b> {doctorInfo?.qualifications}</p>
+          </div>
+
+          {/* Patient */}
+          <div className="bg-sky-50 p-4 rounded-lg ">
+            <h2 className="flex items-center gap-2 font-semibold mb-2 text-sky-700 text-sm">
+              <span><User /></span> Patient Information
+            </h2>
+            <p className="text-sm"><b>Name:</b> {patientInfo?.fullName}</p>
+            <p className="text-sm"><b>Age:</b> {patientInfo?.age} years</p>
+            <p className="text-sm"><b>Gender:</b> {patientInfo?.gender}</p>
+          </div>
+        </div>
       </div>
 
       {/* Vitals */}
-      {rx.vitals && (
-        (rx.vitals.bp ||
-          rx.vitals.pulse ||
-          rx.vitals.temperature ||
-          rx.vitals.spo2 ||
-          rx.vitals.weight) && (
-          <div className="mb-6">
-            <h2 className="font-semibold border-b pb-1 mb-2">Vitals</h2>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-sm">
-              {rx.vitals.bp && <p>BP: {rx.vitals.bp}</p>}
-              {rx.vitals.pulse && <p>Pulse: {rx.vitals.pulse}</p>}
-              {rx.vitals.temperature && <p>Temp: {rx.vitals.temperature}</p>}
-              {rx.vitals.spo2 && <p>SpO₂: {rx.vitals.spo2}</p>}
-              {rx.vitals.weight && <p>Weight: {rx.vitals.weight}</p>}
-            </div>
-          </div>
-        )
-      )}
+      <div className="bg-white rounded-xl  p-5 mb-6 shadow-sm">
+        <h2 className="flex items-center gap-2 font-semibold mb-3 text-sky-600 text-md">
+          <span><Heart /></span> Vitals
+        </h2>
+        <div className="grid grid-cols-5 text-center text-sm">
+          <div><p className="font-semibold">BP</p>{latestRx.vitals.bp} mmHg</div>
+          <div><p className="font-semibold">Pulse</p>{latestRx.vitals.pulse} bpm</div>
+          <div><p className="font-semibold">Temperature</p>{latestRx.vitals.temperature} &deg; F</div>
+          <div><p className="font-semibold">SpO₂</p>{latestRx.vitals.spo2} %</div>
+          <div><p className="font-semibold">Weight</p>{latestRx.vitals.weight} kg</div>
+        </div>
+      </div>
 
       {/* Medicines */}
-      {rx.medicines?.length > 0 && (
-        <div className="mb-6">
-          <h2 className="font-semibold border-b pb-1 mb-2">Prescription</h2>
-          <ul className="space-y-3 text-sm">
-            {rx.medicines.map((m: { name: string; dosage?: string; frequency?: string; duration?: string; instructions?: string }, i: number) => (
-              <li key={i}>
-                <span className="font-semibold">{i + 1}. {m.name}</span>
-                <p className="ml-5 text-gray-700">
-                  {m.dosage && `${m.dosage}, `}
-                  {m.frequency && `${m.frequency}, `}
-                  {m.duration && `${m.duration}`}
-                </p>
-                {m.instructions && (
-                  <p className="ml-5 text-gray-500 italic text-xs">Note: {m.instructions}</p>
-                )}
-              </li>
+      {latestRx.medicines?.length > 0 && (
+        <div className="bg-white rounded-xl  p-5 mb-6 shadow-sm">
+          <h2 className="flex items-center gap-2 font-semibold mb-3 text-sky-600 text-md">
+            <span><Pill /></span> Medications
+          </h2>
+
+          <div className="space-y-4">
+            {latestRx.medicines.map((m, i) => (
+              <div key={i} className="border-b pb-2 text-sm">
+                <p className="font-semibold">{m.name}</p>
+                <div className="grid grid-cols-4 gap-3 mt-1">
+                  <p><b>Dosage:</b> {m.dosage}</p>
+                  <p><b>Frequency:</b> {m.frequency}</p>
+                  <p><b>Duration:</b> {m.duration}</p>
+                  <p><b>Instructions:</b> {m.instructions || '-'}</p>
+                </div>
+              </div>
             ))}
-          </ul>
+          </div>
         </div>
       )}
 
       {/* Tests */}
-      {Array.isArray(rx.tests) && rx.tests.length > 0 && (
-  <div className="mb-6">
-    <h2 className="font-semibold border-b pb-1 mb-2">Investigations</h2>
-    <ul className="list-disc ml-6 text-sm">
-      {rx.tests.map((t: { name: string }, i: number) => (
-        <li key={i}>{t.name}</li>
-      ))}
-    </ul>
-  </div>
-)}
-
-      {/* Notes */}
-      {rx.notes && (
-        <div className="mb-6">
-          <h2 className="font-semibold border-b pb-1 mb-2">Doctor Notes</h2>
-          <p className="text-sm whitespace-pre-wrap">{rx.notes}</p>
+      {latestRx.tests  && (
+        <div className="bg-white rounded-xl  p-5 mb-6 shadow-sm">
+          <h2 className="flex items-center gap-2 font-semibold mb-3 text-sky-600 text-md">
+            <TestTubeDiagonal /> Investigations
+          </h2>
+          <ul className="list-disc ml-5 text-sm">
+            {latestRx.tests.map((t,i)=> <li key={i}>{t.name}</li>)}
+          </ul>
         </div>
       )}
 
-      {/* Attachments */}
-      {Array.isArray(rx.files) && rx.files.length > 0 && (
-  <div className="mb-6">
-    <h2 className="font-semibold border-b pb-1 mb-2">Attachments</h2>
-    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-      {rx.files.map((file: { name: string; type?: string; dataUrl?: string }, i: number) => (
-        <div key={i} className="border rounded-lg p-2 text-center">
-          {file.type?.startsWith("image/") ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={file.dataUrl}
-              alt={file.name}
-              className="w-full h-32 object-cover rounded-md"
-            />
-          ) : (
-            <div className="text-xs text-gray-600 h-32 flex items-center justify-center">
-              {file.name}
-            </div>
-          )}
-          <p className="text-xs mt-1 truncate">{file.name}</p>
+      {/* Notes */}
+      {latestRx.notes && (
+        <div className="bg-white rounded-xl  p-5 mb-6 shadow-sm">
+          <h2 className="flex items-center gap-2 font-semibold mb-2 text-sky-600 text-md">
+            <NotebookPen /> Additional Information
+          </h2>
+          <p className="text-sm">{latestRx.notes}</p>
         </div>
-      ))}
-    </div>
-  </div>
-)}
+      )}
 
-      {/* Buttons */}
-      <div className="flex justify-between mt-8">
+      {/* Files */}
+      {latestRx.files && (
+        <div className="bg-white rounded-xl  p-5 mb-6 shadow-sm">
+          <h2 className="flex items-center gap-2 font-semibold mb-2 text-sky-600 text-md">
+            <Paperclip /> Attachments
+          </h2>
+          <div className="space-y-2 text-sm">
+            {latestRx.files.map((file,i)=> (
+              <div key={i} className="flex justify-between bg-gray-50 p-2 rounded border">
+                <span>{file.name}</span>
+                <a href="#" className="text-sky-500 text-xs font-semibold underline">Download</a>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      <div className="flex justify-around mt-6">
+      {/* Edit */}
         <Button
-          className="mr-2"
-          variant="outline"
-          onClick={() => router.push("/doctor/appointments")}
+          onClick={() => router.push(`/doctor/appointments/${id}/prescription`)}
+          className="bg-sky-500 text-white hover:bg-sky-600"
         >
-          Back to Appointments
+          Edit Prescription
         </Button>
-        <Button className="mr-2" onClick={() => window.print()}>
-          Print
+
+        {/* Delete */}
+        <Button
+          variant="destructive"
+          onClick={() => setShowDeleteModal(true)}
+        >
+          Delete
         </Button>
-        <div className="flex">
-          <Button
-            className="mr-2"
-            onClick={() =>
-              router.push(`/doctor/appointments/${appointment.id}/prescription`)
-            }
-          >
-            Edit
-          </Button>
-
-          <Button
-            variant="destructive"
-            className="mr-2"
-            onClick={async () => {
-              if (!confirm("Delete this prescription?")) return;
-
-              await updateAppointment(String(appointment.id), {
-                prescription: undefined,
-              });
-
-              toast({
-                title: "Deleted",
-                description: "Prescription deleted successfully.",
-                variant: "destructive",
-              });
-
-              router.push("/doctor/appointments");
-            }}
-          >
-            Delete
-          </Button>
-        </div>
+        <DeleteConfirmModal
+        open={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={() => {
+          setShowDeleteModal(false);
+          handleDeletePrescription();
+        }}
+      />
       </div>
     </div>
-  );
+
+    
+  </div>
+);
 }
