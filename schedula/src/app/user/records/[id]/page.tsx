@@ -33,7 +33,7 @@ export default function PrescriptionDetailPage() {
       try {
         setLoading(true);
         const prescriptionsResult = await getPrescriptionByPatient(patientId);
-        console.log("Prescriptions Result:", prescriptionsResult);
+        // console.log("Prescriptions Result:", prescriptionsResult);
 
         if (prescriptionsResult && Array.isArray(prescriptionsResult)) {
           // Filter out null prescriptions
@@ -84,7 +84,7 @@ export default function PrescriptionDetailPage() {
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading user data...</p>
+          <p className="text-gray-600">Loading records...</p>
         </div>
       </div>
     );
