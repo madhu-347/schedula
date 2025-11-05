@@ -322,7 +322,7 @@ export default function DoctorDashboardPage() {
             <div className="flex justify-between h-16 items-center">
               <div className="flex items-center">
                 <h1 className="text-xl font-semibold text-gray-900">
-                  {doctor?.firstName}{doctor?.lastName} Dashboard
+                  Dr. {doctor?.firstName}{doctor?.lastName} 's Dashboard
                 </h1>
               </div>
               <div className="flex items-center space-x-4">
@@ -377,6 +377,10 @@ export default function DoctorDashboardPage() {
                     onMonthChange={setCurrentMonth}
                     modifiers={appointmentDayModifier}
                     modifiersClassNames={{ appointment: "rdp-day_appointment" }}
+                    onDayClick={(day) => {
+                      const formattedDate = format(day, "yyyy-MM-dd");
+                      router.push(`/doctor/calendar?date=${formattedDate}`);
+                    }}
                     styles={{
                       caption_label: { fontWeight: "bold" },
                       head_cell: { color: "#666", fontSize: "0.8rem" },

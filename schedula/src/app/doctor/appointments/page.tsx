@@ -20,6 +20,7 @@ import {
   getAppointmentsByDoctor,
   updateAppointment,
 } from "@/app/services/appointments.api";
+import { getPrescriptionsByAppointmentId } from "@/app/services/prescription.api";
 import { useAuth } from "@/context/AuthContext";
 import { Appointment } from "@/lib/types/appointment";
 
@@ -36,6 +37,8 @@ export default function DoctorAppointmentsPage() {
     useState<Appointment | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [hasPrescription, setHasPrescription] = useState(false);
+
 
   // Load appointments from API
   const loadAppointments = async () => {
@@ -148,6 +151,7 @@ export default function DoctorAppointmentsPage() {
     return () => window.removeEventListener("keydown", handleEsc);
   }, []);
 
+  
   const tabs: TabStatus[] = ["Upcoming", "Completed", "Cancelled"];
 
   if (isLoading) {
@@ -272,7 +276,12 @@ export default function DoctorAppointmentsPage() {
                     variant="outline"
                     size="sm"
                     className="border-cyan-600 text-cyan-600 hover:bg-cyan-50"
-                    onClick={() => setSelectedAppointment(appointment)}
+                    onClick={async () => {
+                    setSelectedAppointment(appointment);
+                    const rx = await getPrescriptionsByAppointmentId(appointment.id);
+                    setHasPrescription(rx && rx.length > 0);
+}}
+
                   >
                     View Details
                   </Button>
@@ -469,23 +478,19 @@ export default function DoctorAppointmentsPage() {
                     </div>
                   </>
                 )}
-                {selectedAppointment.status === "Completed" && (
-                  <>
-                    {!selectedAppointment.prescription ? (
-                      <Button 
-                        onClick={() => router.push(`/doctor/appointments/${selectedAppointment.id}/prescription`)}
-                      >
-                        Add Prescription
-                      </Button>
-                    ) : (
-                      <Button 
-                        variant="outline"
-                        onClick={() => router.push(`/doctor/appointments/${selectedAppointment.id}/prescription/view`)}
-                      >
-                        View Prescription
-                      </Button>
-                    )}
-                  </>
+                {!hasPrescription ? (
+                  <Button
+                    onClick={() => router.push(`/doctor/appointments/${selectedAppointment.id}/prescription`)}
+                  >
+                    Add Prescription
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outline"
+                    onClick={() => router.push(`/doctor/appointments/${selectedAppointment.id}/prescription/view`)}
+                  >
+                    View  Prescription
+                  </Button>
                 )}
                 <Button
                   variant="outline"

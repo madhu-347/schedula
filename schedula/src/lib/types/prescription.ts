@@ -1,16 +1,11 @@
 export interface Prescription {
   createdAt: string;
-  doctorDetails?: {
-    id?: string;
-    name?: string;
-    qualifications?: string;
-    specialty?: string;
-  };
-  patientDetails?: {
-    fullName?: string;
-    age?: number;
-    gender?: string;
-  };
+  id: string;
+  appointmentId: string;
+  doctorId: string;
+  patientId: string;
+ 
+
   vitals: {
     bp?: string;
     pulse?: string;

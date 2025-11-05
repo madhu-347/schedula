@@ -4,16 +4,18 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { InputFieldComponent } from "@/components/ui/InputField";
-import { Plus, X, Upload } from "lucide-react";
+import { Plus, X, Upload , ArrowLeft} from "lucide-react";
 import { toast } from "@/hooks/useToast";
 import { useAuth } from "@/context/AuthContext";
 import {
   getAppointmentById,
-  updateAppointment,
 } from "@/app/services/appointments.api";
+import { getPrescriptionsByAppointmentId } from "@/app/services/prescription.api"
 import usePrescriptionForm from "@/hooks/usePrescriptionForm";
 import type { Appointment } from "@/lib/types/appointment";
-import type { Prescription } from "@/lib/types/prescription";
+import { createPrescription } from "@/app/services/prescription.api";
+import Link from "next/link"; 
+
 
 export default function PrescriptionFormPage() {
   const { id } = useParams() as { id: string };
@@ -22,27 +24,11 @@ export default function PrescriptionFormPage() {
 
   const [appointment, setAppointment] = useState<Appointment | null>(null);
   const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    if (id) {
-      (async () => {
-        try {
-          const appt = await getAppointmentById(String(id));
-          setAppointment(appt);
-        } catch (err) {
-          console.error(err);
-          toast({
-            title: "Error",
-            description: "Failed to load appointment data.",
-            variant: "destructive",
-          });
-        }
-      })();
-    }
-  }, [id]);
-
+  const [errors, setErrors] = useState<{[key:string]:string}>({});
+  const [submitted, setSubmitted] = useState(false);
+  const [isFormValid, setIsFormValid] = useState(false);
   const {
-    vitals,
+    vitals = { bp: "", pulse: "", temperature: "", spo2: "", weight: "" },
     setVitals,
     medicines,
     setMedicines,
@@ -53,6 +39,179 @@ export default function PrescriptionFormPage() {
     files,
     setFiles,
   } = usePrescriptionForm(appointment?.prescription ?? undefined);
+
+
+  const validateForm = () => {
+  let newErrors: any = {};
+
+  // vitals
+  if (!vitals.bp || !/^\d{2,3}\/\d{2,3}$/.test(vitals.bp)) 
+    newErrors.bp = "Enter valid BP (eg: 120/80)";
+  if (!vitals.pulse) newErrors.pulse = "Enter pulse (eg: 75)";
+  if (!vitals.temperature) newErrors.temperature = "Enter temp (eg: 98.6°F)";
+  if (!vitals.spo2) newErrors.spo2 = "Enter SpO₂ (eg: 98%)";
+  if (!vitals.weight) newErrors.weight = "Enter weight (eg: 65kg)";
+
+
+  // medicines
+    medicines.forEach((m, i) => {
+    // Name: required
+    if (!m.name?.trim()) newErrors[`med-${i}-name`] = "Required";
+
+    // Dosage: must include mg/ml/tablet
+    if (!m.dosage?.trim()) newErrors[`med-${i}-dosage`] = "Required";
+    else if (!/^\d+(\s?(mg|ml|tablet|tab|capsule|drop))$/i.test(m.dosage))
+        newErrors[`med-${i}-dosage`] = "e.g. 500mg or 2 tablet";
+
+    // Frequency: valid patterns
+    if (!m.frequency?.trim()) newErrors[`med-${i}-frequency`] = "Required";
+    else if (
+        !/^(\d{1,2}\/day|\d{1,2}\s?times\/day|morning-evening|night|once daily|twice daily)$/i
+        .test(m.frequency)
+    )
+        newErrors[`med-${i}-frequency`] = "e.g. 2/day, morning-evening";
+
+    // Duration: must be like "5 days" or "2 weeks"
+    if (!m.duration?.trim()) newErrors[`med-${i}-duration`] = "Required";
+    else if (!/^(\d{1,2})\s?(day|days|week|weeks)$/i.test(m.duration))
+        newErrors[`med-${i}-duration`] = "e.g. 5 days / 2 weeks";
+    });
+  // tests
+    tests.forEach((t, i) => {
+    if (!t.name.trim()) {
+        newErrors[`test-${i}`] = "Enter test or remove row";
+    } else if (!/^[a-zA-Z0-9\s\-()]+$/.test(t.name)) {
+        newErrors[`test-${i}`] = "Invalid characters";
+    }
+});
+
+  setErrors(newErrors);
+  return Object.keys(newErrors).length === 0;
+};
+
+  const buildErrors = () => {
+  const newErrors: Record<string, string> = {};
+
+    // BP (90/60 – 180/120)
+    if (!vitals.bp) {
+    newErrors.bp = "Blood pressure required";
+    } else {
+    const bpRegex = /^(\d{2,3})\/(\d{2,3})$/;
+    if (!bpRegex.test(vitals.bp)) {
+        newErrors.bp = "Format must be like 120/80";
+    } else {
+        const [sys, dia] = vitals.bp.split("/").map(Number);
+        if (sys < 90 || sys > 180 || dia < 60 || dia > 120) {
+        newErrors.bp = "Unrealistic BP value";
+        }
+    }
+    }
+
+    // Pulse (40–180)
+    if (!vitals.pulse) newErrors.pulse = "Pulse required";
+    else if (isNaN(Number(vitals.pulse)) || Number(vitals.pulse) < 40 || Number(vitals.pulse) > 180)
+    newErrors.pulse = "Enter valid pulse (40-180)";
+
+    // Temperature (94°F – 108°F or 34°C – 42°C)
+    if (!vitals.temperature) newErrors.temperature = "Temperature required";
+    else {
+    const val = parseFloat(vitals.temperature);
+    if (isNaN(val) || !(
+        (val >= 94 && val <= 108) || (val >= 34 && val <= 42)
+    )) {
+        newErrors.temperature = "Enter valid temperature";
+    }
+    }
+
+    // SpO₂ (70–100)
+    if (!vitals.spo2) newErrors.spo2 = "SpO₂ required";
+    else {
+    const sp = parseInt(vitals.spo2);
+    if (isNaN(sp) || sp < 70 || sp > 100)
+        newErrors.spo2 = "Enter valid SpO₂ (70-100%)";
+    }
+
+    // Weight (1–300kg)
+    if (!vitals.weight) newErrors.weight = "Weight required";
+    else {
+    const w = parseInt(vitals.weight);
+    if (isNaN(w) || w < 1 || w > 300)
+        newErrors.weight = "Enter valid weight (1-300kg)";
+    }
+
+  // medicines
+medicines.forEach((m, i) => {
+  // Name: required
+  if (!m.name?.trim()) newErrors[`med-${i}-name`] = "Required";
+
+  // Dosage: must include mg/ml/tablet
+  if (!m.dosage?.trim()) newErrors[`med-${i}-dosage`] = "Required";
+  else if (!/^\d+(\s?(mg|ml|tablet|tab|capsule|drop))$/i.test(m.dosage))
+    newErrors[`med-${i}-dosage`] = "e.g. 500mg or 2 tablet";
+
+  // Frequency: valid patterns
+  if (!m.frequency?.trim()) newErrors[`med-${i}-frequency`] = "Required";
+  else if (
+    !/^(\d{1,2}\/day|\d{1,2}\s?times\/day|morning-evening|night|once daily|twice daily)$/i
+      .test(m.frequency)
+  )
+    newErrors[`med-${i}-frequency`] = "e.g. 2/day, morning-evening";
+
+  // Duration: must be like "5 days" or "2 weeks"
+  if (!m.duration?.trim()) newErrors[`med-${i}-duration`] = "Required";
+  else if (!/^(\d{1,2})\s?(day|days|week|weeks)$/i.test(m.duration))
+    newErrors[`med-${i}-duration`] = "e.g. 5 days / 2 weeks";
+});
+
+
+  tests.forEach((t, i) => {
+  if (!t.name.trim()) {
+    newErrors[`test-${i}`] = "Enter test or remove row";
+  } else if (!/^[a-zA-Z0-9\s\-()]+$/.test(t.name)) {
+    newErrors[`test-${i}`] = "Invalid characters";
+  }
+});
+
+  return newErrors;
+};
+    useEffect(() => {
+    if (!submitted) return; // ✅ don't validate until submit clicked
+
+    const e = buildErrors();
+    setErrors(e);
+    setIsFormValid(Object.keys(e).length === 0);
+    }, [submitted, vitals, medicines, tests]);
+
+  useEffect(() => {
+  if (!id) return;
+
+  (async () => {
+    try {
+      const appt = await getAppointmentById(String(id));
+
+      //  Fetch prescriptions for this appointment
+      const prescriptions = getPrescriptionsByAppointmentId(String(id));
+      const latestRx =
+        prescriptions && prescriptions.length > 0
+          ? prescriptions[prescriptions.length - 1]
+          : null;
+
+      setAppointment({
+        ...appt,
+        prescription: latestRx || null,
+      });
+    } catch (err) {
+      console.error(err);
+      toast({
+        title: "Error",
+        description: "Failed to load appointment data.",
+        variant: "destructive",
+      });
+    }
+  })();
+}, [id]);
+
+ 
 
   const addMedicine = () =>
     setMedicines([
@@ -99,92 +258,110 @@ export default function PrescriptionFormPage() {
   const isEdit = Boolean(appointment?.prescription);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSaving(true);
+  e.preventDefault();
+  setSubmitted(true); 
 
-    if (!appointment) {
-      toast({
-        title: "Error",
-        description: "Appointment data not loaded.",
-        variant: "destructive",
-      });
-      setSaving(false);
-      return;
+  const eobj = buildErrors();
+  setErrors(eobj);
+  const ok = Object.keys(eobj).length === 0;
+
+  if (!ok) {
+    toast({
+      title: "Form is incomplete",
+      description: "Please fix highlighted fields.",
+      variant: "destructive",
+    });
+    return; // ← saving has NOT been set yet, so button won't get stuck
+  }
+
+  setSaving(true);
+
+  const appt = await getAppointmentById(String(id));
+  if (!appt) {
+    setSaving(false);
+    toast({ title: "Error", description: "Appointment not found", variant: "destructive" });
+    return;
+  }
+
+  const prescriptionId = `rx_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+  try {
+    await createPrescription({
+      createdAt: new Date().toISOString(),
+      id : prescriptionId,
+      appointmentId: String(id),
+      doctorId: doctor?.id || "",
+      patientId: appt.patientId,
+      vitals,
+      medicines,
+      tests,
+      notes,
+      files: files.map(f => ({ name: f.name })),
+    });
+
+    const recipientId = appt?.patientId;
+    
+    if (recipientId) {
+      try {
+        await fetch("/api/notifications", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            recipientId,
+            doctorName: appt.doctor?.firstName,
+            message: isEdit ? "Your prescription has been updated." : "A new prescription has been added by your doctor.",
+            appointmentId: id,
+            targetUrl: `/user/appointment/${id}/prescription`,
+          }),
+        });
+      } catch { /* ignore notification error */ }
     }
 
-    try {
-      const payload: Prescription = {
-        createdAt: new Date().toISOString(),
-        doctorDetails: {
-          id: doctor?.id || "",
-          name: `${doctor?.firstName ?? ""} ${doctor?.lastName ?? ""}`,
-          qualifications: doctor?.qualifications ?? "",
-          specialty: doctor?.specialty ?? "",
-        },
-        patientDetails: appointment.patientDetails,
-        vitals,
-        medicines,
-        tests,
-        notes,
-        files,
-      };
+    toast({
+      title: isEdit ? "Prescription Updated " : "Prescription Saved ",
+      description: "Changes have been stored.",
+    });
 
-      await updateAppointment(String(id), {
-        prescription: payload,
-        status: "Completed",
-      });
+    router.push(`/doctor/appointments/${id}/prescription/view`);
+  } catch (err) {
+    console.error(err);
+    toast({
+      title: "Save failed",
+      description: "Could not save prescription. Try again.",
+      variant: "destructive",
+    });
+  } finally {
+    setSaving(false);
+  }
+};
 
-      const recipientId = appointment.patientId;
-
-      if (recipientId) {
-        try {
-          await fetch("/api/notifications", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              recipientId,
-              doctorName: payload.doctorDetails?.name,
-              message: isEdit
-                ? "Your prescription has been updated."
-                : "A new prescription has been added by your doctor.",
-              appointmentId: id,
-              targetUrl: `/user/appointment/${id}/prescription`,
-            }),
-          });
-        } catch (err) {
-          console.error("Failed to send notification:", err);
-        }
-      } else {
-        console.warn(
-          "No patient id found on appointment. Skipping notification."
-        );
-      }
-
-      toast({
-        title: isEdit ? "Prescription Updated ✅" : "Prescription Saved ✅",
-        description: "Changes have been stored.",
-      });
-
-      router.push("/doctor/appointments");
-    } catch (err) {
-      console.error(err);
-      toast({
-        title: "Save failed",
-        description: "Could not save prescription. Try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setSaving(false);
-    }
-  };
+  const inputErrorClass = (key: string) =>
+  errors[key] ? "border-red-500 focus:border-red-500 focus:ring-red-400" : "";
 
   if (!appointment) return <p className="p-6">Loading...</p>;
-
+  
   return (
+   <div className="min-h-screen bg-gray-50 relative">
+      {/* Header */}
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
+        <div className="max-w-4xl mx-auto px-6 py-4">
+          <div className="flex items-center gap-3">
+            <Link
+              href="/doctor/dashboard"
+              className="p-2 -ml-2 rounded-full hover:bg-cyan-50 transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </Link>
+            <div>
+              <h1 className="text-xl font-semibold ">
+                {isEdit ? "Edit Prescription" : "Add Prescription"}
+              </h1>
+            </div>
+          </div>
+        </div>
+      </header>
     <div className="max-w-3xl mx-auto p-6 space-y-6">
-      <h1 className="text-xl font-semibold mb-4">
-        {isEdit ? "Edit Prescription" : "Add Prescription"}
-      </h1>
+     
 
       <form className="space-y-6" onSubmit={handleSubmit}>
         {/* Vitals */}
@@ -193,15 +370,24 @@ export default function PrescriptionFormPage() {
           <div className="grid grid-cols-2 gap-2">
             <div className="flex items-center gap-1">
               <label className="text-gray-600 w-15">BP</label>
-              <InputFieldComponent
+              <div className="flex flex-col">
+                <InputFieldComponent
                 type="text"
                 placeholder="120/80"
                 value={vitals.bp}
-                onChange={(e) => setVitals({ ...vitals, bp: e.target.value })}
+                onChange={(e) => {
+                let val = e.target.value.replace(/[^\d]/g, ""); // numbers only
+                if (val.length > 3) val = val.slice(0, 3) + "/" + val.slice(3);
+                setVitals({ ...vitals, bp: val });
+                }}
+                className={`${inputErrorClass("bp")}`}
               />
+                {errors.bp && <p className="text-red-500 text-xs">{errors.bp}</p>}
+                </div>
             </div>
             <div className="flex items-center gap-1">
               <label className=" text-gray-600 w-15">Pulse</label>
+              <div className="flex flex-col">
               <InputFieldComponent
                 type="text"
                 placeholder="75"
@@ -209,30 +395,48 @@ export default function PrescriptionFormPage() {
                 onChange={(e) =>
                   setVitals({ ...vitals, pulse: e.target.value })
                 }
+                className={`${inputErrorClass("pulse")}`}
               />
+              {submitted && errors.pulse && (
+                <p className="text-xs text-red-500">{errors.pulse}</p>
+                )}
+            </div>
             </div>
             <div className="flex items-center gap-1">
               <label className=" text-gray-600 w-15">Temp</label>
+              <div className="flex flex-col">
               <InputFieldComponent
                 type="text"
                 placeholder="98.6°F"
                 value={vitals.temperature}
                 onChange={(e) =>
-                  setVitals({ ...vitals, temperature: e.target.value })
+                  setVitals({ ...vitals, temperature: e.target.value })  
                 }
+                className={`${inputErrorClass("temperature")}`}
               />
+              {submitted && errors.temperature && (
+                <p className="text-xs text-red-500">{errors.temperature}</p>
+                )}
+               </div>
             </div>
             <div className="flex items-center gap-1">
               <label className=" text-gray-600 w-15">SpO₂</label>
+              <div className="flex flex-col">
               <InputFieldComponent
                 type="text"
                 placeholder="98%"
                 value={vitals.spo2}
                 onChange={(e) => setVitals({ ...vitals, spo2: e.target.value })}
+                className={`${inputErrorClass("spo2")}`}
               />
+              {submitted && errors.spo2 && (
+                <p className="text-xs text-red-500">{errors.spo2}</p>
+                )}
+                </div>
             </div>
             <div className="flex items-center gap-1">
               <label className=" text-gray-600 w-15">Wt</label>
+              <div className="flex flex-col">
               <InputFieldComponent
                 type="text"
                 placeholder="65kg"
@@ -240,7 +444,12 @@ export default function PrescriptionFormPage() {
                 onChange={(e) =>
                   setVitals({ ...vitals, weight: e.target.value })
                 }
+                className={`${inputErrorClass("weight")}`}
               />
+              {submitted && errors.weight && (
+                <p className="text-xs text-red-500">{errors.weight}</p>
+                )}
+               </div> 
             </div>
           </div>
         </div>
@@ -260,17 +469,21 @@ export default function PrescriptionFormPage() {
                   Medicine Name
                 </label>
                 <InputFieldComponent
-                  type="text"
-                  placeholder="Paracetamol"
-                  value={m.name}
-                  onChange={(e) =>
-                    setMedicines(
-                      medicines.map((x, idx) =>
-                        idx === i ? { ...x, name: e.target.value } : x
-                      )
-                    )
-                  }
-                />
+                    type="text"
+                    placeholder="Paracetamol"
+                    value={m.name}
+                    className={`${inputErrorClass(`med-${i}-name`)}`}
+                    onChange={(e) =>
+                        setMedicines(
+                        medicines.map((x, idx) =>
+                            idx === i ? { ...x, name: e.target.value } : x
+                        )
+                        )
+                    }
+                    />
+                    {errors[`med-${i}-name`] && (
+                    <p className="text-xs text-red-500">{errors[`med-${i}-name`]}</p>
+                    )}
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
@@ -289,6 +502,9 @@ export default function PrescriptionFormPage() {
                       )
                     }
                   />
+                   {errors[`med-${i}-dosage`] && (
+                    <p className="text-xs text-red-500">{errors[`med-${i}-dosage`]}</p>
+                    )}
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs font-medium text-gray-600">
@@ -296,7 +512,7 @@ export default function PrescriptionFormPage() {
                   </label>
                   <InputFieldComponent
                     type="text"
-                    placeholder="2 times/day"
+                    placeholder="2/day"
                     value={m.frequency}
                     onChange={(e) =>
                       setMedicines(
@@ -306,6 +522,9 @@ export default function PrescriptionFormPage() {
                       )
                     }
                   />
+                   {errors[`med-${i}-frequency`] && (
+                    <p className="text-xs text-red-500">{errors[`med-${i}-frequency`]}</p>
+                    )}
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-2">
@@ -325,6 +544,9 @@ export default function PrescriptionFormPage() {
                       )
                     }
                   />
+                   {errors[`med-${i}-duration`] && (
+                    <p className="text-xs text-red-500">{errors[`med-${i}-duration`]}</p>
+                    )}
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs font-medium text-gray-600">
@@ -342,6 +564,9 @@ export default function PrescriptionFormPage() {
                       )
                     }
                   />
+                   {errors[`med-${i}-name`] && (
+                    <p className="text-xs text-red-500">{errors[`med-${i}-name`]}</p>
+                    )}
                 </div>
               </div>
               <button
@@ -370,17 +595,21 @@ export default function PrescriptionFormPage() {
                   Test Name
                 </label>
                 <InputFieldComponent
-                  type="text"
-                  placeholder="CBC, Thyroid, X-Ray"
-                  value={t.name}
-                  onChange={(e) =>
-                    setTests(
-                      tests.map((x, idx) =>
-                        idx === i ? { name: e.target.value } : x
-                      )
-                    )
-                  }
-                />
+                    type="text"
+                    placeholder="CBC / X-Ray"
+                    value={t.name}
+                    className={`${inputErrorClass(`test-${i}`)}`}
+                    onChange={(e) =>
+                        setTests(
+                        tests.map((x, idx) =>
+                            idx === i ? { name: e.target.value } : x
+                        )
+                        )
+                    }
+                    />
+                    {errors[`test-${i}`] && (
+                    <p className="text-xs text-red-500">{errors[`test-${i}`]}</p>
+                    )}
               </div>
               <Button
                 variant="destructive"
@@ -439,13 +668,10 @@ export default function PrescriptionFormPage() {
         </div>
 
         <Button type="submit" disabled={saving} className="w-full mt-6">
-          {saving
-            ? "Saving..."
-            : isEdit
-            ? "Update Prescription"
-            : "Save Prescription"}
+            {saving ? "Saving..." : isEdit ? "Update Prescription" : "Save Prescription"}
         </Button>
       </form>
+    </div>
     </div>
   );
 }

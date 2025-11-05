@@ -3,6 +3,7 @@
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getPrescriptionByPatient } from "@/app/services/prescription.api";
+import { getAppointmentById } from "@/app/services/appointments.api";
 import { Prescription } from "@/lib/types/prescription";
 import { useAuth } from "@/context/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
@@ -25,6 +26,7 @@ export default function PrescriptionDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [appointment, setAppointment] = useState<any>(null);
 
   useEffect(() => {
     const fetchPrescription = async () => {
@@ -48,6 +50,8 @@ export default function PrescriptionDetailPage() {
             index < validPrescriptions.length
           ) {
             setPrescription(validPrescriptions[index]);
+            const appt = await getAppointmentById(validPrescriptions[index].appointmentId);
+            setAppointment(appt);
           } else {
             setError("Prescription not found");
           }
@@ -89,7 +93,7 @@ export default function PrescriptionDetailPage() {
       </div>
     );
   }
-
+  console.log('appt',appointment)
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       {/* Main Content */}
@@ -166,16 +170,16 @@ export default function PrescriptionDetailPage() {
                       <div className="space-y-2">
                         <p className="text-sm">
                           <span className="font-medium">Name:</span>{" "}
-                          {prescription.doctorDetails?.name || "Not specified"}
+                         Dr. {appointment.doctor?.firstName} {appointment.doctor?.lastName}
                         </p>
                         <p className="text-sm">
                           <span className="font-medium">Specialty:</span>{" "}
-                          {prescription.doctorDetails?.specialty ||
+                          {appointment.doctor?.specialty ||
                             "Not specified"}
                         </p>
                         <p className="text-sm">
                           <span className="font-medium">Qualifications:</span>{" "}
-                          {prescription.doctorDetails?.qualifications ||
+                          {appointment.doctor?.qualifications ||
                             "Not specified"}
                         </p>
                       </div>
@@ -192,18 +196,18 @@ export default function PrescriptionDetailPage() {
                       <div className="space-y-2">
                         <p className="text-sm">
                           <span className="font-medium">Name:</span>{" "}
-                          {prescription.patientDetails?.fullName ||
+                          {appointment.patientDetails?.fullName ||
                             "Not specified"}
                         </p>
                         <p className="text-sm">
                           <span className="font-medium">Age:</span>{" "}
-                          {prescription.patientDetails?.age
-                            ? `${prescription.patientDetails.age} years`
+                          {appointment.patientDetails?.age
+                            ? `${appointment.patientDetails?.age} years`
                             : "Not specified"}
                         </p>
                         <p className="text-sm">
                           <span className="font-medium">Gender:</span>{" "}
-                          {prescription.patientDetails?.gender ||
+                          {appointment.patientDetails?.gender ||
                             "Not specified"}
                         </p>
                       </div>
@@ -229,31 +233,31 @@ export default function PrescriptionDetailPage() {
                     <div className="bg-gray-50 rounded-lg p-3 text-center">
                       <p className="text-xs text-gray-500">BP</p>
                       <p className="font-medium text-gray-900">
-                        {prescription.vitals?.bp || "N/A"}
+                        {prescription.vitals?.bp || "N/A"} mmHg
                       </p>
                     </div>
                     <div className="bg-gray-50 rounded-lg p-3 text-center">
                       <p className="text-xs text-gray-500">Pulse</p>
                       <p className="font-medium text-gray-900">
-                        {prescription.vitals?.pulse || "N/A"}
+                        {prescription.vitals?.pulse || "N/A"} bpm
                       </p>
                     </div>
                     <div className="bg-gray-50 rounded-lg p-3 text-center">
                       <p className="text-xs text-gray-500">Temperature</p>
                       <p className="font-medium text-gray-900">
-                        {prescription.vitals?.temperature || "N/A"}
+                        {prescription.vitals?.temperature || "N/A"} °F
                       </p>
                     </div>
                     <div className="bg-gray-50 rounded-lg p-3 text-center">
                       <p className="text-xs text-gray-500">SpO₂</p>
                       <p className="font-medium text-gray-900">
-                        {prescription.vitals?.spo2 || "N/A"}
+                        {prescription.vitals?.spo2 || "N/A"} %
                       </p>
                     </div>
                     <div className="bg-gray-50 rounded-lg p-3 text-center">
                       <p className="text-xs text-gray-500">Weight</p>
                       <p className="font-medium text-gray-900">
-                        {prescription.vitals?.weight || "N/A"}
+                        {prescription.vitals?.weight || "N/A"} kg
                       </p>
                     </div>
                   </div>

@@ -9,6 +9,8 @@ import Image from "next/image";
 import BottomNav from "@/components/BottomNav";
 import { Appointment } from "@/lib/types/appointment";
 import Heading from "@/components/ui/Heading";
+import { getPrescriptionsByAppointmentId } from "@/app/services/prescription.api";
+
 import {
   getAppointmentsByPatient,
   updateAppointment,
@@ -37,8 +39,20 @@ const AppointmentsPage: React.FC = () => {
     try {
       setLoading(true);
       const response = await getAppointmentsByPatient(user?.id || "");
-      console.log("response: ", response);
-      setAppointments(response || []);
+      console.log("Appointments:", response);
+
+      if (response && Array.isArray(response)) {
+        // ✅ Attach prescriptions to each appointment
+        const withPrescriptions = response.map((appointment) => {
+          const prescriptions = getPrescriptionsByAppointmentId(appointment.id);
+          return { ...appointment, prescription: prescriptions?.[prescriptions.length - 1] || null };
+        });
+
+        console.log("Appointments with prescriptions:", withPrescriptions);
+        setAppointments(withPrescriptions);
+      } else {
+        setAppointments([]);
+      }
     } catch (error) {
       console.error("Error fetching appointments:", error);
       setAppointments([]);

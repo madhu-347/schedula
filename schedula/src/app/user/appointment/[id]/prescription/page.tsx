@@ -3,6 +3,7 @@
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getAppointmentById } from "@/app/services/appointments.api";
+import { getPrescriptionsByAppointmentId } from "@/app/services/prescription.api";
 import jsPDF from "jspdf";
 import { Download, ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -27,7 +28,19 @@ export default function UserPrescriptionView() {
       try {
         setLoading(true);
         const appt = await getAppointmentById(String(id));
-        setAppointment(appt);
+        const prescriptions = getPrescriptionsByAppointmentId(String(id));
+        const latestPrescription =
+          prescriptions && prescriptions.length > 0
+            ? prescriptions[prescriptions.length - 1]
+            : null;
+
+        setAppointment({
+          ...appt,
+          prescription: latestPrescription,
+        });
+
+console.log("Fetched Appointment:", appt);
+console.log("Attached Prescription:", latestPrescription);
       } catch (err) {
         console.error("Failed to load appointment", err);
         setAppointment(null);
@@ -61,7 +74,6 @@ export default function UserPrescriptionView() {
   const isHttpUrl = (s: string) =>
     typeof s === "string" &&
     (s.startsWith("http://") || s.startsWith("https://"));
-
   // Generate PDF. Includes text sections and attempts to embed image files if present as data URLs or remote images.
   const downloadPDF = async () => {
     setGeneratingPdf(true);
@@ -324,11 +336,11 @@ export default function UserPrescriptionView() {
               <div>
                 <p className="text-sm text-slate-600">
                   <span className="font-medium text-slate-800">Doctor:</span>{" "}
-                  {doctorName}
+                  Dr. {appointment.doctor.firstName} {appointment.doctor.lastName}
                 </p>
                 <p className="text-sm text-slate-600">
                   <span className="font-medium text-slate-800">Patient:</span>{" "}
-                  {patientName}
+                  {appointment.patientDetails.fullName}
                 </p>
               </div>
               <div className="text-right text-sm text-slate-600">
@@ -351,31 +363,31 @@ export default function UserPrescriptionView() {
                 <div>
                   BP:{" "}
                   <span className="font-medium">
-                    {safe(prescription.vitals?.bp)}
+                    {safe(prescription.vitals?.bp)} mmHg
                   </span>
                 </div>
                 <div>
                   Pulse:{" "}
                   <span className="font-medium">
-                    {safe(prescription.vitals?.pulse)}
+                    {safe(prescription.vitals?.pulse)} bpm
                   </span>
                 </div>
                 <div>
                   Temperature:{" "}
                   <span className="font-medium">
-                    {safe(prescription.vitals?.temperature)}
+                    {safe(prescription.vitals?.temperature)} °F
                   </span>
                 </div>
                 <div>
                   SpO₂:{" "}
                   <span className="font-medium">
-                    {safe(prescription.vitals?.spo2)}
+                    {safe(prescription.vitals?.spo2)} %
                   </span>
                 </div>
                 <div>
                   Weight:{" "}
                   <span className="font-medium">
-                    {safe(prescription.vitals?.weight)}
+                    {safe(prescription.vitals?.weight)} kg
                   </span>
                 </div>
               </div>
