@@ -228,10 +228,14 @@ export default function DoctorDashboardPage() {
 
   // Fetch appointments on mount and when doctor changes
   useEffect(() => {
-    if (doctor?.id) {
-      fetchAndProcessAppointments();
-    }
-  }, [doctor?.id]);
+  if (!doctor?.id) return;
+
+  fetchAndProcessAppointments();
+
+  // Auto-refresh every 60 seconds
+  const interval = setInterval(fetchAndProcessAppointments, 60000);
+  return () => clearInterval(interval);
+}, [doctor?.id]);
 
   // Fetch notifications
   useEffect(() => {

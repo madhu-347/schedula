@@ -4,7 +4,8 @@ import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getAppointmentById } from "@/app/services/appointments.api";
 import jsPDF from "jspdf";
-import { Download } from "lucide-react";
+import { Download, ArrowLeft } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 /**
  * User Prescription View
@@ -15,6 +16,7 @@ import { Download } from "lucide-react";
  */
 
 export default function UserPrescriptionView() {
+  const router = useRouter();
   const { id } = useParams() as { id: string | undefined };
   const [appointment, setAppointment] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -287,10 +289,19 @@ export default function UserPrescriptionView() {
   return (
     <div className="min-h-screen bg-sky-50 py-8 pb-28 overflow-y-auto">
       <div className="max-w-3xl mx-auto px-4">
-        <div className="flex items-start justify-between mb-4">
-          <h1 className="text-2xl font-semibold text-slate-800">
-            Prescription Details
-          </h1>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => router.back()}
+              className="p-2 rounded-full hover:bg-sky-100 transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5 text-sky-700" />
+            </button>
+            <h1 className="text-2xl font-semibold text-slate-800">
+              Prescription Details
+            </h1>
+          </div>
+
           <button
             onClick={downloadPDF}
             disabled={generatingPdf}
@@ -302,6 +313,7 @@ export default function UserPrescriptionView() {
             {generatingPdf ? "Generating..." : "Download PDF"}
           </button>
         </div>
+
 
         {/* Sky-blue card */}
         <div className="bg-[#E8F4FF] rounded-2xl p-6 shadow-md border border-sky-100">
