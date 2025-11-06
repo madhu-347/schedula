@@ -43,10 +43,20 @@ const AppointmentsPage: React.FC = () => {
 
       if (response && Array.isArray(response)) {
         // ✅ Attach prescriptions to each appointment
-        const withPrescriptions = response.map((appointment) => {
-          const prescriptions = getPrescriptionsByAppointmentId(appointment.id);
-          return { ...appointment, prescription: prescriptions?.[prescriptions.length - 1] || null };
-        });
+        const withPrescriptions = await Promise.all(
+          response.map(async (appointment) => {
+            const prescriptions = await getPrescriptionsByAppointmentId(
+              appointment.id
+            );
+            return {
+              ...appointment,
+              prescription:
+                prescriptions && prescriptions.length > 0
+                  ? prescriptions[prescriptions.length - 1]
+                  : null,
+            };
+          })
+        );
 
         console.log("Appointments with prescriptions:", withPrescriptions);
         setAppointments(withPrescriptions);
@@ -353,16 +363,19 @@ const AppointmentsPage: React.FC = () => {
                                   Feedback
                                 </button>
                               )}
-                              {appointment.status === "Completed" && appointment.prescription && (
-                                      <button
-                                        onClick={() =>
-                                          router.push(`/user/appointment/${appointment.id}/prescription`)
-                                        }
-                                        className="w-full px-4 py-2.5 text-left text-sm font-medium hover:bg-gray-50 transition-colors"
-                                      >
-                                        View Prescription
-                                      </button>
-                              )}
+                              {appointment.status === "Completed" &&
+                                appointment.prescription && (
+                                  <button
+                                    onClick={() =>
+                                      router.push(
+                                        `/user/prescription/${appointment.prescription.id}`
+                                      )
+                                    }
+                                    className="w-full px-4 py-2.5 text-left text-sm font-medium hover:bg-gray-50 transition-colors"
+                                  >
+                                    View Prescription
+                                  </button>
+                                )}
 
                               {appointment.status === "Upcoming" && (
                                 <button

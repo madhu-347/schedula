@@ -129,7 +129,8 @@
       },
       "visitType": "First",
       "status": "Upcoming",
-      "paid": true
+      "paid": true,
+      "prescriptionId": "1"
     },
     {
       "id": "1762282353187",
@@ -152,7 +153,8 @@
       },
       "visitType": "Follow-up",
       "status": "Upcoming",
-      "paid": true
+      "paid": true,
+      "prescriptionId": "1"
     }
   ]
 }

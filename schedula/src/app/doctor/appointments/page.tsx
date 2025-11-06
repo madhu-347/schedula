@@ -1,160 +1,186 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/Button";
+import { useAuth } from "@/context/AuthContext";
+import { getAppointmentsByDoctor } from "@/app/services/appointments.api";
+import { getPrescriptionsByAppointmentId } from "@/app/services/prescription.api";
+import { format } from "date-fns";
 import {
-  ArrowLeft,
-  CalendarDays,
+  Calendar,
   Clock,
   User,
-  Video,
+  Phone,
   CheckCircle2,
-  X,
   Edit,
-  XCircle,
+  X,
 } from "lucide-react";
-import { Button } from "@/components/ui/Button";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { toast } from "@/hooks/useToast";
-import {
-  getAppointmentsByDoctor,
-  updateAppointment,
-} from "@/app/services/appointments.api";
-import { getPrescriptionsByAppointmentId } from "@/app/services/prescription.api";
-import { useAuth } from "@/context/AuthContext";
 import { Appointment } from "@/lib/types/appointment";
 
-type TabStatus = "Upcoming" | "Completed" | "Cancelled";
+// Types
+interface PatientDetails {
+  fullName: string;
+  age: number;
+  gender: string;
+  phone: string;
+  weight?: number;
+  problem?: string;
+  relationship: string;
+}
+
+// Helper Components
+const StatusBadge = ({ status }: { status: string }) => {
+  const statusStyles: Record<string, string> = {
+    Upcoming: "bg-blue-100 text-blue-800",
+    Completed: "bg-green-100 text-green-800",
+    Cancelled: "bg-red-100 text-red-800",
+    Waiting: "bg-yellow-100 text-yellow-800",
+  };
+
+  return (
+    <span
+      className={`px-2 py-1 rounded-full text-xs font-medium ${
+        statusStyles[status] || "bg-gray-100 text-gray-800"
+      }`}
+    >
+      {status}
+    </span>
+  );
+};
+
+const DetailRow = ({
+  label,
+  value,
+  highlight,
+}: {
+  label: string;
+  value?: string;
+  highlight?: "green" | "red";
+}) => {
+  if (!value) return null;
+
+  const highlightStyles = {
+    green: "text-green-600 font-medium",
+    red: "text-red-600 font-medium",
+  };
+
+  return (
+    <div className="flex justify-between">
+      <span className="text-gray-600">{label}:</span>
+      <span className={highlight ? highlightStyles[highlight] : "font-medium"}>
+        {value}
+      </span>
+    </div>
+  );
+};
 
 export default function DoctorAppointmentsPage() {
-  const { doctor } = useAuth();
-  // console.log(doctor);
   const router = useRouter();
-
+  const { doctor } = useAuth();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [activeTab, setActiveTab] = useState<TabStatus>("Upcoming");
+  const [filteredAppointments, setFilteredAppointments] = useState<
+    Appointment[]
+  >([]);
+  const [activeTab, setActiveTab] = useState("Upcoming");
   const [selectedAppointment, setSelectedAppointment] =
     useState<Appointment | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isUpdating, setIsUpdating] = useState(false);
   const [hasPrescription, setHasPrescription] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [isUpdating, setIsUpdating] = useState(false);
 
-
-  // Load appointments from API
-  const loadAppointments = async () => {
-    if (!doctor?.id) return;
-
-    setIsLoading(true);
-    try {
-      const appts = await getAppointmentsByDoctor(doctor.id);
-      console.log("Fetched appointments:", appts);
-      setAppointments(appts || []);
-      console.log("appointments: ", appointments);
-    } catch (error) {
-      console.error("Error loading appointments:", error);
-      setAppointments([]);
-      toast({
-        title: "Error",
-        description: "Failed to load appointments",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
+  // Fetch appointments
   useEffect(() => {
-    loadAppointments();
+    const fetchAppointments = async () => {
+      if (!doctor?.id) return;
+
+      try {
+        setLoading(true);
+        const data = await getAppointmentsByDoctor(doctor.id);
+        setAppointments(data);
+      } catch (error) {
+        console.error("Failed to fetch appointments:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAppointments();
   }, [doctor?.id]);
 
-  // Filter appointments by active tab
-  const filteredAppointments = useMemo(
-    () => appointments.filter((a) => a.status === activeTab),
-    [appointments, activeTab]
-  );
-
-  // Complete appointment
-  const handleCompleteAppointment = async (appointmentId: string) => {
-    setIsUpdating(true);
-    try {
-      const response = await updateAppointment(appointmentId, {
-        status: "Completed",
-      });
-
-      if (response.success) {
-        toast({
-          title: "Appointment Completed",
-          description: "The appointment has been marked as completed.",
-        });
-
-        // Reload appointments
-        await loadAppointments();
-        closeModal();
-      }
-    } catch (error) {
-      console.error("Error completing appointment:", error);
-      toast({
-        title: "Error",
-        description: "Failed to complete appointment. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsUpdating(false);
-    }
-  };
-
-  // Cancel appointment
-  const handleCancelAppointment = async (appointmentId: string) => {
-    if (!confirm("Are you sure you want to cancel this appointment?")) {
-      return;
-    }
-
-    setIsUpdating(true);
-    try {
-      const response = await updateAppointment(appointmentId, {
-        status: "Cancelled",
-      });
-
-      if (response.success) {
-        toast({
-          title: "Appointment Cancelled",
-          description: "The appointment has been cancelled.",
-        });
-
-        // Reload appointments
-        await loadAppointments();
-        closeModal();
-      }
-    } catch (error) {
-      console.error("Error cancelling appointment:", error);
-      toast({
-        title: "Error",
-        description: "Failed to cancel appointment. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsUpdating(false);
-    }
-  };
-
-  // Edit appointment
-  const handleEditAppointment = (appointmentId: string) => {
-    router.push(`/doctor/appointments/${appointmentId}/edit`);
-  };
-
-  const closeModal = () => setSelectedAppointment(null);
-
-  // ESC key closes modal
+  // Filter appointments based on active tab
   useEffect(() => {
-    const handleEsc = (e: KeyboardEvent) => e.key === "Escape" && closeModal();
-    window.addEventListener("keydown", handleEsc);
-    return () => window.removeEventListener("keydown", handleEsc);
-  }, []);
+    const filtered = appointments.filter(
+      (appointment) => appointment.status === activeTab
+    );
+    setFilteredAppointments(filtered);
+  }, [appointments, activeTab]);
 
-  
-  const tabs: TabStatus[] = ["Upcoming", "Completed", "Cancelled"];
+  const handleCompleteAppointment = async (id: string) => {
+    setIsUpdating(true);
+    try {
+      const response = await fetch(`/api/appointment`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id,
+          status: "Completed",
+        }),
+      });
 
-  if (isLoading) {
+      if (response.ok) {
+        setAppointments((prev) =>
+          prev.map((apt) =>
+            apt.id === id ? { ...apt, status: "Completed" } : apt
+          )
+        );
+      }
+    } catch (error) {
+      console.error("Failed to complete appointment:", error);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleEditAppointment = (id: string) => {
+    router.push(`/doctor/appointments/${id}/edit`);
+  };
+
+  const handleCancelAppointment = async (id: string) => {
+    setIsUpdating(true);
+    try {
+      const response = await fetch(`/api/appointment`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id,
+          status: "Cancelled",
+        }),
+      });
+
+      if (response.ok) {
+        setAppointments((prev) =>
+          prev.map((apt) =>
+            apt.id === id ? { ...apt, status: "Cancelled" } : apt
+          )
+        );
+      }
+    } catch (error) {
+      console.error("Failed to cancel appointment:", error);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const closeModal = () => {
+    setSelectedAppointment(null);
+  };
+
+  if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -166,108 +192,89 @@ export default function DoctorAppointmentsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 relative">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto px-6 py-4">
-          <div className="flex items-center gap-3">
-            <Link
-              href="/doctor/dashboard"
-              className="p-2 -ml-2 rounded-full hover:bg-cyan-50 transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </Link>
-            <div>
-              <h1 className="text-xl font-semibold text-gray-900">
-                My Appointments
-              </h1>
-              {doctor && (
-                <p className="text-sm text-gray-500 mt-1">
-                  Dr. {doctor.firstName} {doctor.lastName}
-                </p>
-              )}
-            </div>
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            Appointments
+          </h1>
+          <p className="text-gray-600">
+            Manage your upcoming, completed, and cancelled appointments
+          </p>
+        </div>
+
+        {/* Tabs */}
+        <div className="mb-6">
+          <div className="border-b border-gray-200">
+            <nav className="-mb-px flex space-x-8">
+              {["Upcoming", "Completed", "Cancelled"].map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                    activeTab === tab
+                      ? "border-cyan-500 text-cyan-600"
+                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                  }`}
+                >
+                  {tab}
+                  <span className="ml-2 bg-gray-100 text-gray-800 text-xs font-medium px-2 py-0.5 rounded-full">
+                    {
+                      appointments.filter(
+                        (appointment) => appointment.status === tab
+                      ).length
+                    }
+                  </span>
+                </button>
+              ))}
+            </nav>
           </div>
         </div>
-      </header>
 
-      {/* Tabs */}
-      <div className="max-w-4xl mx-auto px-4 py-6">
-        <div className="flex gap-6 border-b border-gray-200 mb-6">
-          {tabs.map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`pb-2 font-medium transition-colors ${
-                activeTab === tab
-                  ? "text-cyan-600 border-b-2 border-cyan-600"
-                  : "text-gray-600 hover:text-cyan-600"
-              }`}
-            >
-              {tab}
-            </button>
-          ))}
-        </div>
-
-        {/* Appointment Cards */}
+        {/* Appointments List */}
         {filteredAppointments.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredAppointments.map((appointment) => (
               <div
                 key={appointment.id}
-                className="bg-white shadow-sm border border-gray-200 rounded-2xl p-5 space-y-3 hover:shadow-md transition-shadow"
+                className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow"
               >
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-                      <User className="w-5 h-5 text-cyan-600" />
-                      {appointment.patientDetails?.fullName || "Patient"}
-                    </h2>
-                    {appointment.patientDetails?.problem && (
-                      <p className="text-sm text-gray-500 mt-1">
-                        {appointment.patientDetails.problem}
+                <div className="p-5">
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900">
+                        #{appointment.tokenNo}
+                      </h3>
+                      <p className="text-sm text-gray-500">
+                        {appointment.patientDetails?.fullName}
                       </p>
-                    )}
-                  </div>
-                  <span
-                    className={`text-sm px-3 py-1 rounded-full font-medium whitespace-nowrap ${
-                      appointment.status === "Upcoming"
-                        ? "bg-cyan-50 text-cyan-600"
-                        : appointment.status === "Completed"
-                        ? "bg-green-50 text-green-600"
-                        : "bg-red-50 text-red-600"
-                    }`}
-                  >
-                    {appointment.status}
-                  </span>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex items-center gap-3 text-sm text-gray-600">
-                    <CalendarDays className="w-4 h-4" />
-                    {appointment.day && `${appointment.day}, `}
-                    {appointment.date}
+                    </div>
+                    <StatusBadge status={appointment.status} />
                   </div>
 
-                  <div className="flex items-center gap-3 text-sm text-gray-600">
-                    <Clock className="w-4 h-4" />
-                    {appointment.time}
-                  </div>
+                  <div className="space-y-3">
+                    <div className="flex items-center text-sm text-gray-600">
+                      <Calendar className="w-4 h-4 mr-2 text-gray-400" />
+                      <span>
+                        {format(new Date(appointment.date), "MMM dd, yyyy")}
+                      </span>
+                    </div>
 
-                  <div className="flex items-center gap-3 text-sm text-gray-600">
-                    {appointment.type === "Virtual" ? (
-                      <Video className="w-4 h-4 text-purple-500" />
-                    ) : (
-                      <CheckCircle2 className="w-4 h-4 text-green-500" />
-                    )}
-                    {appointment.type || "In-person"}
-                  </div>
+                    <div className="flex items-center text-sm text-gray-600">
+                      <Clock className="w-4 h-4 mr-2 text-gray-400" />
+                      <span>{appointment.time}</span>
+                    </div>
 
-                  <div className="flex items-center gap-3 text-sm text-gray-600">
-                    <span className="font-medium">Token:</span>
-                    <span className="text-cyan-600 font-semibold">
-                      #{appointment.tokenNo}
-                    </span>
+                    <div className="flex items-center text-sm text-gray-600">
+                      <User className="w-4 h-4 mr-2 text-gray-400" />
+                      <span>{appointment.type || "In-person"}</span>
+                    </div>
+
+                    <div className="flex items-center text-sm text-gray-600">
+                      <Phone className="w-4 h-4 mr-2 text-gray-400" />
+                      <span>{appointment.patientDetails?.phone}</span>
+                    </div>
                   </div>
                 </div>
 
@@ -277,11 +284,12 @@ export default function DoctorAppointmentsPage() {
                     size="sm"
                     className="border-cyan-600 text-cyan-600 hover:bg-cyan-50"
                     onClick={async () => {
-                    setSelectedAppointment(appointment);
-                    const rx = await getPrescriptionsByAppointmentId(appointment.id);
-                    setHasPrescription(rx && rx.length > 0);
-}}
-
+                      setSelectedAppointment(appointment);
+                      const rx = await getPrescriptionsByAppointmentId(
+                        appointment.id
+                      );
+                      setHasPrescription(rx && rx.length > 0);
+                    }}
                   >
                     View Details
                   </Button>
@@ -472,70 +480,45 @@ export default function DoctorAppointmentsPage() {
                         }
                         disabled={isUpdating}
                       >
-                        <XCircle className="w-4 h-4 mr-2" />
-                        Cancel
+                        <X className="w-4 h-4 mr-2" />
+                        {isUpdating ? "Cancelling..." : "Cancel"}
                       </Button>
                     </div>
                   </>
                 )}
-                {!hasPrescription ? (
-                  <Button
-                    onClick={() => router.push(`/doctor/appointments/${selectedAppointment.id}/prescription`)}
-                  >
-                    Add Prescription
-                  </Button>
-                ) : (
-                  <Button
-                    variant="outline"
-                    onClick={() => router.push(`/doctor/appointments/${selectedAppointment.id}/prescription/view`)}
-                  >
-                    View  Prescription
-                  </Button>
-                )}
-                <Button
-                  variant="outline"
-                  onClick={closeModal}
-                  className="w-full cursor-pointer"
-                >
-                  Close
-                </Button>
+
+                {selectedAppointment.status === "Completed" &&
+                  hasPrescription && (
+                    <Button
+                      className="w-full bg-cyan-500 hover:bg-cyan-600 text-white"
+                      onClick={() =>
+                        router.push(
+                          `/doctor/appointments/${selectedAppointment.id}/prescription/view`
+                        )
+                      }
+                    >
+                      View Prescription
+                    </Button>
+                  )}
+
+                {selectedAppointment.status === "Completed" &&
+                  !hasPrescription && (
+                    <Button
+                      className="w-full bg-cyan-500 hover:bg-cyan-600 text-white"
+                      onClick={() =>
+                        router.push(
+                          `/doctor/appointments/${selectedAppointment.id}/prescription`
+                        )
+                      }
+                    >
+                      Add Prescription
+                    </Button>
+                  )}
               </div>
             </div>
           </div>
         </>
       )}
-    </div>
-  );
-}
-
-// Helper component for detail rows
-function DetailRow({
-  label,
-  value,
-  fullWidth = false,
-  highlight,
-}: {
-  label: string;
-  value?: string;
-  fullWidth?: boolean;
-  highlight?: "green" | "red";
-}) {
-  if (!value) return null;
-
-  return (
-    <div className={`${fullWidth ? "" : "grid grid-cols-2 gap-2"} py-1`}>
-      <span className="font-medium text-gray-600">{label}:</span>
-      <span
-        className={`${fullWidth ? "mt-1" : ""} ${
-          highlight === "green"
-            ? "text-green-600 font-semibold"
-            : highlight === "red"
-            ? "text-red-600 font-semibold"
-            : "text-gray-900"
-        }`}
-      >
-        {value}
-      </span>
     </div>
   );
 }
