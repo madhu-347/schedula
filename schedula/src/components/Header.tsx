@@ -3,6 +3,7 @@ import Image from "next/image";
 import { MapPin } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import NotificationBell from "@/components/notifications/NotificationBell";
+import User from "lucide-react";
 
 interface HeaderProps {
   setShowNotifications?: (show: boolean) => void;

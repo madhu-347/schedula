@@ -21,8 +21,15 @@ export interface Appointment {
     weight?: number;
     problem?: string;
     relationship:
-      | "Self" | "Son" | "Daughter" | "Brother" | "Sister"
-      | "Father" | "Mother" | "Spouse" | "Other";
+      | "Self"
+      | "Son"
+      | "Daughter"
+      | "Brother"
+      | "Sister"
+      | "Father"
+      | "Mother"
+      | "Spouse"
+      | "Other";
     location?: string;
   };
   visitType?: "Follow-up" | "Report" | "First";
@@ -40,5 +47,5 @@ export interface Appointment {
   postFeeling?: "Feeling Better" | "No improvements";
 
   // --- keep this reference ---
-  prescription?: Prescription | null;
+  prescriptionId?: string;
 }

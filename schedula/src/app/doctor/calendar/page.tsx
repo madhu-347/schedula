@@ -30,6 +30,7 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { Appointment } from "@/lib/types/appointment";
 import { getDoctorById } from "@/app/services/doctor.api";
+import DoctorHeader from "@/components/DoctorHeader";
 
 /* --- Strong types --- */
 interface DoctorAvailability {
@@ -66,9 +67,9 @@ export default function CalendarPage() {
     useState<DoctorAvailability | null>(null);
   const tooltipRef = useRef<HTMLDivElement | null>(null);
   const searchParams = useSearchParams();
-  const calendarRef = useRef(null);
+  const calendarRef = useRef<FullCalendar | null>(null);
 
-  const dateParam = searchParams?.get("date"); 
+  const dateParam = searchParams?.get("date");
   const selectedDate = dateParam ? new Date(dateParam) : new Date();
 
   useEffect(() => {
@@ -110,8 +111,10 @@ export default function CalendarPage() {
       const [startTimeStr, startPeriod] = parts[0].split(" ");
       const [startHours, startMinutes] = startTimeStr.split(":").map(Number);
       let startHour = startHours;
-      if (startPeriod?.toLowerCase() === "pm" && startHour < 12) startHour += 12;
-      if (startPeriod?.toLowerCase() === "am" && startHour === 12) startHour = 0;
+      if (startPeriod?.toLowerCase() === "pm" && startHour < 12)
+        startHour += 12;
+      if (startPeriod?.toLowerCase() === "am" && startHour === 12)
+        startHour = 0;
       const start = new Date(base);
       start.setHours(startHour, startMinutes || 0, 0, 0);
 
@@ -322,7 +325,11 @@ export default function CalendarPage() {
       const newDay = getDayName(newStart);
       const newTime = `${fmtTime(newStart)} - ${fmtTime(newEnd)}`;
 
-      await updateAppointment(id, { date: newDate, day: newDay, time: newTime });
+      await updateAppointment(id, {
+        date: newDate,
+        day: newDay,
+        time: newTime,
+      });
       if (doctorId) {
         const appointments = await getAppointmentsByDoctor(doctorId);
         setEvents(buildCalendarEvents(appointments));
@@ -357,9 +364,12 @@ export default function CalendarPage() {
   const availabilityEvents = generateAvailabilityEvents();
 
   return (
-    <div className="p-4 sm:p-8 bg-gray-50 min-h-screen">
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <DoctorHeader doctor={doctor} />
+
       {/* Calendar */}
-      <div className="bg-white p-4 sm:p-6 rounded-xl shadow-lg border border-gray-100">
+      <div className="p-4 sm:p-8 bg-gray-50 min-h-screen">
         <div className="flex justify-between items-center mb-6">
           <div>
             <h2 className="text-2xl font-bold text-gray-800">My Calendar</h2>
@@ -413,9 +423,12 @@ export default function CalendarPage() {
           >
             <div className="p-6 bg-cyan-600 text-white flex justify-between items-start">
               <div>
-                <h3 className="text-xl font-bold mb-1">{selectedEvent.title}</h3>
+                <h3 className="text-xl font-bold mb-1">
+                  {selectedEvent.title}
+                </h3>
                 <p className="text-cyan-100 text-sm">
-                  Token #{(selectedEvent.extendedProps as ExtendedEventProps).token}
+                  Token #
+                  {(selectedEvent.extendedProps as ExtendedEventProps).token}
                 </p>
               </div>
               <button
@@ -431,28 +444,44 @@ export default function CalendarPage() {
                 <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
                   <CalendarIcon className="w-5 h-5 text-cyan-500" />
                   <p className="font-semibold text-gray-800">
-                    {selectedEvent.start ? selectedEvent.start.toLocaleDateString() : ""}
+                    {selectedEvent.start
+                      ? selectedEvent.start.toLocaleDateString()
+                      : ""}
                   </p>
                 </div>
                 <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
                   <Clock className="w-5 h-5 text-cyan-500" />
                   <p className="font-semibold text-gray-800">
-                    {(selectedEvent.extendedProps as ExtendedEventProps).time ?? ""}
+                    {(selectedEvent.extendedProps as ExtendedEventProps).time ??
+                      ""}
                   </p>
                 </div>
               </div>
 
               <div className="bg-cyan-50 p-4 rounded-lg">
                 <p className="font-bold text-gray-800 mb-2">Patient Info</p>
-                <p>Name: {(selectedEvent.extendedProps as ExtendedEventProps).name}</p>
-                <p>Age: {(selectedEvent.extendedProps as ExtendedEventProps).age}</p>
-                <p>Gender: {(selectedEvent.extendedProps as ExtendedEventProps).gender}</p>
-                <p>Phone: {(selectedEvent.extendedProps as ExtendedEventProps).phone}</p>
+                <p>
+                  Name:{" "}
+                  {(selectedEvent.extendedProps as ExtendedEventProps).name}
+                </p>
+                <p>
+                  Age: {(selectedEvent.extendedProps as ExtendedEventProps).age}
+                </p>
+                <p>
+                  Gender:{" "}
+                  {(selectedEvent.extendedProps as ExtendedEventProps).gender}
+                </p>
+                <p>
+                  Phone:{" "}
+                  {(selectedEvent.extendedProps as ExtendedEventProps).phone}
+                </p>
               </div>
 
               <div className="space-y-2">
-                {((selectedEvent.extendedProps as ExtendedEventProps).status === "Upcoming" ||
-                  (selectedEvent.extendedProps as ExtendedEventProps).status === "Waiting") && (
+                {((selectedEvent.extendedProps as ExtendedEventProps).status ===
+                  "Upcoming" ||
+                  (selectedEvent.extendedProps as ExtendedEventProps).status ===
+                    "Waiting") && (
                   <>
                     <Button
                       variant="default"

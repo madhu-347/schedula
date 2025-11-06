@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Star, Search, Calendar } from "lucide-react";
 import { format } from "date-fns";
+import DoctorHeader from "@/components/DoctorHeader";
 
 // === Types ===
 type FeedbackData = {
@@ -50,7 +51,14 @@ export default function DoctorReviewsPage() {
   const STORAGE_KEY = "appointments";
   const FEEDBACK_KEY = "appointmentFeedback";
 
-  const filters: FilterType[] = ["All", "5 Star", "4 Star", "3 Star", "2 Star", "1 Star"];
+  const filters: FilterType[] = [
+    "All",
+    "5 Star",
+    "4 Star",
+    "3 Star",
+    "2 Star",
+    "1 Star",
+  ];
 
   // === Derived values ===
   const averageRating = useMemo(() => {
@@ -95,7 +103,9 @@ export default function DoctorReviewsPage() {
 
       const allFeedback: FeedbackData[] = JSON.parse(feedbackStr);
       const doctorFeedback = allFeedback.filter(
-        (f) => f.doctorName?.trim().toLowerCase() === doctorNameParam.trim().toLowerCase()
+        (f) =>
+          f.doctorName?.trim().toLowerCase() ===
+          doctorNameParam.trim().toLowerCase()
       );
 
       const appointmentsStr = localStorage.getItem(STORAGE_KEY);
@@ -107,10 +117,16 @@ export default function DoctorReviewsPage() {
 
       const reviewData: ReviewDisplay[] = doctorFeedback
         .map((feedback) => {
-          const appointment = appointments.find((a) => a.id === feedback.appointmentId);
-          const patientName = appointment?.patientDetails?.fullName || "Anonymous Patient";
+          const appointment = appointments.find(
+            (a) => a.id === feedback.appointmentId
+          );
+          const patientName =
+            appointment?.patientDetails?.fullName || "Anonymous Patient";
           const avgRating =
-            (feedback.consultingRating + feedback.hospitalRating + feedback.waitingTimeRating) / 3;
+            (feedback.consultingRating +
+              feedback.hospitalRating +
+              feedback.waitingTimeRating) /
+            3;
           const comment = feedback.feedbackText?.trim() || "";
 
           return {
@@ -127,7 +143,9 @@ export default function DoctorReviewsPage() {
             date: feedback.submittedAt,
           };
         })
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        .sort(
+          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+        );
 
       setReviews(reviewData);
     } catch (err) {
@@ -182,20 +200,7 @@ export default function DoctorReviewsPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex items-center gap-3">
-          <button
-            onClick={() => router.push("/doctor/dashboard")}
-            className="p-2 -ml-2 rounded-full hover:bg-gray-100 transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <div>
-            <h1 className="text-xl font-semibold text-gray-900">Patient Reviews</h1>
-            <p className="text-sm text-gray-500 mt-0.5">{doctorName}</p>
-          </div>
-        </div>
-      </header>
+      <DoctorHeader doctor={null} />
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
         {/* Summary */}
@@ -204,7 +209,9 @@ export default function DoctorReviewsPage() {
           <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100 text-center">
             <p className="text-sm text-gray-600 mb-2">Average Rating</p>
             <div className="flex items-center justify-center gap-2 mb-2">
-              <span className="text-4xl font-bold text-gray-900">{averageRating}</span>
+              <span className="text-4xl font-bold text-gray-900">
+                {averageRating}
+              </span>
               <Star className="w-8 h-8 text-yellow-400 fill-yellow-400" />
             </div>
             <p className="text-sm text-gray-500">
@@ -214,21 +221,28 @@ export default function DoctorReviewsPage() {
 
           {/* Rating Distribution */}
           <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100 md:col-span-2">
-            <p className="text-sm font-medium text-gray-700 mb-3">Rating Distribution</p>
+            <p className="text-sm font-medium text-gray-700 mb-3">
+              Rating Distribution
+            </p>
             <div className="space-y-2">
               {[5, 4, 3, 2, 1].map((star) => {
                 const count = ratingDistribution[star];
-                const percentage = reviews.length > 0 ? (count / reviews.length) * 100 : 0;
+                const percentage =
+                  reviews.length > 0 ? (count / reviews.length) * 100 : 0;
                 return (
                   <div key={star} className="flex items-center gap-2">
-                    <span className="text-sm text-gray-600 w-12">{star} Star</span>
+                    <span className="text-sm text-gray-600 w-12">
+                      {star} Star
+                    </span>
                     <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
                       <div
                         className="h-full bg-yellow-400 transition-all duration-300"
                         style={{ width: `${percentage}%` }}
                       ></div>
                     </div>
-                    <span className="text-sm text-gray-600 w-8 text-right">{count}</span>
+                    <span className="text-sm text-gray-600 w-8 text-right">
+                      {count}
+                    </span>
                   </div>
                 );
               })}
@@ -276,18 +290,24 @@ export default function DoctorReviewsPage() {
               >
                 <div className="flex items-start justify-between mb-4">
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900">{r.patientName}</h3>
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      {r.patientName}
+                    </h3>
                     <div className="flex items-center gap-2 mt-1">
                       {[...Array(5)].map((_, i) => (
                         <Star
                           key={i}
                           size={16}
                           className={`${
-                            i < r.rating ? "text-yellow-400 fill-yellow-400" : "text-gray-300"
+                            i < r.rating
+                              ? "text-yellow-400 fill-yellow-400"
+                              : "text-gray-300"
                           }`}
                         />
                       ))}
-                      <span className="text-sm text-gray-500">{r.rating}.0</span>
+                      <span className="text-sm text-gray-500">
+                        {r.rating}.0
+                      </span>
                     </div>
                   </div>
                   <div className="text-right">
@@ -321,11 +341,15 @@ export default function DoctorReviewsPage() {
                             key={i}
                             size={12}
                             className={`${
-                              i < value ? "text-cyan-400 fill-cyan-400" : "text-gray-300"
+                              i < value
+                                ? "text-cyan-400 fill-cyan-400"
+                                : "text-gray-300"
                             }`}
                           />
                         ))}
-                        <span className="text-xs text-gray-600 ml-1">{value}/5</span>
+                        <span className="text-xs text-gray-600 ml-1">
+                          {value}/5
+                        </span>
                       </div>
                     </div>
                   ))}

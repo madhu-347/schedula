@@ -2,10 +2,7 @@ export interface Prescription {
   createdAt: string;
   id: string;
   appointmentId: string;
-  doctorId: string;
-  patientId: string;
  
-
   vitals: {
     bp?: string;
     pulse?: string;

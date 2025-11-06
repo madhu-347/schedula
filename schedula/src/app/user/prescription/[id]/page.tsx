@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { getPrescriptionByPatient } from "@/app/services/prescription.api";
+import { getPrescriptionById } from "@/app/services/prescription.api";
 import { getAppointmentById } from "@/app/services/appointments.api";
 import { Prescription } from "@/lib/types/prescription";
 import { useAuth } from "@/context/AuthContext";
@@ -34,29 +34,19 @@ export default function PrescriptionDetailPage() {
 
       try {
         setLoading(true);
-        const prescriptionsResult = await getPrescriptionByPatient(patientId);
-        // console.log("Prescriptions Result:", prescriptionsResult);
-
-        if (prescriptionsResult && Array.isArray(prescriptionsResult)) {
-          // Filter out null prescriptions
-          const validPrescriptions = prescriptionsResult.filter(
-            (prescription) => prescription !== null
-          ) as Prescription[];
-
-          const index = parseInt(id);
-          if (
-            !isNaN(index) &&
-            index >= 0 &&
-            index < validPrescriptions.length
-          ) {
-            setPrescription(validPrescriptions[index]);
-            const appt = await getAppointmentById(validPrescriptions[index].appointmentId);
-            setAppointment(appt);
-          } else {
-            setError("Prescription not found");
-          }
+        // Fetch prescription by ID directly
+        const prescriptionResult = await getPrescriptionById(id);
+        console.log("Prescription Result:", prescriptionResult);
+        if (prescriptionResult) {
+          setPrescription(prescriptionResult);
+          // Fetch appointment details for doctor and patient information
+          const appt = await getAppointmentById(
+            prescriptionResult.appointmentId
+          );
+          console.log("Appointment Result:", appt);
+          setAppointment(appt);
         } else {
-          setError("No prescriptions found");
+          setError("Prescription not found");
         }
       } catch (err) {
         console.error("Failed to fetch prescription:", err);
@@ -93,7 +83,7 @@ export default function PrescriptionDetailPage() {
       </div>
     );
   }
-  console.log('appt',appointment)
+
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       {/* Main Content */}
@@ -102,7 +92,7 @@ export default function PrescriptionDetailPage() {
           {/* Header with back button */}
           <div className="flex items-center justify-between mb-6">
             <button
-              onClick={() => router.back()}
+              onClick={() => router.push("/user/prescription")}
               className="flex items-center gap-2 text-cyan-600 hover:text-cyan-700"
             >
               <ArrowLeft className="w-5 h-5" />
@@ -153,7 +143,7 @@ export default function PrescriptionDetailPage() {
                       </p>
                     </div>
                     <div className="text-sm text-gray-500">
-                      <p>ID: {id}</p>
+                      <p>ID: {prescription.id}</p>
                     </div>
                   </div>
                 </CardHeader>
@@ -169,17 +159,17 @@ export default function PrescriptionDetailPage() {
                       </div>
                       <div className="space-y-2">
                         <p className="text-sm">
-                          <span className="font-medium">Name:</span>{" "}
-                         Dr. {appointment.doctor?.firstName} {appointment.doctor?.lastName}
+                          <span className="font-medium">Name:</span> Dr.{" "}
+                          {appointment?.doctor?.firstName}{" "}
+                          {appointment?.doctor?.lastName}
                         </p>
                         <p className="text-sm">
                           <span className="font-medium">Specialty:</span>{" "}
-                          {appointment.doctor?.specialty ||
-                            "Not specified"}
+                          {appointment?.doctor?.specialty || "Not specified"}
                         </p>
                         <p className="text-sm">
                           <span className="font-medium">Qualifications:</span>{" "}
-                          {appointment.doctor?.qualifications ||
+                          {appointment?.doctor?.qualifications ||
                             "Not specified"}
                         </p>
                       </div>
@@ -196,18 +186,18 @@ export default function PrescriptionDetailPage() {
                       <div className="space-y-2">
                         <p className="text-sm">
                           <span className="font-medium">Name:</span>{" "}
-                          {appointment.patientDetails?.fullName ||
+                          {appointment?.patientDetails?.fullName ||
                             "Not specified"}
                         </p>
                         <p className="text-sm">
                           <span className="font-medium">Age:</span>{" "}
-                          {appointment.patientDetails?.age
-                            ? `${appointment.patientDetails?.age} years`
+                          {appointment?.patientDetails?.age
+                            ? `${appointment?.patientDetails?.age} years`
                             : "Not specified"}
                         </p>
                         <p className="text-sm">
                           <span className="font-medium">Gender:</span>{" "}
-                          {appointment.patientDetails?.gender ||
+                          {appointment?.patientDetails?.gender ||
                             "Not specified"}
                         </p>
                       </div>
@@ -416,10 +406,10 @@ export default function PrescriptionDetailPage() {
                 The requested prescription could not be found.
               </p>
               <button
-                onClick={() => router.push("/user/records")}
+                onClick={() => router.push("/user/prescription")}
                 className="mt-4 px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition-colors"
               >
-                Back to Records
+                Back to Prescriptions
               </button>
             </Card>
           )}

@@ -196,7 +196,7 @@ const AppointmentReviewPage = () => {
           )}
 
           {/* Add to Google Calendar Button */}
-          <div className="mt-4">
+          <div className="mt-6">
             {isAdded ? (
               <div className="flex flex-col sm:flex-row gap-2">
                 <Button
@@ -237,13 +237,13 @@ const AppointmentReviewPage = () => {
           </div>
 
           {/* View My Appointment Button */}
-          <div className="mt-3 md:mt-8 flex flex-col gap-3">
-            <Button
+          <div className="mt-3 md:mt-2 flex flex-col gap-3">
+            {/* <Button
               onClick={() => router.push("/user/chat/1")}
               className="cursor-pointer w-full rounded-lg py-6 text-base font-semibold"
             >
               Chat Now
-            </Button>
+            </Button> */}
             <Button
               onClick={handleViewAppointments}
               className="cursor-pointer w-full rounded-lg py-6 text-base font-semibold"

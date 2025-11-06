@@ -36,13 +36,13 @@ export default function BottomNav() {
       </Link>
 
       {/* Records */}
-      <Link href={"/user/records"}>
+      <Link href={"/user/prescription"}>
         <button
           className={`flex flex-col items-center gap-1 rounded-xl px-3 py-1 transition-all duration-200 hover:scale-110 active:scale-95 
-          ${pathname === "/user/records" ? "text-cyan-500" : "text-gray-600"}`}
+          ${pathname === "/user/prescription" ? "text-cyan-500" : "text-gray-600"}`}
         >
           <FileText className="w-6 h-6" />
-          <span className="text-xs">Records</span>
+          <span className="text-xs">Prescriptions</span>
         </button>
       </Link>
 

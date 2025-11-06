@@ -12,6 +12,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Appointment } from "@/lib/types/appointment";
 import { Doctor } from "@/lib/types/doctor";
 import { User } from "@/lib/types/user";
+import { Prescription } from "@/lib/types/prescription";
 import mockData from "@/lib/mockData.json";
 
 // In-memory storage (resets on server restart)

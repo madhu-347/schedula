@@ -5,10 +5,11 @@ import { useParams } from "next/navigation";
 import Image from "next/image";
 import { ArrowLeft, Send } from "lucide-react";
 import Link from "next/link";
-import Heading from "@/components/ui/Heading";
 import { useRouter } from "next/navigation";
+import { getAppointmentById } from "@/app/services/appointments.api";
+import Header from "@/components/Header";
 
-// --- Types & Mock Data ---
+// --- Types ---
 type Message = {
   id: number;
   sender: "patient" | "doctor";
@@ -16,60 +17,57 @@ type Message = {
   time: string;
 };
 
-// Mock data: Removed initial patient message for cleaner start
-const initialMockMessages = [
-  {
-    id: 1,
-    sender: "doctor",
-    text: "Hi, I sorry to hear that your not feeling well here are some immediate things you can try ..",
-    time: "16:00",
-  },
-] as Message[];
-
-const mockChatData = {
-  doctor: {
-    name: "Dr. Kumar Das",
-    specialty: "Cardiologist - Dombivali",
-    qualifications: "MBBS, MD (Internal Medicine)",
-    imageUrl: "/male-doctor.png", // Use your actual doctor image path
-  },
-  patient: {
-    name: "Sudharkar Murti",
-    age: 28,
-    weight: 28, // Example data
-    relation: "Son",
-    problem: "Stomach pain Feeling unwell and",
-    mobile: "9999999999",
-  },
-};
-// --- End Types & Mock Data ---
-
 export default function PatientChatPage() {
   // --- State, Refs, Hooks ---
   const router = useRouter();
   const params = useParams();
-  const chatId = params?.chatId as string;
-  const { doctor, patient } = mockChatData; // Use mock data
-  const [messages, setMessages] = useState<Message[]>(initialMockMessages);
+  const appointmentId = params?.id as string;
+  const [appointment, setAppointment] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      id: 1,
+      sender: "doctor",
+      text: "Hi, I'm sorry to hear that you're not feeling well. Here are some immediate things you can try...",
+      time: "16:00",
+    },
+  ]);
   const [inputMessage, setInputMessage] = useState("");
-  const messagesEndRef = useRef<HTMLDivElement>(null); // For scroll target
-  const chatContainerRef = useRef<HTMLDivElement>(null); // For scroll container
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+
+  // Fetch appointment data
+  useEffect(() => {
+    const fetchAppointment = async () => {
+      if (appointmentId) {
+        try {
+          const appointmentData = await getAppointmentById(appointmentId);
+          setAppointment(appointmentData);
+        } catch (error) {
+          console.error("Failed to fetch appointment:", error);
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchAppointment();
+  }, [appointmentId]);
 
   // Auto-scroll effect
   useEffect(() => {
-    // Scroll the chat container itself
     if (chatContainerRef.current) {
       chatContainerRef.current.scrollTop =
         chatContainerRef.current.scrollHeight;
     }
-  }, [messages]); // Trigger scroll on new messages
+  }, [messages]);
 
   // Handle message sending
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
     if (inputMessage.trim() === "") return;
     const newMessage: Message = {
-      id: messages.length + 1, // Simple ID generation
+      id: messages.length + 1,
       sender: "patient",
       text: inputMessage.trim(),
       time: new Date().toLocaleTimeString("en-US", {
@@ -81,16 +79,65 @@ export default function PatientChatPage() {
     setMessages([...messages, newMessage]);
     setInputMessage("");
   };
-  // --- End State, Refs, Hooks ---
+
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading appointment details...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error if no appointment found
+  if (!appointment) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="text-center bg-white p-8 rounded-xl shadow-lg max-w-md">
+          <div className="mx-auto w-16 h-16 rounded-full bg-red-50 flex items-center justify-center mb-4">
+            <svg
+              className="w-8 h-8 text-red-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              ></path>
+            </svg>
+          </div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            Appointment Not Found
+          </h3>
+          <p className="text-gray-500 mb-6">
+            We couldn't find the appointment you're looking for.
+          </p>
+          <button
+            onClick={() => router.back()}
+            className="px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition-colors"
+          >
+            Go Back
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   // --- Render UI ---
   return (
     // Main container uses flex-col, allows full height
     <main className="min-h-screen bg-gray-100 flex flex-col h-screen pb-20">
       {/* 1. Header (Sticky) */}
-      <header className="sticky top-0 z-10 w-full shrink-0">
+      <header className="sticky top-0 z-10 w-full shrink-0 bg-white shadow-sm">
         {/* Use max-w-6xl for wider layout */}
-        <div className="flex items-center pt-4 max-w-6xl mx-auto w-full">
+        <div className="flex items-center p-2 max-w-6xl mx-auto w-full">
           <button
             onClick={() => router.back()}
             className="p-2 ml-2 text-gray-600 hover:text-gray-900"
@@ -111,26 +158,28 @@ export default function PatientChatPage() {
             {/* Made patient info sticky */}
             <h3 className="font-bold text-sm mb-3 text-gray-800">
               Full Name:{" "}
-              <span className="font-medium text-gray-900">{patient.name}</span>
+              <span className="font-medium text-gray-900">
+                {appointment.patientDetails?.fullName || "N/A"}
+              </span>
             </h3>
             <div className="grid grid-cols-3 gap-4 mb-4 text-left border-b border-gray-100 pb-4">
               {/* Age/Weight/Relation */}
               <div>
                 <p className="text-xs text-gray-500 mb-1">Age</p>
                 <p className="text-md font-semibold text-gray-900">
-                  {patient.age}
+                  {appointment.patientDetails?.age || "N/A"}
                 </p>
               </div>
               <div>
                 <p className="text-xs text-gray-500 mb-1">Weight</p>
                 <p className="text-md font-semibold text-gray-900">
-                  {patient.weight}
+                  {appointment.patientDetails?.weight || "N/A"}
                 </p>
               </div>
               <div>
                 <p className="text-xs text-gray-500 mb-1">Relation</p>
                 <p className="text-md font-semibold text-gray-900">
-                  {patient.relation}
+                  {appointment.patientDetails?.relationship || "N/A"}
                 </p>
               </div>
             </div>
@@ -138,11 +187,12 @@ export default function PatientChatPage() {
               Problem
             </h3>
             <p className="text-md font-medium text-gray-900 mb-3">
-              {patient.problem}
+              {appointment.patientDetails?.problem ||
+                "No problem description provided"}
             </p>
             <h3 className="font-semibold text-sm mb-1 text-gray-800">Mobile</h3>
             <p className="text-md font-medium text-cyan-600">
-              {patient.mobile}
+              {appointment.patientDetails?.phone || "N/A"}
             </p>
           </div>
         </div>
@@ -153,27 +203,25 @@ export default function PatientChatPage() {
           {/* ADJUSTED: Reduced padding on small screens (p-3 md:p-4) */}
           <div className="p-3 md:p-4 border-b border-gray-100 flex items-center flex-shrink-0">
             {/* Adjusted image size for mobile */}
-            {doctor.imageUrl ? (
-              <Image
-                src={doctor.imageUrl}
-                alt={doctor.name}
-                width={48}
-                height={48}
-                className="rounded-full w-12 h-12 md:w-16 md:h-16 object-cover mr-3 md:mr-4 shadow-md"
-              />
-            ) : (
-              <div className="rounded-full w-12 h-12 md:w-16 md:h-16 bg-gray-200 mr-3 md:mr-4"></div>
-            )}
+            <div className="rounded-full w-12 h-12 md:w-16 md:h-16 bg-cyan-100 mr-3 md:mr-4 flex items-center justify-center">
+              <span className="text-cyan-800 font-bold text-lg">
+                {appointment.doctor?.firstName?.charAt(0)}
+                {appointment.doctor?.lastName?.charAt(0)}
+              </span>
+            </div>
             <div>
               <h2 className="font-bold text-md md:text-lg text-gray-900">
-                {doctor.name}
+                Dr. {appointment.doctor?.firstName}{" "}
+                {appointment.doctor?.lastName}
               </h2>{" "}
               {/* Adjusted size */}
               <p className="text-xs md:text-sm text-cyan-600">
-                {doctor.specialty}
+                {appointment.doctor?.specialty || "Doctor"}
               </p>{" "}
               {/* Adjusted size */}
-              <p className="text-xs text-gray-500">{doctor.qualifications}</p>
+              <p className="text-xs text-gray-500">
+                {appointment.doctor?.qualifications || "Medical Professional"}
+              </p>
             </div>
           </div>
 
