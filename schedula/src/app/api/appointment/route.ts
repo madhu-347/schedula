@@ -24,15 +24,35 @@ const appointmentsData: Appointment[] = JSON.parse(
 function enrichAppointment(appointment: Appointment) {
   const patient = mockData.users.find(
     (u: User) => u.id === appointment.patientId
-  );
+  ) || null;
+
   const doctor = mockData.doctors.find(
     (d: Doctor) => d.id === appointment.doctorId
-  );
+  ) || null;
+
+  // ✅ Safely extract patientDetails with correct type
+  const p = appointment.patientDetails;
+
+  const safePatientDetails = p
+    ? {
+        fullName: p.fullName,
+        age: p.age,
+        gender: p.gender,
+        phone: p.phone,
+        weight: p.weight,
+        problem: p.problem,
+        relationship: p.relationship,
+        location: p.location,
+      }
+    : null;
 
   return {
     ...appointment,
-    patient: patient || null,
-    doctor: doctor || null,
+    patient,
+    doctor,
+
+    // ✅ TS-safe patientDetails
+    patientDetails: safePatientDetails,
   };
 }
 
