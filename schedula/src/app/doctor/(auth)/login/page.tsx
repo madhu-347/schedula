@@ -1,4 +1,3 @@
-// doctor login page
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -15,21 +14,19 @@ import toast from "react-hot-toast";
 type LoginMode = "user" | "doctor";
 
 export default function LoginPage() {
-  const { user, login, loading } = useAuth();
+  const { login, loading } = useAuth();
   const router = useRouter();
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [remember, setRemember] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [loginMode, setLoginMode] = useState<LoginMode>("doctor");
 
-  // Redirect if user mode
+  // ✅ Switch pages cleanly (NO redirect loop)
   useEffect(() => {
-    if (loginMode === "user") {
-      router.push("/user/login");
-    }
+    if (loginMode === "user") router.push("/user/login");
+    if (loginMode === "doctor") router.push("/doctor/login");
   }, [loginMode, router]);
 
-  // ✅ Wait until AuthContext finishes loading
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen bg-gray-50">
@@ -56,7 +53,6 @@ export default function LoginPage() {
     if (loginMode !== "doctor") return;
 
     setIsLoading(true);
-    console.log("🔐 Checking mock DOCTOR credentials...");
 
     try {
       const foundAccount: Doctor | undefined = mockData.doctors.find(
@@ -64,36 +60,37 @@ export default function LoginPage() {
           d.email === formData.email && d.password === formData.password
       );
 
-      if (foundAccount) {
-        console.log(`✅ DOCTOR found:`, foundAccount);
-
-        const accountInfo = {
-          id: foundAccount.id ?? Date.now().toString(),
-          firstName: foundAccount.firstName,
-          lastName: foundAccount.lastName,
-          email: foundAccount.email,
-          type: loginMode,
-        };
-
-        login(foundAccount.id, "doctor");
-        localStorage.setItem("pendingUser", JSON.stringify(accountInfo));
-
-        const generatedOtp = generateOtp(4);
-        localStorage.setItem("generatedOtp", generatedOtp);
-        localStorage.setItem(
-          "otpExpiry",
-          (Date.now() + 2 * 60 * 1000).toString()
-        );
-        console.log(`🔑 Generated OTP: ${generatedOtp}`);
-
-        toast.success(`OTP sent! (Check console: ${generatedOtp})`);
-        router.push("/doctor/otp");
-      } else {
-        toast.error("❌ Invalid credentials. Please try again.");
+      if (!foundAccount) {
+        toast.error("Invalid credentials. Please try again.");
+        setIsLoading(false);
+        return;
       }
-    } catch (error) {
-      console.error("Login error:", error);
-      toast.error("Something went wrong. Please try again.");
+
+      // ✅ Log doctor into AuthContext
+      await login(foundAccount.id, "doctor");
+
+      const accountInfo = {
+        id: foundAccount.id,
+        firstName: foundAccount.firstName,
+        lastName: foundAccount.lastName,
+        email: foundAccount.email,
+        type: "doctor",
+      };
+
+      localStorage.setItem("pendingUser", JSON.stringify(accountInfo));
+
+      const generatedOtp = generateOtp(4);
+      localStorage.setItem("generatedOtp", generatedOtp);
+      localStorage.setItem(
+        "otpExpiry",
+        (Date.now() + 2 * 60 * 1000).toString()
+      );
+
+      toast.success(`OTP sent! (Check console: ${generatedOtp})`);
+      router.push("/doctor/otp");
+    } catch (err) {
+      console.error("Login error:", err);
+      toast.error("Something went wrong.");
     } finally {
       setIsLoading(false);
     }
@@ -111,6 +108,7 @@ export default function LoginPage() {
         <AuthBanner />
 
         <div className="flex-1 flex flex-col justify-center items-center px-8 py-12">
+          {/* Toggle Buttons */}
           <div className="flex justify-center space-x-2 border border-gray-200 rounded-lg p-1 mb-8 w-full max-w-sm">
             <button
               onClick={() => setLoginMode("user")}
@@ -134,15 +132,14 @@ export default function LoginPage() {
             </button>
           </div>
 
+          {/* Doctor Login Form */}
           {loginMode === "doctor" && (
             <>
               <h2 className="text-2xl font-semibold text-gray-800 mb-8 text-center">
                 Login
               </h2>
-              <form
-                onSubmit={handleSubmit}
-                className="space-y-4 w-full max-w-md"
-              >
+
+              <form onSubmit={handleSubmit} className="space-y-4 w-full max-w-md">
                 <div>
                   <label className="block text-sm font-medium mb-2">
                     Email / Mobile
@@ -173,15 +170,13 @@ export default function LoginPage() {
                   <div className="flex items-center gap-2">
                     <input
                       type="checkbox"
-                      id="remember"
                       checked={remember}
                       onChange={(e) => setRemember(e.target.checked)}
                       className="w-4 h-4 accent-cyan-400"
                     />
-                    <label htmlFor="remember" className="text-xs text-gray-600">
-                      Remember Me
-                    </label>
+                    <span className="text-xs text-gray-600">Remember Me</span>
                   </div>
+
                   <button
                     type="button"
                     className="text-xs text-pink-500 hover:underline"
@@ -210,10 +205,6 @@ export default function LoginPage() {
                 </button>
               </p>
             </>
-          )}
-
-          {loginMode === "user" && (
-            <p className="text-gray-500">Redirecting to user login...</p>
           )}
         </div>
       </div>

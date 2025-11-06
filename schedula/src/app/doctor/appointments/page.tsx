@@ -65,9 +65,9 @@ export default function DoctorAppointmentsPage() {
   const { doctor } = useAuth();
 
   const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [activeTab, setActiveTab] = useState<"Upcoming" | "Completed" | "Cancelled">(
-    "Upcoming"
-  );
+  const [activeTab, setActiveTab] = useState<
+    "Upcoming" | "Completed" | "Cancelled"
+  >("Upcoming");
   const [selected, setSelected] = useState<Appointment | null>(null);
   const [hasPrescription, setHasPrescription] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -108,8 +108,12 @@ export default function DoctorAppointmentsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id, status: "Completed" }),
       });
-      setAppointments((prev) => prev.map((a) => (a.id === id ? { ...a, status: "Completed" } : a)));
-      setSelected((prev) => (prev && prev.id === id ? { ...prev, status: "Completed" } : prev));
+      setAppointments((prev) =>
+        prev.map((a) => (a.id === id ? { ...a, status: "Completed" } : a))
+      );
+      setSelected((prev) =>
+        prev && prev.id === id ? { ...prev, status: "Completed" } : prev
+      );
     } finally {
       setBusy(false);
     }
@@ -123,8 +127,12 @@ export default function DoctorAppointmentsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id, status: "Cancelled" }),
       });
-      setAppointments((prev) => prev.map((a) => (a.id === id ? { ...a, status: "Cancelled" } : a)));
-      setSelected((prev) => (prev && prev.id === id ? { ...prev, status: "Cancelled" } : prev));
+      setAppointments((prev) =>
+        prev.map((a) => (a.id === id ? { ...a, status: "Cancelled" } : a))
+      );
+      setSelected((prev) =>
+        prev && prev.id === id ? { ...prev, status: "Cancelled" } : prev
+      );
     } finally {
       setBusy(false);
     }
@@ -147,7 +155,7 @@ export default function DoctorAppointmentsPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-3xl mx-auto px-4 py-8">
-        {/* Top bar like screenshot */}
+        {/* Top bar */}
         <div className="flex items-start gap-3 mb-4">
           <button
             aria-label="Back"
@@ -157,14 +165,16 @@ export default function DoctorAppointmentsPage() {
             <ArrowLeft className="w-6 h-6" />
           </button>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">My Appointments</h1>
+            <h1 className="text-2xl font-bold text-gray-900">
+              My Appointments
+            </h1>
             <p className="text-sm text-gray-500">
               Dr. {doctor?.firstName} {doctor?.lastName}
             </p>
           </div>
         </div>
 
-        {/* Tabs with only underline for active */}
+        {/* Tabs */}
         <div className="px-1">
           <div className="flex items-center gap-8 overflow-hidden">
             {(["Upcoming", "Completed", "Cancelled"] as const).map((tab) => {
@@ -174,7 +184,9 @@ export default function DoctorAppointmentsPage() {
                   key={tab}
                   onClick={() => setActiveTab(tab)}
                   className={`relative py-3 font-semibold ${
-                    active ? "text-cyan-600" : "text-gray-400 hover:text-gray-600"
+                    active
+                      ? "text-cyan-600"
+                      : "text-gray-400 hover:text-gray-600"
                   }`}
                 >
                   {tab}
@@ -187,14 +199,16 @@ export default function DoctorAppointmentsPage() {
           </div>
         </div>
 
-        {/* Cards grid */}
+        {/* Cards */}
         <div className="mt-1 grid grid-cols-1 md:grid-cols-2 gap-6 justify-center max-w-5xl mx-auto">
           {filtered.length > 0 ? (
             filtered.map((apt) => {
               const patient = apt.patientDetails;
               const name = patient?.fullName || "Patient";
               const sub = subtitleOf(apt);
-              const dateStr = apt.date ? format(new Date(apt.date), "EEEE, yyyy-MM-dd") : "—";
+              const dateStr = apt.date
+                ? format(new Date(apt.date), "EEEE, yyyy-MM-dd")
+                : "—";
               const timeStr = apt.time || "—";
               const typeStr = apt.type || "In-person";
 
@@ -204,39 +218,43 @@ export default function DoctorAppointmentsPage() {
                   className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition"
                 >
                   <div className="p-5">
-                    {/* header row: name + status on right */}
                     <div className="flex items-start justify-between gap-4">
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
                           <User2 className="w-4 h-4 text-cyan-600" />
-                          <h3 className="text-lg font-extrabold text-gray-900 truncate">{name}</h3>
+                          <h3 className="text-lg font-extrabold text-gray-900 truncate">
+                            {name}
+                          </h3>
                         </div>
-                        {sub && <p className="text-sm text-gray-500 mt-1">{sub}</p>}
+                        {sub && (
+                          <p className="text-sm text-gray-500 mt-1">{sub}</p>
+                        )}
                       </div>
                       <StatusBadge status={apt.status} />
                     </div>
 
-                    {/* detail rows */}
                     <div className="mt-4 space-y-2">
                       <Row icon={Calendar}>{dateStr}</Row>
                       <Row icon={Clock}>{timeStr}</Row>
 
-                      {/* In-person row with green accent like screenshot */}
                       <p className="flex items-center gap-2 text-sm text-gray-700">
                         <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-green-100">
                           <CheckCircle className="w-3 h-3 text-green-600" />
                         </span>
-                        <span className="text-green-700 font-medium">{typeStr}</span>
+                        <span className="text-green-700 font-medium">
+                          {typeStr}
+                        </span>
                       </p>
 
                       <p className="text-sm">
                         <span className="text-gray-600">Token:</span>{" "}
-                        <span className="text-cyan-600 font-semibold">#{apt.tokenNo}</span>
+                        <span className="text-cyan-600 font-semibold">
+                          #{apt.tokenNo}
+                        </span>
                       </p>
                     </div>
                   </div>
 
-                  {/* bottom row: right-aligned button exactly like screenshot */}
                   <div className="px-5 pb-5 flex justify-end">
                     <Button
                       variant="outline"
@@ -260,107 +278,197 @@ export default function DoctorAppointmentsPage() {
       {/* Modal */}
       {selected && (
         <>
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-20" onClick={closeModal} />
+          <div
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-20"
+            onClick={closeModal}
+          />
+
           <div className="fixed inset-0 z-30 flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 relative max-h-[90vh] overflow-hidden">
-              <button
-                onClick={closeModal}
-                className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
-                aria-label="Close modal"
-              >
-                <X className="w-5 h-5" />
-              </button>
+            <div className="bg-white rounded-2xl shadow-xl w-full max-w-md relative max-h-[90vh] flex flex-col">
+              <div className="p-6 overflow-y-auto">
 
-              <h2 className="text-lg font-semibold text-gray-800 mb-4 text-center pr-6">
-                Appointment Details
-              </h2>
+                <button
+                  onClick={closeModal}
+                  className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
+                >
+                  <X className="w-5 h-5" />
+                </button>
 
-              <div className="bg-cyan-50 rounded-lg p-3 border border-cyan-100 text-center">
-                <p className="text-cyan-800 font-semibold">Token No: #{selected.tokenNo}</p>
-              </div>
+                <h2 className="text-lg font-semibold text-gray-800 mb-4 text-center pr-6">
+                  Appointment Details
+                </h2>
 
-              <div className="space-y-2 text-sm text-gray-700 mt-4">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Patient:</span>
-                  <span className="font-medium">{selected.patientDetails?.fullName || "—"}</span>
+                <div className="bg-cyan-50 rounded-lg p-3 border border-cyan-100 text-center">
+                  <p className="text-cyan-800 font-semibold">
+                    Token No: #{selected.tokenNo}
+                  </p>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Date:</span>
-                  <span className="font-medium">
-                    {(selected.day ? selected.day + ", " : "") + (selected.date || "—")}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Time:</span>
-                  <span className="font-medium">{selected.time || "—"}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Type:</span>
-                  <span className="font-medium">{selected.type || "In-person"}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Payment:</span>
-                  <span className={`font-medium ${selected.paid ? "text-green-600" : "text-red-600"}`}>
-                    {selected.paid ? "Paid" : "Not Paid"}
-                  </span>
-                </div>
-              </div>
 
-              <div className="flex flex-col gap-3 mt-6">
-                {selected.status === "Upcoming" && (
-                  <>
-                    <Button
-                      className="w-full bg-green-600 hover:bg-green-700 text-white"
-                      onClick={() => markCompleted(selected.id)}
-                      disabled={busy}
-                    >
-                      <CheckCircle2 className="w-4 h-4 mr-2" />
-                      {busy ? "Completing..." : "Mark as Completed"}
-                    </Button>
+                {/* Patient Details */}
+                <div className="space-y-2 text-sm text-gray-700 mt-4">
 
-                    <div className="grid grid-cols-2 gap-3">
-                      <Button
-                        variant="outline"
-                        className="border-cyan-600 text-cyan-600 hover:bg-cyan-50"
-                        onClick={() => router.push(`/doctor/appointments/${selected.id}/edit`)}
-                        disabled={busy}
-                      >
-                        <Edit className="w-4 h-4 mr-2" />
-                        Edit
-                      </Button>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Patient:</span>
+                    <span className="font-medium">
+                      {selected.patientDetails?.fullName || "—"}
+                    </span>
+                  </div>
 
-                      <Button
-                        variant="outline"
-                        className="border-red-500 text-red-500 hover:bg-red-50"
-                        onClick={() => cancelAppointment(selected.id)}
-                        disabled={busy}
-                      >
-                        <X className="w-4 h-4 mr-2" />
-                        {busy ? "Cancelling..." : "Cancel"}
-                      </Button>
+                  {selected.patientDetails?.age && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Age:</span>
+                      <span className="font-medium">
+                        {selected.patientDetails.age}
+                      </span>
                     </div>
-                  </>
-                )}
+                  )}
 
-                {selected.status === "Completed" && hasPrescription && (
-                  <Button
-                    className="w-full bg-cyan-600 hover:bg-cyan-700 text-white"
-                    onClick={() =>
-                      router.push(`/doctor/appointments/${selected.id}/prescription/view`)
-                    }
-                  >
-                    View Prescription
-                  </Button>
-                )}
+                  {selected.patientDetails?.gender && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Gender:</span>
+                      <span className="font-medium">
+                        {selected.patientDetails.gender}
+                      </span>
+                    </div>
+                  )}
 
-                {selected.status === "Completed" && !hasPrescription && (
-                  <Button
-                    className="w-full bg-cyan-600 hover:bg-cyan-700 text-white"
-                    onClick={() => router.push(`/doctor/appointments/${selected.id}/prescription`)}
-                  >
-                    Add Prescription
-                  </Button>
-                )}
+                  {selected.patientDetails?.phone && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Phone:</span>
+                      <span className="font-medium">
+                        {selected.patientDetails.phone}
+                      </span>
+                    </div>
+                  )}
+
+                  {selected.patientDetails?.relationship && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Relationship:</span>
+                      <span className="font-medium">
+                        {selected.patientDetails.relationship}
+                      </span>
+                    </div>
+                  )}
+
+                  {selected.patientDetails?.weight && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Weight:</span>
+                      <span className="font-medium">
+                        {selected.patientDetails.weight} kg
+                      </span>
+                    </div>
+                  )}
+
+                  {selected.patientDetails?.problem && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Problem:</span>
+                      <span className="font-medium">
+                        {selected.patientDetails.problem}
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Date:</span>
+                    <span className="font-medium">
+                      {(selected.day ? selected.day + ", " : "") +
+                        (selected.date || "—")}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Time:</span>
+                    <span className="font-medium">
+                      {selected.time || "—"}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Type:</span>
+                    <span className="font-medium">
+                      {selected.type || "In-person"}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Payment:</span>
+                    <span
+                      className={`font-medium ${
+                        selected.paid ? "text-green-600" : "text-red-600"
+                      }`}
+                    >
+                      {selected.paid ? "Paid" : "Not Paid"}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Action buttons */}
+                <div className="flex flex-col gap-3 mt-6">
+                  {selected.status === "Upcoming" && (
+                    <>
+                      <Button
+                        className="w-full bg-green-600 hover:bg-green-700 text-white"
+                        onClick={() => markCompleted(selected.id)}
+                        disabled={busy}
+                      >
+                        <CheckCircle2 className="w-4 h-4 mr-2" />
+                        {busy ? "Completing..." : "Mark as Completed"}
+                      </Button>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <Button
+                          variant="outline"
+                          className="border-cyan-600 text-cyan-600 hover:bg-cyan-50"
+                          onClick={() =>
+                            router.push(
+                              `/doctor/appointments/${selected.id}/edit`
+                            )
+                          }
+                          disabled={busy}
+                        >
+                          <Edit className="w-4 h-4 mr-2" />
+                          Edit
+                        </Button>
+
+                        <Button
+                          variant="outline"
+                          className="border-red-500 text-red-500 hover:bg-red-50"
+                          onClick={() => cancelAppointment(selected.id)}
+                          disabled={busy}
+                        >
+                          <X className="w-4 h-4 mr-2" />
+                          {busy ? "Cancelling..." : "Cancel"}
+                        </Button>
+                      </div>
+                    </>
+                  )}
+
+                  {selected.status === "Completed" && hasPrescription && (
+                    <Button
+                      className="w-full bg-cyan-600 hover:bg-cyan-700 text-white"
+                      onClick={() =>
+                        router.push(
+                          `/doctor/appointments/${selected.id}/prescription/view`
+                        )
+                      }
+                    >
+                      View Prescription
+                    </Button>
+                  )}
+
+                  {selected.status === "Completed" && !hasPrescription && (
+                    <Button
+                      className="w-full bg-cyan-600 hover:bg-cyan-700 text-white"
+                      onClick={() =>
+                        router.push(
+                          `/doctor/appointments/${selected.id}/prescription`
+                        )
+                      }
+                    >
+                      Add Prescription
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
           </div>
