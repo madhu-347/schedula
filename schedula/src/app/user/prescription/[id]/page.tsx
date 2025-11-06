@@ -7,6 +7,8 @@ import { getAppointmentById } from "@/app/services/appointments.api";
 import { Prescription } from "@/lib/types/prescription";
 import { useAuth } from "@/context/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import type { Appointment } from "@/lib/types/appointment";
+
 import {
   Calendar,
   FileText,
@@ -26,7 +28,7 @@ export default function PrescriptionDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
-  const [appointment, setAppointment] = useState<any>(null);
+  const [appointment, setAppointment] = useState<Appointment | null>(null);
 
   useEffect(() => {
     const fetchPrescription = async () => {
@@ -172,7 +174,7 @@ export default function PrescriptionDetailPage() {
                           {appointment?.doctor?.qualifications ||
                             "Not specified"}
                         </p>
-                      </div>
+                      </div>  
                     </div>
 
                     {/* Patient Information */}
@@ -357,7 +359,7 @@ export default function PrescriptionDetailPage() {
                     {prescription.notes && (
                       <div className="mb-6">
                         <h3 className="font-medium text-gray-900 mb-2">
-                          Doctor's Notes
+                          Doctors Notes
                         </h3>
                         <div className="bg-gray-50 rounded-lg p-4">
                           <p className="text-gray-700">{prescription.notes}</p>

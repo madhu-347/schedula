@@ -6,12 +6,23 @@ export interface Appointment {
   tokenNo: string;
   patientId: string;
   doctorId: string;
+
+  // Added based on usage in your UI
+  doctor?: {
+    firstName?: string;
+    lastName?: string;
+    specialty?: string;
+    qualifications?: string;
+    image?: string;
+  };
+
   day: string;
   date: string;
   time: string;
   timeSlot?: string;
   type?: "In-person" | "Virtual";
   queuePosition?: number;
+
   patientDetails?: {
     id?: string | number;
     fullName: string;
@@ -32,10 +43,12 @@ export interface Appointment {
       | "Other";
     location?: string;
   };
+
   visitType?: "Follow-up" | "Report" | "First";
   status: "Upcoming" | "Completed" | "Cancelled" | "Waiting";
   paid?: boolean;
   paymentStatus?: "Paid" | "Not paid";
+
   feedback?: {
     consulting: number;
     hospital: number;
@@ -44,8 +57,8 @@ export interface Appointment {
     feedbackText?: string;
     submittedAt: string;
   };
+
   postFeeling?: "Feeling Better" | "No improvements";
 
-  // --- keep this reference ---
   prescriptionId?: string;
 }
