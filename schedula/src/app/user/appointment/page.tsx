@@ -1,5 +1,5 @@
+// user/appointment 
 "use client";
-
 import React, { useState, useEffect } from "react";
 import { ChevronLeft, MoreVertical, Building2 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -10,7 +10,6 @@ import BottomNav from "@/components/BottomNav";
 import { Appointment } from "@/lib/types/appointment";
 import Heading from "@/components/ui/Heading";
 import { getPrescriptionsByAppointmentId } from "@/app/services/prescription.api";
-
 import {
   getAppointmentsByPatient,
   updateAppointment,
@@ -19,9 +18,7 @@ import { Doctor } from "@/lib/types/doctor";
 import { User } from "@/lib/types/user";
 import toast from "react-hot-toast";
 import { useAuth } from "@/context/AuthContext";
-
 type TabType = "Upcoming" | "Completed" | "Cancelled";
-
 const AppointmentsPage: React.FC = () => {
   const { user } = useAuth();
   const router = useRouter();
@@ -30,17 +27,14 @@ const AppointmentsPage: React.FC = () => {
   const [appointments, setAppointments] = useState<any[]>([]);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-
   const filteredAppointments = appointments.filter(
     (apt) => apt.status === activeTab
   );
-
   const fetchAllAppointments = async () => {
     try {
       setLoading(true);
       const response = await getAppointmentsByPatient(user?.id || "");
       console.log("Appointments:", response);
-
       if (response && Array.isArray(response)) {
         // ✅ Attach prescriptions to each appointment
         const withPrescriptions = await Promise.all(
@@ -57,7 +51,6 @@ const AppointmentsPage: React.FC = () => {
             };
           })
         );
-
         console.log("Appointments with prescriptions:", withPrescriptions);
         setAppointments(withPrescriptions);
       } else {
@@ -70,17 +63,14 @@ const AppointmentsPage: React.FC = () => {
       setLoading(false);
     }
   };
-
   useEffect(() => {
     fetchAllAppointments();
   }, []);
-
   const handleMakePayment = async (id: string): Promise<void> => {
     try {
       const response = await updateAppointment(id, {
         paid: true,
       });
-
       if (response.success) {
         // Update local state
         setAppointments((prev) =>
@@ -94,17 +84,14 @@ const AppointmentsPage: React.FC = () => {
     }
     setOpenMenuId(null);
   };
-
   const handleCancelAppointment = async (id: string): Promise<void> => {
     if (!confirm("Are you sure you want to cancel this appointment?")) {
       return;
     }
-
     try {
       const response = await updateAppointment(id, {
         status: "Cancelled",
       });
-
       if (response.success) {
         // Update local state
         setAppointments((prev) =>
@@ -120,15 +107,12 @@ const AppointmentsPage: React.FC = () => {
     }
     setOpenMenuId(null);
   };
-
   const toggleMenu = (id: string): void => {
     setOpenMenuId(openMenuId === id ? null : id);
   };
-
   const formatDate = (dateString: string): string => {
     const today = new Date();
     const appointmentDate = new Date(dateString);
-
     if (
       today.getDate() === appointmentDate.getDate() &&
       today.getMonth() === appointmentDate.getMonth() &&
@@ -136,14 +120,12 @@ const AppointmentsPage: React.FC = () => {
     ) {
       return "Today";
     }
-
     return appointmentDate.toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
       year: "numeric",
     });
   };
-
   // Close menu when clicking outside
   useEffect(() => {
     const handleClickOutside = () => setOpenMenuId(null);
@@ -152,7 +134,6 @@ const AppointmentsPage: React.FC = () => {
       return () => document.removeEventListener("click", handleClickOutside);
     }
   }, [openMenuId]);
-
   if (loading) {
     return (
       <div className="min-h-screen pb-20 flex items-center justify-center">
@@ -163,14 +144,12 @@ const AppointmentsPage: React.FC = () => {
       </div>
     );
   }
-
   return (
     <div className="min-h-screen pb-20">
       {/* Header */}
       <div className="pt-4 mb-2">
         <Heading heading={"Your Appointments"} />
       </div>
-
       {/* Tabs */}
       <div className="bg-white px-4 border-gray-200 sticky top-20 z-10">
         <div className="max-w-3xl mx-auto flex gap-8">
@@ -209,7 +188,6 @@ const AppointmentsPage: React.FC = () => {
           </button>
         </div>
       </div>
-
       {/* Appointments List */}
       <div className="p-4 flex justify-center">
         <div className="w-full md:max-w-3xl space-y-4">
@@ -290,7 +268,6 @@ const AppointmentsPage: React.FC = () => {
                 : "Unknown Doctor";
               const doctorSpecialty = appointment.doctor?.specialty || "";
               const doctorImage = appointment.doctor?.image || null;
-
               return (
                 <Card
                   key={appointment.id}
@@ -315,7 +292,6 @@ const AppointmentsPage: React.FC = () => {
                         </div>
                       )}
                     </div>
-
                     {/* Appointment Details */}
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-start mb-2">
@@ -376,7 +352,6 @@ const AppointmentsPage: React.FC = () => {
                                     View Prescription
                                   </button>
                                 )}
-
                               {appointment.status === "Upcoming" && (
                                 <button
                                   onClick={() => {
@@ -394,7 +369,7 @@ const AppointmentsPage: React.FC = () => {
                                   <button
                                     onClick={() => {
                                       router.push(
-                                        `/user/doctor/${appointment.doctorId}/book`
+                                        `/user/doctor/${appointment.doctorId}/book?rescheduleId=${appointment.id}`
                                       );
                                       setOpenMenuId(null);
                                     }}
@@ -416,7 +391,6 @@ const AppointmentsPage: React.FC = () => {
                           )}
                         </div>
                       </div>
-
                       <div className="space-y-1 text-sm text-gray-600">
                         <p className="font-medium">
                           Token no - #{appointment.tokenNo}
@@ -441,13 +415,11 @@ const AppointmentsPage: React.FC = () => {
                         </p>
                       </div>
                     </div>
-
                     {/* Hospital Icon */}
                     <div className="bg-cyan-50 rounded-xl p-3 h-fit">
                       <Building2 className="w-6 h-6 text-cyan-500" />
                     </div>
                   </div>
-
                   {!appointment.paid && appointment.status === "Upcoming" && (
                     <div className="mt-4 pt-4 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                       <p className="text-sm text-gray-600 sm:max-w-[60%]">
@@ -468,10 +440,8 @@ const AppointmentsPage: React.FC = () => {
           )}
         </div>
       </div>
-
       <BottomNav />
     </div>
   );
 };
-
 export default AppointmentsPage;
