@@ -22,7 +22,6 @@ import type { Appointment } from "@/lib/types/appointment";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 
-// ---------- UI helpers ----------
 const StatusBadge = ({ status }: { status: string }) => {
   const cls =
     status === "Upcoming"
@@ -61,7 +60,6 @@ const subtitleOf = (apt: Appointment): string => {
   return "";
 };
 
-// ---------- Page ----------
 export default function DoctorAppointmentsPage() {
   const router = useRouter();
   const { doctor } = useAuth();
@@ -79,7 +77,6 @@ export default function DoctorAppointmentsPage() {
   const [followUpTime, setFollowUpTime] = useState("");
   const [attemptedSave, setAttemptedSave] = useState(false);
 
-  // load data
   useEffect(() => {
     if (!doctor?.id) return;
     (async () => {
@@ -93,13 +90,11 @@ export default function DoctorAppointmentsPage() {
     })();
   }, [doctor?.id]);
 
-  // filter per tab
   const filtered = useMemo(
     () => appointments.filter((a) => a.status === activeTab),
     [appointments, activeTab]
   );
 
-  // actions
   const openDetails = async (apt: Appointment) => {
     const rx = await getPrescriptionsByAppointmentId(apt.id);
     setHasPrescription(!!rx && rx.length > 0);
@@ -107,27 +102,27 @@ export default function DoctorAppointmentsPage() {
   };
 
   const markCompleted = async (id: string) => {
-  setBusy(true);
-  try {
-    await fetch("/api/appointment", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, status: "Completed" }),
-    });
-    setAppointments((prev) =>
-      prev.map((a) => (a.id === id ? { ...a, status: "Completed" } : a))
-    );
-    setSelected((prev) =>
-      prev && prev.id === id ? { ...prev, status: "Completed" } : prev
-    );
+    setBusy(true);
+    try {
+      await fetch("/api/appointment", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, status: "Completed" }),
+      });
 
-    // 👇 Open follow-up modal after marking as completed
-    setShowFollowUpModal(true);
-  } finally {
-    setBusy(false);
-  }
-};
+      setAppointments((prev) =>
+        prev.map((a) => (a.id === id ? { ...a, status: "Completed" } : a))
+      );
 
+      setSelected((prev) =>
+        prev && prev.id === id ? { ...prev, status: "Completed" } : prev
+      );
+
+      setShowFollowUpModal(true);
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const cancelAppointment = async (id: string) => {
     setBusy(true);
@@ -137,6 +132,7 @@ export default function DoctorAppointmentsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id, status: "Cancelled" }),
       });
+
       setAppointments((prev) =>
         prev.map((a) => (a.id === id ? { ...a, status: "Cancelled" } : a))
       );
@@ -150,10 +146,9 @@ export default function DoctorAppointmentsPage() {
 
   const closeModal = () => setSelected(null);
 
-  // loading
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-500 mx-auto mb-3"></div>
           <p className="text-gray-600">Loading appointments…</p>
@@ -164,8 +159,8 @@ export default function DoctorAppointmentsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* ---- Appointments List ---- */}
       <div className="max-w-3xl mx-auto px-4 py-8">
-        {/* Top bar */}
         <div className="flex items-start gap-3 mb-4">
           <button
             aria-label="Back"
@@ -184,33 +179,28 @@ export default function DoctorAppointmentsPage() {
           </div>
         </div>
 
-        {/* Tabs */}
         <div className="px-1">
           <div className="flex items-center gap-8 overflow-hidden">
-            {(["Upcoming", "Completed", "Cancelled"] as const).map((tab) => {
-              const active = activeTab === tab;
-              return (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`relative py-3 font-semibold ${
-                    active
-                      ? "text-cyan-600"
-                      : "text-gray-400 hover:text-gray-600"
-                  }`}
-                >
-                  {tab}
-                  {active && (
-                    <span className="absolute -bottom-0.5 left-0 right-0 h-0.5 bg-cyan-500 rounded-full" />
-                  )}
-                </button>
-              );
-            })}
+            {(["Upcoming", "Completed", "Cancelled"] as const).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`relative py-3 font-semibold ${
+                  activeTab === tab
+                    ? "text-cyan-600"
+                    : "text-gray-400 hover:text-gray-600"
+                }`}
+              >
+                {tab}
+                {activeTab === tab && (
+                  <span className="absolute -bottom-0.5 left-0 right-0 h-0.5 bg-cyan-500 rounded-full" />
+                )}
+              </button>
+            ))}
           </div>
         </div>
 
-        {/* Cards */}
-        <div className="mt-1 grid grid-cols-1 md:grid-cols-2 gap-6 justify-center max-w-5xl mx-auto">
+        <div className="mt-1 grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl mx-auto">
           {filtered.length > 0 ? (
             filtered.map((apt) => {
               const patient = apt.patientDetails;
@@ -219,20 +209,18 @@ export default function DoctorAppointmentsPage() {
               const dateStr = apt.date
                 ? format(new Date(apt.date), "EEEE, yyyy-MM-dd")
                 : "—";
-              const timeStr = apt.time || "—";
-              const typeStr = apt.type || "In-person";
 
               return (
                 <div
                   key={apt.id}
-                  className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition"
+                  className="bg-white rounded-2xl border shadow-sm hover:shadow-md transition"
                 >
                   <div className="p-5">
                     <div className="flex items-start justify-between gap-4">
-                      <div className="min-w-0">
+                      <div>
                         <div className="flex items-center gap-2">
                           <User2 className="w-4 h-4 text-cyan-600" />
-                          <h3 className="text-lg font-extrabold text-gray-900 truncate">
+                          <h3 className="text-lg font-extrabold text-gray-900">
                             {name}
                           </h3>
                         </div>
@@ -245,16 +233,8 @@ export default function DoctorAppointmentsPage() {
 
                     <div className="mt-4 space-y-2">
                       <Row icon={Calendar}>{dateStr}</Row>
-                      <Row icon={Clock}>{timeStr}</Row>
-
-                      <p className="flex items-center gap-2 text-sm text-gray-700">
-                        <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-green-100">
-                          <CheckCircle className="w-3 h-3 text-green-600" />
-                        </span>
-                        <span className="text-green-700 font-medium">
-                          {typeStr}
-                        </span>
-                      </p>
+                      <Row icon={Clock}>{apt.time || "—"}</Row>
+                      <Row icon={CheckCircle}>{apt.type || "In-person"}</Row>
 
                       <p className="text-sm">
                         <span className="text-gray-600">Token:</span>{" "}
@@ -278,18 +258,18 @@ export default function DoctorAppointmentsPage() {
               );
             })
           ) : (
-            <div className="col-span-full flex items-center justify-center py-16 text-gray-500">
+            <div className="col-span-full text-center py-16 text-gray-500">
               No {activeTab.toLowerCase()} appointments
             </div>
           )}
         </div>
       </div>
 
-      {/* Modal */}
+      {/* ==== Appointment Details Modal ==== */}
       {selected && (
         <>
           <div
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-20"
+            className="fixed inset-0 bg-black/40 z-20"
             onClick={closeModal}
           />
 
@@ -308,17 +288,15 @@ export default function DoctorAppointmentsPage() {
                   Appointment Details
                 </h2>
 
-                <div className="bg-cyan-50 rounded-lg p-3 border border-cyan-100 text-center">
+                <div className="bg-cyan-50 rounded-lg p-3 border text-center">
                   <p className="text-cyan-800 font-semibold">
                     Token No: #{selected.tokenNo}
                   </p>
                 </div>
 
-                {/* Patient Details */}
                 <div className="space-y-2 text-sm text-gray-700 mt-4">
-
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Patient:</span>
+                    <span>Patient:</span>
                     <span className="font-medium">
                       {selected.patientDetails?.fullName || "—"}
                     </span>
@@ -326,7 +304,7 @@ export default function DoctorAppointmentsPage() {
 
                   {selected.patientDetails?.age && (
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Age:</span>
+                      <span>Age:</span>
                       <span className="font-medium">
                         {selected.patientDetails.age}
                       </span>
@@ -335,7 +313,7 @@ export default function DoctorAppointmentsPage() {
 
                   {selected.patientDetails?.gender && (
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Gender:</span>
+                      <span>Gender:</span>
                       <span className="font-medium">
                         {selected.patientDetails.gender}
                       </span>
@@ -344,7 +322,7 @@ export default function DoctorAppointmentsPage() {
 
                   {selected.patientDetails?.phone && (
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Phone:</span>
+                      <span>Phone:</span>
                       <span className="font-medium">
                         {selected.patientDetails.phone}
                       </span>
@@ -353,7 +331,7 @@ export default function DoctorAppointmentsPage() {
 
                   {selected.patientDetails?.relationship && (
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Relationship:</span>
+                      <span>Relationship:</span>
                       <span className="font-medium">
                         {selected.patientDetails.relationship}
                       </span>
@@ -362,7 +340,7 @@ export default function DoctorAppointmentsPage() {
 
                   {selected.patientDetails?.weight && (
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Weight:</span>
+                      <span>Weight:</span>
                       <span className="font-medium">
                         {selected.patientDetails.weight} kg
                       </span>
@@ -371,7 +349,7 @@ export default function DoctorAppointmentsPage() {
 
                   {selected.patientDetails?.problem && (
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Problem:</span>
+                      <span>Problem:</span>
                       <span className="font-medium">
                         {selected.patientDetails.problem}
                       </span>
@@ -379,7 +357,7 @@ export default function DoctorAppointmentsPage() {
                   )}
 
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Date:</span>
+                    <span>Date:</span>
                     <span className="font-medium">
                       {(selected.day ? selected.day + ", " : "") +
                         (selected.date || "—")}
@@ -387,21 +365,21 @@ export default function DoctorAppointmentsPage() {
                   </div>
 
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Time:</span>
+                    <span>Time:</span>
                     <span className="font-medium">
                       {selected.time || "—"}
                     </span>
                   </div>
 
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Type:</span>
+                    <span>Type:</span>
                     <span className="font-medium">
                       {selected.type || "In-person"}
                     </span>
                   </div>
 
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Payment:</span>
+                    <span>Payment:</span>
                     <span
                       className={`font-medium ${
                         selected.paid ? "text-green-600" : "text-red-600"
@@ -412,7 +390,6 @@ export default function DoctorAppointmentsPage() {
                   </div>
                 </div>
 
-                {/* Action buttons */}
                 <div className="flex flex-col gap-3 mt-6">
                   {selected.status === "Upcoming" && (
                     <>
@@ -485,172 +462,207 @@ export default function DoctorAppointmentsPage() {
         </>
       )}
 
-      {/* ===== Follow-up Modal (Calendar + Slots) ===== */}
-{showFollowUpModal && (
-  <>
-    <div
-      className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40"
-      onClick={() => setShowFollowUpModal(false)}
-    />
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-    <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 relative overflow-y-auto"
-         style={{
-            maxHeight: "90vh",
-          }}
-        >
-
-        <button
-          onClick={() => setShowFollowUpModal(false)}
-          className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
-        >
-          <X className="w-5 h-5" />
-        </button>
-
-        <h2 className="text-lg font-semibold text-gray-800 mb-4 text-center">
-          Schedule Follow-up Appointment
-        </h2>
-
-        {/* Date Selection */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-600 mb-1">
-            Choose Date
-          </label>
-          <div className=" flex">
-           <DatePicker
-            selected={followUpDate ? new Date(followUpDate) : null}
-            onChange={(date) => {
-              if (!date) {
-                setFollowUpDate("");
-                return;
-              }
-              const localDate = new Date(
-                date.getTime() - date.getTimezoneOffset() * 60000
-              )
-                .toISOString()
-                .split("T")[0];
-              setFollowUpDate(localDate);
-            }}
-            minDate={new Date()}
-           filterDate={(date: Date): boolean => {
-            if (!(date instanceof Date) || isNaN(date.getTime())) return false;
-
-            const dayName = date.toLocaleDateString("en-US", { weekday: "long" });
-
-            // Always return a boolean
-            return !!doctor?.availableDays?.includes(dayName);
-          }}
-            inline
-            calendarClassName=" mx-auto rounded-lg shadow border border-gray-200"
-            className="border rounded-md p-2"
+      {/* ==== FOLLOW-UP MODAL ==== */}
+      {showFollowUpModal && (
+        <>
+          <div
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40"
+            onClick={() => setShowFollowUpModal(false)}
           />
-          </div>
-         
-        </div>
 
-        {/* Time Selection */}
-        {followUpDate && (
-          <div className="mt-3">
-            <label className="block text-sm font-medium text-gray-600 mb-1">
-              Choose Time Slot
-            </label>
-            <div className="relative z-60">
-            <select
-              className="w-full border rounded-md px-3 py-2 text-sm"
-              value={followUpTime}
-              onChange={(e) => setFollowUpTime(e.target.value)}
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div
+              className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 relative overflow-y-auto"
+              style={{
+                maxHeight: "90vh",
+                overflowY: "auto",
+                overflowX: "visible",
+              }}
             >
-              <option value="">Select a time slot</option>
+              <button
+                onClick={() => setShowFollowUpModal(false)}
+                className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
+              >
+                <X className="w-5 h-5" />
+              </button>
 
-              {/* Morning slots */}
-              {doctor?.availableTime?.morning && (
-                <optgroup label="Morning">
-                  {generateTimeSlots(
-                    doctor.availableTime.morning.from,
-                    doctor.availableTime.morning.to
-                  ).map((slot) => (
-                    <option key={`m-${slot}`} value={slot}>
-                      {slot}
-                    </option>
-                  ))}
-                </optgroup>
+              <h2 className="text-lg font-semibold text-gray-800 mb-4 text-center">
+                Schedule Follow-up Appointment
+              </h2>
+
+              {/* ---- Date Picker ---- */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-600 mb-1">
+                  Choose Date
+                </label>
+
+                <div className="flex justify-center">
+                <DatePicker
+                  selected={followUpDate ? new Date(followUpDate) : null}
+                  onChange={(date) => {
+                    if (!date) {
+                      setFollowUpDate("");
+                      return;
+                    }
+                    const localDate = new Date(
+                      date.getTime() - date.getTimezoneOffset() * 60000
+                    )
+                      .toISOString()
+                      .split("T")[0];
+                    setFollowUpDate(localDate);
+                  }}
+                  minDate={new Date()}
+                  filterDate={(date: Date) => {
+                    if (!(date instanceof Date) || isNaN(date.getTime()))
+                      return false;
+
+                    const dayName = date.toLocaleDateString("en-US", {
+                      weekday: "long",
+                    });
+                    return !!doctor?.availableDays?.includes(dayName);
+                  }}
+                  inline
+                  calendarClassName="mx-auto rounded-lg shadow border border-gray-200"
+                />
+              </div>
+              </div>
+
+              {/* ---- Time Slots ---- */}
+              {followUpDate && (
+                <div className="mt-3">
+                  <label className="block text-sm font-medium text-gray-600 mb-1">
+                    Choose Time Slot
+                  </label>
+
+                  <select
+                    className="w-full border rounded-md px-3 py-2 text-sm"
+                    value={followUpTime}
+                    onChange={(e) => setFollowUpTime(e.target.value)}
+                  >
+                    <option value="">Select a time slot</option>
+
+                    {doctor?.availableTime?.morning && (
+                      <optgroup label="Morning">
+                        {generateTimeSlots(
+                          doctor.availableTime.morning.from,
+                          doctor.availableTime.morning.to
+                        ).map((slot) => (
+                          <option key={`m-${slot}`} value={slot}>
+                            {slot}
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
+
+                    {doctor?.availableTime?.evening && (
+                      <optgroup label="Evening">
+                        {generateTimeSlots(
+                          doctor.availableTime.evening.from,
+                          doctor.availableTime.evening.to
+                        ).map((slot) => (
+                          <option key={`e-${slot}`} value={slot}>
+                            {slot}
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
+                  </select>
+                </div>
               )}
 
-              {/* Evening slots */}
-              {doctor?.availableTime?.evening && (
-                <optgroup label="Evening">
-                  {generateTimeSlots(
-                    doctor.availableTime.evening.from,
-                    doctor.availableTime.evening.to
-                  ).map((slot) => (
-                    <option key={`e-${slot}`} value={slot}>
-                      {slot}
-                    </option>
-                  ))}
-                </optgroup>
-              )}
-            </select>
+              {/* ---- Buttons ---- */}
+              <div className="flex flex-col gap-2 mt-6">
+                {!followUpDate && attemptedSave && (
+                  <p className="text-sm text-red-500">
+                    Please select a follow-up date.
+                  </p>
+                )}
+                {followUpDate && !followUpTime && attemptedSave && (
+                  <p className="text-sm text-red-500">
+                    Please select a time slot.
+                  </p>
+                )}
+
+                <div className="flex gap-3">
+                  <Button
+                    className="flex-1 bg-cyan-600 hover:bg-cyan-700 text-white"
+                    onClick={async () => {
+                      setAttemptedSave(true);
+                      if (!followUpDate || !followUpTime) return;
+
+                      const selectedDateObj = new Date(followUpDate);
+                      const dayName = selectedDateObj.toLocaleDateString(
+                        "en-US",
+                        { weekday: "long" }
+                      );
+
+                      // Save inside appointment
+                      await fetch("/api/appointment", {
+                        method: "PUT",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          id: selected?.id,
+                          followUp: {
+                            date: followUpDate,
+                            day: dayName,
+                            time: followUpTime,
+                          },
+                        }),
+                      });
+
+                      // Save follow-up record
+                      const res = await fetch("/api/followup", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          doctorId: doctor?.id,
+                          patientId: selected?.patientId,
+                          appointmentId: selected?.id,
+                          followUpDate,
+                          followUpTime,
+                        }),
+                      });
+
+                      const data = await res.json();
+                      const followUpId = data?.data?.id;
+
+                      // Send notification
+                      await fetch("/api/notifications", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          recipientId: selected?.patientId,
+                          doctorName: `${doctor?.firstName} ${doctor?.lastName}`,
+                          message:
+                            "Doctor suggested a follow-up appointment",
+                          targetUrl: `/user/followup/${followUpId}`,
+                        }),
+                      });
+
+                      setAttemptedSave(false);
+                      setShowFollowUpModal(false);
+                      setSelected(null);
+                    }}
+                  >
+                    Save Follow-up
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    className="flex-1 border-gray-300 text-gray-700 hover:bg-gray-50"
+                    onClick={() => {
+                      setAttemptedSave(false);
+                      setShowFollowUpModal(false);
+                    }}
+                  >
+                    Skip
+                  </Button>
+                </div>
+              </div>
+            </div>
           </div>
-          </div>
-        )}
-
-        {/* Buttons & Validation */}
-    <div className="flex flex-col gap-2 mt-6">
-      {/* Error Message */}
-      {!followUpDate && attemptedSave && (
-        <p className="text-sm text-red-500">Please select a follow-up date.</p>
+        </>
       )}
-      {followUpDate && !followUpTime && attemptedSave && (
-        <p className="text-sm text-red-500">Please select a time slot.</p>
-      )}
-
-      <div className="flex gap-3">
-        <Button
-          className="flex-1 bg-cyan-600 hover:bg-cyan-700 text-white"
-          onClick={async () => {
-            setAttemptedSave(true);
-            if (!followUpDate || !followUpTime) return;
-
-            const selectedDateObj = new Date(followUpDate);
-            const dayName = selectedDateObj.toLocaleDateString("en-US", {
-              weekday: "long",
-            });
-            await fetch("/api/appointment", {
-              method: "PUT",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                id: selected?.id,
-                followUp: {
-                  date: followUpDate,
-                  day: dayName,
-                  time: followUpTime,
-                },
-              }),
-            });
-
-            setAttemptedSave(false);
-            setShowFollowUpModal(false);
-            setSelected(null);
-          }}
-        >
-          Save Follow-up
-        </Button>
-
-        <Button
-          variant="outline"
-          className="flex-1 border-gray-300 text-gray-700 hover:bg-gray-50"
-          onClick={() => {
-            setAttemptedSave(false);
-            setShowFollowUpModal(false);
-          }}
-        >
-          Skip
-        </Button>
-      </div>
-    </div>
-      </div>
-    </div>
-  </>
-)}
     </div>
   );
 }
@@ -664,12 +676,11 @@ function generateTimeSlots(from: string, to: string): string[] {
     const hour = String(h).padStart(2, "0");
     const minute = String(m).padStart(2, "0");
     slots.push(`${hour}:${minute}`);
-    m += 30; // 30 min gap
+    m += 30;
     if (m >= 60) {
       m = 0;
       h++;
     }
   }
-
   return slots;
 }
