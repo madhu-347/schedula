@@ -61,4 +61,10 @@ export interface Appointment {
   postFeeling?: "Feeling Better" | "No improvements";
 
   prescriptionId?: string;
+
+  followUp?: {
+    day?: string;
+    date?: string;
+    time?: string;
+  };
 }

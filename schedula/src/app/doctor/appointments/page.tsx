@@ -19,6 +19,8 @@ import { useAuth } from "@/context/AuthContext";
 import { getAppointmentsByDoctor } from "@/app/services/appointments.api";
 import { getPrescriptionsByAppointmentId } from "@/app/services/prescription.api";
 import type { Appointment } from "@/lib/types/appointment";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 
 // ---------- UI helpers ----------
 const StatusBadge = ({ status }: { status: string }) => {
@@ -72,6 +74,10 @@ export default function DoctorAppointmentsPage() {
   const [hasPrescription, setHasPrescription] = useState(false);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [showFollowUpModal, setShowFollowUpModal] = useState(false);
+  const [followUpDate, setFollowUpDate] = useState("");
+  const [followUpTime, setFollowUpTime] = useState("");
+  const [attemptedSave, setAttemptedSave] = useState(false);
 
   // load data
   useEffect(() => {
@@ -101,23 +107,27 @@ export default function DoctorAppointmentsPage() {
   };
 
   const markCompleted = async (id: string) => {
-    setBusy(true);
-    try {
-      await fetch("/api/appointment", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, status: "Completed" }),
-      });
-      setAppointments((prev) =>
-        prev.map((a) => (a.id === id ? { ...a, status: "Completed" } : a))
-      );
-      setSelected((prev) =>
-        prev && prev.id === id ? { ...prev, status: "Completed" } : prev
-      );
-    } finally {
-      setBusy(false);
-    }
-  };
+  setBusy(true);
+  try {
+    await fetch("/api/appointment", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, status: "Completed" }),
+    });
+    setAppointments((prev) =>
+      prev.map((a) => (a.id === id ? { ...a, status: "Completed" } : a))
+    );
+    setSelected((prev) =>
+      prev && prev.id === id ? { ...prev, status: "Completed" } : prev
+    );
+
+    // 👇 Open follow-up modal after marking as completed
+    setShowFollowUpModal(true);
+  } finally {
+    setBusy(false);
+  }
+};
+
 
   const cancelAppointment = async (id: string) => {
     setBusy(true);
@@ -474,6 +484,192 @@ export default function DoctorAppointmentsPage() {
           </div>
         </>
       )}
+
+      {/* ===== Follow-up Modal (Calendar + Slots) ===== */}
+{showFollowUpModal && (
+  <>
+    <div
+      className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40"
+      onClick={() => setShowFollowUpModal(false)}
+    />
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 relative overflow-y-auto"
+         style={{
+            maxHeight: "90vh",
+          }}
+        >
+
+        <button
+          onClick={() => setShowFollowUpModal(false)}
+          className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
+        >
+          <X className="w-5 h-5" />
+        </button>
+
+        <h2 className="text-lg font-semibold text-gray-800 mb-4 text-center">
+          Schedule Follow-up Appointment
+        </h2>
+
+        {/* Date Selection */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-600 mb-1">
+            Choose Date
+          </label>
+          <div className=" flex">
+           <DatePicker
+            selected={followUpDate ? new Date(followUpDate) : null}
+            onChange={(date) => {
+              if (!date) {
+                setFollowUpDate("");
+                return;
+              }
+              const localDate = new Date(
+                date.getTime() - date.getTimezoneOffset() * 60000
+              )
+                .toISOString()
+                .split("T")[0];
+              setFollowUpDate(localDate);
+            }}
+            minDate={new Date()}
+           filterDate={(date: Date): boolean => {
+            if (!(date instanceof Date) || isNaN(date.getTime())) return false;
+
+            const dayName = date.toLocaleDateString("en-US", { weekday: "long" });
+
+            // Always return a boolean
+            return !!doctor?.availableDays?.includes(dayName);
+          }}
+            inline
+            calendarClassName=" mx-auto rounded-lg shadow border border-gray-200"
+            className="border rounded-md p-2"
+          />
+          </div>
+         
+        </div>
+
+        {/* Time Selection */}
+        {followUpDate && (
+          <div className="mt-3">
+            <label className="block text-sm font-medium text-gray-600 mb-1">
+              Choose Time Slot
+            </label>
+            <div className="relative z-60">
+            <select
+              className="w-full border rounded-md px-3 py-2 text-sm"
+              value={followUpTime}
+              onChange={(e) => setFollowUpTime(e.target.value)}
+            >
+              <option value="">Select a time slot</option>
+
+              {/* Morning slots */}
+              {doctor?.availableTime?.morning && (
+                <optgroup label="Morning">
+                  {generateTimeSlots(
+                    doctor.availableTime.morning.from,
+                    doctor.availableTime.morning.to
+                  ).map((slot) => (
+                    <option key={`m-${slot}`} value={slot}>
+                      {slot}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
+
+              {/* Evening slots */}
+              {doctor?.availableTime?.evening && (
+                <optgroup label="Evening">
+                  {generateTimeSlots(
+                    doctor.availableTime.evening.from,
+                    doctor.availableTime.evening.to
+                  ).map((slot) => (
+                    <option key={`e-${slot}`} value={slot}>
+                      {slot}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
+            </select>
+          </div>
+          </div>
+        )}
+
+        {/* Buttons & Validation */}
+    <div className="flex flex-col gap-2 mt-6">
+      {/* Error Message */}
+      {!followUpDate && attemptedSave && (
+        <p className="text-sm text-red-500">Please select a follow-up date.</p>
+      )}
+      {followUpDate && !followUpTime && attemptedSave && (
+        <p className="text-sm text-red-500">Please select a time slot.</p>
+      )}
+
+      <div className="flex gap-3">
+        <Button
+          className="flex-1 bg-cyan-600 hover:bg-cyan-700 text-white"
+          onClick={async () => {
+            setAttemptedSave(true);
+            if (!followUpDate || !followUpTime) return;
+
+            const selectedDateObj = new Date(followUpDate);
+            const dayName = selectedDateObj.toLocaleDateString("en-US", {
+              weekday: "long",
+            });
+            await fetch("/api/appointment", {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                id: selected?.id,
+                followUp: {
+                  date: followUpDate,
+                  day: dayName,
+                  time: followUpTime,
+                },
+              }),
+            });
+
+            setAttemptedSave(false);
+            setShowFollowUpModal(false);
+            setSelected(null);
+          }}
+        >
+          Save Follow-up
+        </Button>
+
+        <Button
+          variant="outline"
+          className="flex-1 border-gray-300 text-gray-700 hover:bg-gray-50"
+          onClick={() => {
+            setAttemptedSave(false);
+            setShowFollowUpModal(false);
+          }}
+        >
+          Skip
+        </Button>
+      </div>
+    </div>
+      </div>
+    </div>
+  </>
+)}
     </div>
   );
+}
+
+function generateTimeSlots(from: string, to: string): string[] {
+  const slots: string[] = [];
+  let [h, m] = from.split(":").map(Number);
+  const [endH, endM] = to.split(":").map(Number);
+
+  while (h < endH || (h === endH && m < endM)) {
+    const hour = String(h).padStart(2, "0");
+    const minute = String(m).padStart(2, "0");
+    slots.push(`${hour}:${minute}`);
+    m += 30; // 30 min gap
+    if (m >= 60) {
+      m = 0;
+      h++;
+    }
+  }
+
+  return slots;
 }
