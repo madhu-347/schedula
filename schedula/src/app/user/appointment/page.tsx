@@ -152,7 +152,7 @@ const AppointmentsPage: React.FC = () => {
       </div>
       {/* Tabs */}
       <div className="bg-white px-4 border-gray-200 sticky top-20 z-10">
-        <div className="max-w-3xl mx-auto flex gap-8">
+        <div className="max-w-3xl mx-auto mt-8 flex gap-8">
           <button
             onClick={() => setActiveTab("Upcoming")}
             className={`py-3 font-semibold relative ${

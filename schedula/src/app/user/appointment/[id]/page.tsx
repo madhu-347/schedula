@@ -43,22 +43,26 @@ function AppointmentDetails() {
   };
 
   const handleCancel = async () => {
-    if (!confirm("Are you sure you want to cancel this appointment?")) return;
+  if (!confirm("Are you sure you want to cancel this appointment?")) return;
 
-    try {
-      const response = await fetch(`/api/appointment/${appointmentId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...appointment, status: "Cancelled" }),
-      });
+  try {
+    const response = await fetch(`/api/appointment?id=${appointmentId}`, {
+      method: "DELETE",
+    });
 
-      if (response.ok) {
-        fetchAppointment();
-      }
-    } catch (err) {
-      alert("Failed to cancel appointment");
+    const result = await response.json();
+
+    if (response.ok && result.success) {
+      alert("Appointment cancelled successfully");
+        router.push("/user/appointment");
+    } else {
+      alert(result.error || "Failed to cancel appointment");
     }
-  };
+  } catch (err) {
+    console.error("Error cancelling appointment:", err);
+    alert("Failed to cancel appointment");
+  }
+};
 
   const handleMakePayment = () => {
     router.push(`/payment/${appointmentId}`);
@@ -161,12 +165,12 @@ function AppointmentDetails() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-gray-500 text-sm block mb-1">Age</label>
-              <p className="font-semibold">{appointment.patientDetails?.age}</p>
+              <p className="font-semibold">{appointment.patientDetails?.age} years</p>
             </div>
             <div>
               <label className="text-gray-500 text-sm block mb-1">Weight</label>
               <p className="font-semibold">
-                {appointment.patientDetails?.weight || "N/A"}
+                {appointment.patientDetails?.weight + " kg" || "N/A"} 
               </p>
             </div>
           </div>
