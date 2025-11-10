@@ -20,6 +20,7 @@ import { getAppointmentsByDoctor } from "@/app/services/appointments.api";
 import { getPrescriptionsByAppointmentId } from "@/app/services/prescription.api";
 import type { Appointment } from "@/lib/types/appointment";
 import DatePicker from "react-datepicker";
+import { createFollowUpAppointment } from "@/app/services/appointments.api";
 import "react-datepicker/dist/react-datepicker.css";
 
 const StatusBadge = ({ status }: { status: string }) => {
@@ -146,48 +147,39 @@ export default function DoctorAppointmentsPage() {
 
   const closeModal = () => setSelected(null);
 
-  const handleSaveFollowUp = async () => {
-    if (!followUpDate || !followUpTime) {
-      setAttemptedSave(true);
-      return;
-    }
+const handleSaveFollowUp = async () => {
+  if (!followUpDate || !followUpTime) return setAttemptedSave(true);
+  if (!selected || !doctor) return;
 
-    try {
-      const res = await fetch("/api/followup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          appointmentId: selected?.id,
-          doctorId: doctor?.id,
-          patientId: selected?.patientId,
-          followUpDate,
-          followUpTime,
-          status: "Pending",
-        }),
+  try {
+    const newAppointment: Appointment = {
+      id: String(Date.now()),
+      tokenNo: `TKN-${Math.floor(Math.random() * 9000 + 1000)}`,
+      patientId: selected.patientId,
+      doctorId: doctor.id,
+      doctor: {
+        firstName: doctor.firstName, lastName: doctor.lastName,
+        specialty: doctor.specialty, qualifications: doctor.qualifications, image: doctor.image
+      },
+      patientDetails: selected.patientDetails,
+      day: new Date(followUpDate).toLocaleDateString("en-US", { weekday: "long" }),
+      date: followUpDate, time: followUpTime,
+      type: selected.type || "In-person", status: "Upcoming",
+      visitType: "Follow-up", paid: false, paymentStatus: "Not paid",
+      queuePosition: 0, followUpOf: selected.id
+    };
+      await createFollowUpAppointment({
+        ...newAppointment,
+        visitType: "Follow-up",
       });
 
-      const data = await res.json();
-      const followUpId = data?.data?.id;
-
-      // Send notification using the new service
-      if (followUpId && selected?.patientId && doctor) {
-        const notification = {
-          recipientId: selected.patientId,
-          doctorName: `${doctor.firstName} ${doctor.lastName}`,
-          message: "Doctor suggested a follow-up appointment",
-          targetUrl: `/user/followup/${followUpId}`,
-        };
-
-        // await sendNotification(notification);
+        setAttemptedSave(false); setShowFollowUpModal(false);
+        setSelected(null); setFollowUpDate(""); setFollowUpTime("");
+      } catch (err) {
+        console.error("Follow-up creation failed:", err);
       }
+    };
 
-      setAttemptedSave(false);
-      setShowFollowUpModal(false);
-      setSelected(null);
-    } catch (error) {
-      console.error("Error saving follow-up:", error);
-    }
-  };
 
   if (loading) {
     return (
