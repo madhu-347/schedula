@@ -1,16 +1,6 @@
 // app/api/notifications/route.ts
 import { NextRequest, NextResponse } from "next/server";
-
-interface Notification {
-  id: number;
-  recipientId?: string | number; // user who should receive the notification
-  doctorName: string;
-  message: string;
-  appointmentId?: string | number;
-  targetUrl?: string; // client route to open when clicked
-  timestamp: string;
-  read: boolean;
-}
+import { Notification } from "@/lib/types/notification";
 
 // In-memory notifications store (replace with DB in prod)
 let notifications: Notification[] = [];
@@ -21,9 +11,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const recipientId = searchParams.get("recipientId");
 
-    const filtered = recipientId
-      ? notifications.filter((n) => String(n.recipientId) === String(recipientId))
-      : notifications;
+    const filtered = notifications.filter((n) => n.recipientId === recipientId);
 
     // return newest first
     const sorted = filtered.slice().sort((a, b) => Number(b.id) - Number(a.id));
@@ -43,25 +31,42 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { recipientId, doctorName, message, appointmentId, targetUrl } = body;
+    const { recipientId, recipientRole, title, message, type, targetUrl } =
+      body;
 
-    if (!recipientId || !doctorName || !message) {
+    if (
+      !recipientId ||
+      !recipientRole ||
+      !title ||
+      !message ||
+      !type ||
+      !targetUrl
+    ) {
       return NextResponse.json(
-        { success: false, error: "recipientId, doctorName and message are required" },
+        {
+          success: false,
+          error:
+            "recipientId, recipientRole, title, message, type, and targetUrl are required",
+        },
         { status: 400 }
       );
     }
 
     const newNotification: Notification = {
-      id: Date.now(),
+      id: String(Date.now()),
       recipientId,
-      doctorName,
+      recipientRole,
+      title,
       message,
-      appointmentId,
+      type,
       targetUrl,
-      timestamp: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
       read: false,
     };
+
+    if (body.relatedId) {
+      newNotification.relatedId = body.relatedId;
+    }
 
     notifications.push(newNotification);
 

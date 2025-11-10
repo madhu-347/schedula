@@ -1,15 +1,12 @@
 import jsPDF from "jspdf";
-import { Prescription } from "@/lib/types/prescription";
+import { Prescription, PrescriptionResponse } from "@/lib/types/prescription";
 
 /**
  * Generates and downloads a beautifully formatted PDF for a prescription
  * @param prescription - The prescription data
- * @param prescriptionId - The ID of the prescription
  */
-export const downloadPrescriptionPDF = (
-  prescription: Prescription,
-  prescriptionId: string
-) => {
+export const downloadPrescriptionPDF = (prescription: PrescriptionResponse) => {
+  console.log("prescription data for pdf: ", prescription);
   try {
     const doc = new jsPDF({ unit: "pt", format: "a4" });
     const pageWidth = doc.internal.pageSize.getWidth();
@@ -23,7 +20,7 @@ export const downloadPrescriptionPDF = (
 
     // Helper function to add page break if needed
     const checkPageBreak = (requiredSpace: number = 80) => {
-      if (y > pageHeight - 120) {
+      if (y > pageHeight - 180) {
         doc.addPage();
         y = 60;
         return true;
@@ -53,19 +50,18 @@ export const downloadPrescriptionPDF = (
     // Prescription ID (top right)
     doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
-    const idText = `Prescription ID: ${prescriptionId}`;
+    const idText = `Prescription ID: ${prescription.id}`;
     const idWidth = doc.getTextWidth(idText);
     doc.text(idText, pageWidth - margin - idWidth, 35);
 
     // Date (top right, below ID)
-    const dateText = new Date(prescription.createdAt).toLocaleDateString(
-      "en-US",
-      {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      }
-    );
+    const dateText = new Date(
+      prescription.createdAt
+    ).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
     const dateWidth = doc.getTextWidth(dateText);
     doc.text(dateText, pageWidth - margin - dateWidth, 50);
 
@@ -85,13 +81,15 @@ export const downloadPrescriptionPDF = (
 
     doc.setFontSize(11);
     doc.setFont("helvetica", "normal");
-    const doctorName = prescription.doctorDetails?.name || "Doctor Name";
+    const doctorName =
+      `Dr. ${prescription.doctor?.firstName} ${prescription.doctor?.lastName}` ||
+      "Doctor Name";
     doc.text(doctorName, margin + 20, y + 18);
 
-    if (prescription.doctorDetails?.specialty) {
+    if (prescription.doctor?.specialty) {
       doc.setFontSize(9);
       doc.setTextColor(100, 100, 100);
-      doc.text(prescription.doctorDetails.specialty, margin + 20, y + 33);
+      doc.text(prescription.doctor?.specialty, margin + 20, y + 33);
       doc.setTextColor(0, 0, 0);
     }
 
@@ -103,20 +101,15 @@ export const downloadPrescriptionPDF = (
 
     doc.setFontSize(11);
     doc.setFont("helvetica", "normal");
-    const patientName = prescription.patientDetails?.fullName || "Patient Name";
+    const patientName = prescription.patient?.fullName || "Patient Name";
     doc.text(patientName, midPoint, y + 18);
 
-    if (
-      prescription.patientDetails?.age ||
-      prescription.patientDetails?.gender
-    ) {
+    if (prescription.patient?.age || prescription.patient?.gender) {
       doc.setFontSize(9);
       doc.setTextColor(100, 100, 100);
-      const ageGender = `${prescription.patientDetails?.age || ""}${
-        prescription.patientDetails?.age && prescription.patientDetails?.gender
-          ? ", "
-          : ""
-      }${prescription.patientDetails?.gender || ""}`;
+      const ageGender = `${prescription.patient?.age || ""}${
+        prescription.patient?.age && prescription.patient?.gender ? ", " : ""
+      }${prescription.patient?.gender || ""}`;
       doc.text(ageGender, midPoint, y + 33);
       doc.setTextColor(0, 0, 0);
     }
@@ -144,11 +137,31 @@ export const downloadPrescriptionPDF = (
       y += 20;
 
       const vitalsList = [
-        { label: "Blood Pressure", value: vitals.bp || "N/A", icon: "◆" },
-        { label: "Pulse Rate", value: vitals.pulse || "N/A", icon: "◆" },
-        { label: "Temperature", value: vitals.temperature || "N/A", icon: "◆" },
-        { label: "SpO", value: vitals.spo2 || "N/A", icon: "◆" },
-        { label: "Weight", value: vitals.weight || "N/A", icon: "◆" },
+        {
+          label: "Blood Pressure",
+          value: vitals.bp ? `${vitals.bp} mmHg` : "N/A",
+          icon: "◆",
+        },
+        {
+          label: "Pulse Rate",
+          value: vitals.pulse ? `${vitals.pulse} bpm` : "N/A",
+          icon: "◆",
+        },
+        {
+          label: "Temperature",
+          value: vitals.temperature ? `${vitals.temperature}°F` : "N/A",
+          icon: "◆",
+        },
+        {
+          label: "SpO₂",
+          value: vitals.spo2 ? `${vitals.spo2}%` : "N/A",
+          icon: "◆",
+        },
+        {
+          label: "Weight",
+          value: vitals.weight ? `${vitals.weight} kg` : "N/A",
+          icon: "◆",
+        },
       ];
 
       // Display vitals in a clean grid
@@ -250,7 +263,9 @@ export const downloadPrescriptionPDF = (
     }
 
     // ===== TESTS SECTION (only if data available) =====
-    const tests = Array.isArray(prescription.tests) ? prescription.tests : [];
+    const tests = Array.isArray(prescription.tests)
+      ? prescription.tests
+      : [];
     const hasTests = tests.length > 0 && tests[0]?.name;
 
     if (hasTests) {
@@ -299,51 +314,62 @@ export const downloadPrescriptionPDF = (
       addDivider("thin");
     }
 
-    // ===== SIGNATURE SECTION =====
-    // Ensure signature is on the last page with enough space
-    const signatureHeight = 120;
-    if (y > pageHeight - signatureHeight - 60) {
+    // ===== DOCTOR DETAILS SECTION (Bottom Right) =====
+    // Calculate position for doctor details in bottom right
+    const doctorBoxWidth = 250;
+    const doctorBoxHeight = 100;
+    const doctorBoxX = pageWidth - margin - doctorBoxWidth;
+    const doctorBoxY = pageHeight - margin - doctorBoxHeight - 30;
+
+    // Add some space before doctor details if content is too close
+    if (y > doctorBoxY - 30) {
       doc.addPage();
-      y = 60;
-    } else {
-      // Add some space before signature
-      y = pageHeight - signatureHeight - 40;
     }
 
-    // Signature divider
-    addDivider("thick");
-
-    // Signature box
-    doc.setFillColor(252, 252, 253);
-    doc.roundedRect(margin, y, contentWidth, 90, 5, 5, "F");
+    // Doctor details box (subtle border)
     doc.setDrawColor(200, 200, 200);
-    doc.setLineWidth(1);
-    doc.roundedRect(margin, y, contentWidth, 90, 5, 5, "S");
+    doc.setLineWidth(0.5);
+    doc.setFillColor(252, 252, 253);
+    doc.roundedRect(
+      doctorBoxX,
+      doctorBoxY,
+      doctorBoxWidth,
+      doctorBoxHeight,
+      3,
+      3,
+      "FD"
+    );
 
-    y += 25;
-
-    // Signature line in the middle
-    const sigLineWidth = 200;
-    const sigLineX = pageWidth / 2 - sigLineWidth / 2;
-    doc.setDrawColor(100, 100, 100);
-    doc.setLineWidth(1);
-    doc.line(sigLineX, y + 30, sigLineX + sigLineWidth, y + 30);
-
-    // Signature label
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(100, 100, 100);
-    const sigText = "Doctor's Signature";
-    const sigTextWidth = doc.getTextWidth(sigText);
-    doc.text(sigText, pageWidth / 2 - sigTextWidth / 2, y + 45);
-
-    // Doctor name below signature
-    doc.setFontSize(11);
+    // Doctor name
+    doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(0, 0, 0);
-    const doctorNameSig = prescription.doctorDetails?.name || "Doctor Name";
-    const doctorNameWidth = doc.getTextWidth(doctorNameSig);
-    doc.text(doctorNameSig, pageWidth / 2 - doctorNameWidth / 2, y + 60);
+    const doctorFullName = `Dr. ${prescription.doctor?.firstName || ""} ${
+      prescription.doctor?.lastName || ""
+    }`;
+    doc.text(doctorFullName, doctorBoxX + 15, doctorBoxY + 30);
+
+    // Qualifications
+    if (prescription.doctor?.qualifications) {
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(80, 80, 80);
+      const qualifications = doc.splitTextToSize(
+        prescription.doctor.qualifications,
+        doctorBoxWidth - 30
+      );
+      doc.text(qualifications, doctorBoxX + 15, doctorBoxY + 50);
+    }
+
+    // "Prescribing Doctor" label at bottom of box
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "italic");
+    doc.setTextColor(120, 120, 120);
+    doc.text(
+      "Prescribing Doctor",
+      doctorBoxX + 15,
+      doctorBoxY + doctorBoxHeight - 15
+    );
 
     // Footer
     doc.setFontSize(8);
@@ -355,7 +381,7 @@ export const downloadPrescriptionPDF = (
     doc.text(footer, pageWidth / 2 - footerWidth / 2, pageHeight - 20);
 
     // Save the PDF
-    const fileName = `prescription-${prescriptionId}.pdf`;
+    const fileName = `prescription-${prescription.id}.pdf`;
     doc.save(fileName);
 
     return true;

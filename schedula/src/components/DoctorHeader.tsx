@@ -1,6 +1,6 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { Doctor } from "@/lib/types/doctor";
-import NotificationBell from "./notifications/NotificationBell";
+import DoctorNotificationBell from "./notifications/DoctorNotificationBell";
 import { LogOut } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -22,53 +22,8 @@ function DoctorHeader({ doctor }: DoctorHeaderProps) {
     router.push("/doctor/dashboard");
   };
 
-  // Don't render if doctor is null
-  if (!doctor) {
-    return (
-      <div>
-        {/* <header className="bg-white shadow-sm">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between h-16 items-center">
-              <div className="flex items-center">
-                <h1 className="text-xl font-semibold text-gray-900">
-                  Doctor Dashboard
-                </h1>
-              </div>
-              <div className="flex items-center space-x-4">
-                <NotificationBell role="doctor" />
-                <div className="relative" ref={dropdownRef}>
-                  <button
-                    onClick={() => setShowDropdown(!showDropdown)}
-                    className="flex items-center space-x-2 text-gray-700 hover:text-gray-900"
-                  >
-                    <div className="w-8 h-8 rounded-full bg-cyan-500 flex items-center justify-center text-white font-semibold">
-                      D
-                    </div>
-                    <span className="hidden md:inline">Doctor</span>
-                  </button>
-
-                  {showDropdown && (
-                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border border-gray-200">
-                      <button
-                        onClick={handleLogout}
-                        className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
-                      >
-                        <LogOut className="mr-2 h-4 w-4" />
-                        Sign out
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        </header> */}
-      </div>
-    );
-  }
-
   // Close dropdown on outside click
-  React.useEffect(() => {
+  useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
         dropdownRef.current &&
@@ -83,7 +38,7 @@ function DoctorHeader({ doctor }: DoctorHeaderProps) {
 
   return (
     <div>
-      <header className="bg-white shadow-sm">
+      <header className="bg-white shadow-md border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
             <div className="flex items-center">
@@ -95,7 +50,7 @@ function DoctorHeader({ doctor }: DoctorHeaderProps) {
               </button>
             </div>
             <div className="flex items-center space-x-4">
-              <NotificationBell role="doctor" />
+              <DoctorNotificationBell />
               <div className="relative" ref={dropdownRef}>
                 <button
                   onClick={() => setShowDropdown(!showDropdown)}

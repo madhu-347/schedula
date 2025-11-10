@@ -1,4 +1,6 @@
 import { Appointment } from "@/lib/types/appointment";
+import { Notification } from "@/lib/types/notification";
+import { createNotification } from "./notifications.api";
 
 export async function createAppointment(appointmentData: Appointment) {
   try {
@@ -13,9 +15,19 @@ export async function createAppointment(appointmentData: Appointment) {
     const result = await response.json();
 
     if (result.success) {
-      console.log("Appointment created successfully!");
-      console.log("Appointment ID:", result.data.id);
-      console.log("Token No:", result.data.tokenNo);
+      // If appointment is booked successfully, create a notification
+      const res = await createNotification({
+        id: String(Date.now()),
+        recipientId: appointmentData.doctorId,
+        recipientRole: "doctor",
+        title: "New Appointment",
+        message: `You have a new appointment with ${appointmentData.patientDetails?.fullName}`,
+        type: "appointment",
+        targetUrl: `/doctors/appointments`,
+        relatedId: appointmentData.id,
+        createdAt: new Date().toISOString(),
+        read: false,
+      });
       return result.data;
     } else {
       console.error("Failed to create appointment:", result.error);
@@ -199,6 +211,41 @@ export async function deleteAppointment(id: number) {
   } catch (error) {
     console.error("Error deleting appointment:", error);
     return false;
+  }
+}
+
+export async function createFollowUpAppointment(followUpData: Appointment) {
+  try {
+    const response = await fetch("/api/appointment", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(followUpData),
+    });
+
+    if (response.ok) {
+      // Create notification for the user about follow-up appointment by doctor
+      console.log("Creating notification for follow-up appointment...");
+      await createNotification({
+        id: String(Date.now()),
+        recipientId: followUpData.patientId,
+        recipientRole: "user",
+        title: "New Follow-up Appointment",
+        message: `You have a new follow-up appointment with ${followUpData.doctor?.firstName} ${followUpData.doctor?.lastName}`,
+        type: "appointment",
+        targetUrl: `/user/appointment`,
+        relatedId: followUpData.id,
+        createdAt: new Date().toISOString(),
+        read: false,
+      });
+    }
+
+    const result = await response.json();
+    return result;
+  } catch (error) {
+    console.error("Failed to create follow-up appointment:", error);
+    return null;
   }
 }
 

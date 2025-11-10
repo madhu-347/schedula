@@ -146,6 +146,49 @@ export default function DoctorAppointmentsPage() {
 
   const closeModal = () => setSelected(null);
 
+  const handleSaveFollowUp = async () => {
+    if (!followUpDate || !followUpTime) {
+      setAttemptedSave(true);
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/followup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          appointmentId: selected?.id,
+          doctorId: doctor?.id,
+          patientId: selected?.patientId,
+          followUpDate,
+          followUpTime,
+          status: "Pending",
+        }),
+      });
+
+      const data = await res.json();
+      const followUpId = data?.data?.id;
+
+      // Send notification using the new service
+      if (followUpId && selected?.patientId && doctor) {
+        const notification = {
+          recipientId: selected.patientId,
+          doctorName: `${doctor.firstName} ${doctor.lastName}`,
+          message: "Doctor suggested a follow-up appointment",
+          targetUrl: `/user/followup/${followUpId}`,
+        };
+
+        // await sendNotification(notification);
+      }
+
+      setAttemptedSave(false);
+      setShowFollowUpModal(false);
+      setSelected(null);
+    } catch (error) {
+      console.error("Error saving follow-up:", error);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -164,7 +207,7 @@ export default function DoctorAppointmentsPage() {
         <div className="flex items-start gap-3 mb-4">
           <button
             aria-label="Back"
-            onClick={() => router.push("dashboard")}
+            onClick={() => router.push("doctor/dashboard")}
             className="p-2 -ml-2 text-gray-600 hover:text-gray-900"
           >
             <ArrowLeft className="w-6 h-6" />
@@ -276,7 +319,6 @@ export default function DoctorAppointmentsPage() {
           <div className="fixed inset-0 z-30 flex items-center justify-center p-4">
             <div className="bg-white rounded-2xl shadow-xl w-full max-w-md relative max-h-[90vh] flex flex-col">
               <div className="p-6 overflow-y-auto">
-
                 <button
                   onClick={closeModal}
                   className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
@@ -366,9 +408,7 @@ export default function DoctorAppointmentsPage() {
 
                   <div className="flex justify-between">
                     <span>Time:</span>
-                    <span className="font-medium">
-                      {selected.time || "—"}
-                    </span>
+                    <span className="font-medium">{selected.time || "—"}</span>
                   </div>
 
                   <div className="flex justify-between">
@@ -408,7 +448,7 @@ export default function DoctorAppointmentsPage() {
                           className="border-cyan-600 text-cyan-600 hover:bg-cyan-50"
                           onClick={() =>
                             router.push(
-                              `/doctor/appointments/${selected.id}/edit`
+                              `/doctor/appointment/${selected.id}/edit`
                             )
                           }
                           disabled={busy}
@@ -435,7 +475,7 @@ export default function DoctorAppointmentsPage() {
                       className="w-full bg-cyan-600 hover:bg-cyan-700 text-white"
                       onClick={() =>
                         router.push(
-                          `/doctor/appointments/${selected.id}/prescription/view`
+                          `/doctor/appointment/${selected.id}/prescription/view`
                         )
                       }
                     >
@@ -448,7 +488,7 @@ export default function DoctorAppointmentsPage() {
                       className="w-full bg-cyan-600 hover:bg-cyan-700 text-white"
                       onClick={() =>
                         router.push(
-                          `/doctor/appointments/${selected.id}/prescription`
+                          `/doctor/appointment/${selected.id}/prescription`
                         )
                       }
                     >
@@ -497,34 +537,34 @@ export default function DoctorAppointmentsPage() {
                 </label>
 
                 <div className="flex justify-center">
-                <DatePicker
-                  selected={followUpDate ? new Date(followUpDate) : null}
-                  onChange={(date) => {
-                    if (!date) {
-                      setFollowUpDate("");
-                      return;
-                    }
-                    const localDate = new Date(
-                      date.getTime() - date.getTimezoneOffset() * 60000
-                    )
-                      .toISOString()
-                      .split("T")[0];
-                    setFollowUpDate(localDate);
-                  }}
-                  minDate={new Date()}
-                  filterDate={(date: Date) => {
-                    if (!(date instanceof Date) || isNaN(date.getTime()))
-                      return false;
+                  <DatePicker
+                    selected={followUpDate ? new Date(followUpDate) : null}
+                    onChange={(date) => {
+                      if (!date) {
+                        setFollowUpDate("");
+                        return;
+                      }
+                      const localDate = new Date(
+                        date.getTime() - date.getTimezoneOffset() * 60000
+                      )
+                        .toISOString()
+                        .split("T")[0];
+                      setFollowUpDate(localDate);
+                    }}
+                    minDate={new Date()}
+                    filterDate={(date: Date) => {
+                      if (!(date instanceof Date) || isNaN(date.getTime()))
+                        return false;
 
-                    const dayName = date.toLocaleDateString("en-US", {
-                      weekday: "long",
-                    });
-                    return !!doctor?.availableDays?.includes(dayName);
-                  }}
-                  inline
-                  calendarClassName="mx-auto rounded-lg shadow border border-gray-200"
-                />
-              </div>
+                      const dayName = date.toLocaleDateString("en-US", {
+                        weekday: "long",
+                      });
+                      return !!doctor?.availableDays?.includes(dayName);
+                    }}
+                    inline
+                    calendarClassName="mx-auto rounded-lg shadow border border-gray-200"
+                  />
+                </div>
               </div>
 
               {/* ---- Time Slots ---- */}
@@ -586,63 +626,7 @@ export default function DoctorAppointmentsPage() {
                 <div className="flex gap-3">
                   <Button
                     className="flex-1 bg-cyan-600 hover:bg-cyan-700 text-white"
-                    onClick={async () => {
-                      setAttemptedSave(true);
-                      if (!followUpDate || !followUpTime) return;
-
-                      const selectedDateObj = new Date(followUpDate);
-                      const dayName = selectedDateObj.toLocaleDateString(
-                        "en-US",
-                        { weekday: "long" }
-                      );
-
-                      // Save inside appointment
-                      await fetch("/api/appointment", {
-                        method: "PUT",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                          id: selected?.id,
-                          followUp: {
-                            date: followUpDate,
-                            day: dayName,
-                            time: followUpTime,
-                          },
-                        }),
-                      });
-
-                      // Save follow-up record
-                      const res = await fetch("/api/followup", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                          doctorId: doctor?.id,
-                          patientId: selected?.patientId,
-                          appointmentId: selected?.id,
-                          followUpDate,
-                          followUpTime,
-                        }),
-                      });
-
-                      const data = await res.json();
-                      const followUpId = data?.data?.id;
-
-                      // Send notification
-                      await fetch("/api/notifications", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                          recipientId: selected?.patientId,
-                          doctorName: `${doctor?.firstName} ${doctor?.lastName}`,
-                          message:
-                            "Doctor suggested a follow-up appointment",
-                          targetUrl: `/user/followup/${followUpId}`,
-                        }),
-                      });
-
-                      setAttemptedSave(false);
-                      setShowFollowUpModal(false);
-                      setSelected(null);
-                    }}
+                    onClick={handleSaveFollowUp}
                   >
                     Save Follow-up
                   </Button>

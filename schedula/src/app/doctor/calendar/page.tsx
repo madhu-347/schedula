@@ -30,7 +30,6 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { Appointment } from "@/lib/types/appointment";
 import { getDoctorById } from "@/app/services/doctor.api";
-import DoctorHeader from "@/components/DoctorHeader";
 
 /* --- Strong types --- */
 interface DoctorAvailability {
@@ -366,7 +365,6 @@ export default function CalendarPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <DoctorHeader doctor={doctor} />
 
       {/* Calendar */}
       <div className="p-4 sm:p-8 bg-gray-50 min-h-screen">

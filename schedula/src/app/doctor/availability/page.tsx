@@ -6,7 +6,6 @@ import { updateDoctor, getDoctorById } from "@/app/services/doctor.api";
 import { Button } from "@/components/ui/Button";
 import { toast } from "@/hooks/useToast";
 import { Card } from "@/components/ui/Card";
-import DoctorHeader from "@/components/DoctorHeader";
 
 const daysOfWeek = [
   "Monday",
@@ -18,7 +17,7 @@ const daysOfWeek = [
   "Sunday",
 ];
 
-export default function DoctorAvailabilityPage() {
+export default function AvailabilityPage() {
   const { doctor, loading } = useAuth();
   const [availableDays, setAvailableDays] = useState<string[]>([]);
   const [morningTime, setMorningTime] = useState({
@@ -105,8 +104,7 @@ export default function DoctorAvailabilityPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <DoctorHeader doctor={doctor} />
-      <div className="max-w-4xl mx-auto px-4 py-6">
+      <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-900">My Availability</h1>
           <p className="text-gray-600">
