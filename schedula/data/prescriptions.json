@@ -1,1 +1,62 @@
-[]
+[
+  {
+    "appointmentId": "1762753822809",
+    "patientId": "1",
+    "doctorId": "1",
+    "vitals": {
+      "bp": "130/78",
+      "pulse": "98",
+      "temperature": "100.6",
+      "spo2": "98",
+      "weight": "86"
+    },
+    "medicines": [
+      {
+        "name": "Dolo",
+        "dosage": "650mg",
+        "frequency": "2/day",
+        "duration": "4 days",
+        "instructions": "After food"
+      }
+    ],
+    "tests": [
+      {
+        "name": "Typhoid"
+      }
+    ],
+    "notes": "Avoid fast food",
+    "files": [],
+    "id": "0965fedc-dbe1-43eb-b26f-ac3d6db19788",
+    "createdAt": "2025-11-10T06:47:10.847Z"
+  },
+  {
+    "appointmentId": "1762756835227",
+    "patientId": "1",
+    "doctorId": "1",
+    "vitals": {
+      "bp": "150/78",
+      "pulse": "77",
+      "temperature": "100.5",
+      "spo2": "98",
+      "weight": "87"
+    },
+    "medicines": [
+      {
+        "name": "dolo",
+        "dosage": "650mg",
+        "frequency": "2/day",
+        "duration": "3 days",
+        "instructions": "after food"
+      }
+    ],
+    "tests": [
+      {
+        "name": "Typhoid"
+      }
+    ],
+    "notes": "avoid fried food",
+    "files": [],
+    "id": "9e4e7951-025f-461a-a38c-cb8aff589562",
+    "createdAt": "2025-11-10T07:08:25.272Z"
+  }
+]
