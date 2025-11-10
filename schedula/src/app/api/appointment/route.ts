@@ -13,11 +13,34 @@ import { Appointment } from "@/lib/types/appointment";
 import { Doctor } from "@/lib/types/doctor";
 import { User } from "@/lib/types/user";
 import mockData from "@/lib/mockData.json";
+import { promises as fs } from "fs";
+import path from "path";
 
-// In-memory storage (resets on server restart)
-const appointmentsData: Appointment[] = JSON.parse(
-  JSON.stringify(mockData.appointments)
-) as Appointment[];
+// File-based persistence helpers
+const dataDir = path.join(process.cwd(), "data");
+const appointmentsFile = path.join(dataDir, "appointments.json");
+
+async function ensureDataDir() {
+  try {
+    await fs.mkdir(dataDir, { recursive: true });
+  } catch {}
+}
+
+async function readAppointments(): Promise<Appointment[]> {
+  try {
+    await ensureDataDir();
+    const data = await fs.readFile(appointmentsFile, "utf8");
+    return JSON.parse(data);
+  } catch {
+    // Fallback to mock data on first run
+    return JSON.parse(JSON.stringify(mockData.appointments)) as Appointment[];
+  }
+}
+
+async function writeAppointments(data: Appointment[]): Promise<void> {
+  await ensureDataDir();
+  await fs.writeFile(appointmentsFile, JSON.stringify(data, null, 2), "utf8");
+}
 
 // Helper function to enrich appointment with patient and doctor data
 function enrichAppointment(appointment: Appointment) {
@@ -72,6 +95,8 @@ export async function GET(request: NextRequest) {
     const visitType = searchParams.get("visitType");
     const limitParam = searchParams.get("limit");
     const limit = limitParam ? parseInt(limitParam, 10) : null;
+
+    const appointmentsData = await readAppointments();
 
     // If ID is provided, return specific appointment with enriched data
     if (id) {
@@ -168,6 +193,8 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     console.log("create appt req body ", body);
+
+    const appointmentsData = await readAppointments();
 
     // Validate required fields based on interface
     const requiredFields = ["patientId", "doctorId", "day", "date", "status"];
@@ -375,10 +402,12 @@ export async function POST(request: NextRequest) {
       status: body.status,
       paid: body.paid,
       postFeeling: body.postFeeling,
+      followUpOf: body.followUpOf,
     };
 
-    // Add to appointments array
+    // Add to appointments array and save
     appointmentsData.push(newAppointment);
+    await writeAppointments(appointmentsData);
 
     console.log("New appointment created:", newAppointment);
 
@@ -488,7 +517,10 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const appointmentIndex = appointmentsData.findIndex((app) => app.id === id);
+    const appointmentsData = await readAppointments();
+    const appointmentIndex = appointmentsData.findIndex(
+      (app: Appointment) => app.id === id
+    );
 
     if (appointmentIndex === -1) {
       return NextResponse.json(
@@ -637,6 +669,9 @@ export async function PUT(request: NextRequest) {
       id: appointmentsData[appointmentIndex].id, // Preserve original ID
     };
 
+    // Save changes
+    await writeAppointments(appointmentsData);
+
     console.log("Appointment updated:", appointmentsData[appointmentIndex]);
 
     // Enrich response with patient and doctor data
@@ -686,7 +721,10 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const appointmentIndex = appointmentsData.findIndex((app) => app.id === id);
+    const appointmentsData = await readAppointments();
+    const appointmentIndex = appointmentsData.findIndex(
+      (app: Appointment) => app.id === id
+    );
 
     if (appointmentIndex === -1) {
       return NextResponse.json(
@@ -700,6 +738,9 @@ export async function DELETE(request: NextRequest) {
 
     const deletedAppointment = appointmentsData[appointmentIndex];
     appointmentsData.splice(appointmentIndex, 1);
+
+    // Save changes
+    await writeAppointments(appointmentsData);
 
     console.log("Appointment deleted:", deletedAppointment);
 
