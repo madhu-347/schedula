@@ -9,8 +9,33 @@ import { User } from "@/lib/types/user";
 import { Appointment } from "@/lib/types/appointment";
 import { Prescription } from "@/lib/types/prescription";
 import { getAppointmentById } from "@/app/services/appointments.api";
+import { promises as fs } from "fs";
+import path from "path";
 
-let prescriptions: any[] = [];
+// File-based persistence helpers
+const dataDir = path.join(process.cwd(), "data");
+const prescriptionsFile = path.join(dataDir, "prescriptions.json");
+
+async function ensureDataDir() {
+  try {
+    await fs.mkdir(dataDir, { recursive: true });
+  } catch {}
+}
+
+async function readPrescriptions(): Promise<any[]> {
+  try {
+    await ensureDataDir();
+    const data = await fs.readFile(prescriptionsFile, "utf8");
+    return JSON.parse(data);
+  } catch {
+    return [];
+  }
+}
+
+async function writePrescriptions(data: any[]): Promise<void> {
+  await ensureDataDir();
+  await fs.writeFile(prescriptionsFile, JSON.stringify(data, null, 2), "utf8");
+}
 
 // Helper function to enrich prescription with doctor and patient data
 const enrichPrescription = async (prescription: Prescription) => {
@@ -46,6 +71,8 @@ export async function GET(request: NextRequest) {
   const id = url.searchParams.get("id");
   const patientId = url.searchParams.get("patientId");
   const doctorId = url.searchParams.get("doctorId");
+
+  const prescriptions = await readPrescriptions();
 
   // Get specific prescription by ID
   if (id) {
@@ -89,12 +116,17 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const body = await request.json();
+  const prescriptions = await readPrescriptions();
+
   const newPrescription = {
     ...body,
     id: crypto.randomUUID(),
     createdAt: new Date().toISOString(),
   };
+
   prescriptions.push(newPrescription);
+  await writePrescriptions(prescriptions);
+
   console.log("New prescription added:", newPrescription);
   console.log("All prescriptions:", prescriptions);
 
@@ -108,13 +140,21 @@ export async function POST(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   const url = new URL(request.url);
   const id = url.searchParams.get("id");
-  prescriptions = prescriptions.filter((p) => p.id !== id);
+
+  const prescriptions = await readPrescriptions();
+  const updated = prescriptions.filter((p) => p.id !== id);
+  await writePrescriptions(updated);
+
   return NextResponse.json({ success: true });
 }
 
 export async function PUT(request: NextRequest) {
   const body = await request.json();
-  prescriptions = prescriptions.map((p) => (p.id === body.id ? body : p));
+
+  const prescriptions = await readPrescriptions();
+  const updated = prescriptions.map((p) => (p.id === body.id ? body : p));
+  await writePrescriptions(updated);
+
   const enrichedData = await enrichPrescription(body);
   return NextResponse.json({ success: true, data: enrichedData });
 }

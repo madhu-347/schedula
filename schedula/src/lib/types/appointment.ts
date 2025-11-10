@@ -61,9 +61,5 @@ export interface Appointment {
 
   prescriptionId?: string;
 
-  followUp?: {
-    day?: string;
-    date?: string;
-    time?: string;
-  };
+  followUpOf: string; // appointment id for which this is a follow-up
 }
