@@ -16,6 +16,7 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { filterAvailableTimeSlots } from "@/utils/timeslot";
 import { isTimeSlotBooked } from "@/app/services/appointments.api";
+import { createNotification } from "@/app/services/notifications.api";
 interface DayInfo {
   fullDate: string;
   dayNumber: number;
@@ -44,6 +45,7 @@ export default function AppointmentPage() {
   const [isRescheduling, setIsRescheduling] = useState(false);
   const [appointmentToReschedule, setAppointmentToReschedule] =
     useState<Appointment | null>(null);
+
   const fetchDoctor = async (id: string) => {
     try {
       const response: any = await getDoctorById(id);
@@ -53,9 +55,11 @@ export default function AppointmentPage() {
       console.error("Failed to fetch doctor:", error);
     }
   };
+
   useEffect(() => {
     fetchDoctor(id);
   }, [id]);
+
   // Check if we're rescheduling an appointment
   useEffect(() => {
     const rescheduleId = searchParams?.get("rescheduleId");
@@ -72,6 +76,7 @@ export default function AppointmentPage() {
       });
     }
   }, [searchParams]);
+
   // Generate time slots based on start and end time
   function generateTimeSlots(
     startTime: string,
@@ -133,6 +138,7 @@ export default function AppointmentPage() {
       return slotTimeInMinutes >= currentTimeInMinutes + 30;
     });
   }
+
   // Generate next available days based on doctor's availability
   const generateAvailableDays = (doctor: Doctor): DayInfo[] => {
     const days: DayInfo[] = [];
@@ -172,6 +178,7 @@ export default function AppointmentPage() {
     }
     return days;
   };
+
   // Update available days when doctor data is loaded
   useEffect(() => {
     if (!doctor) return;
@@ -183,6 +190,7 @@ export default function AppointmentPage() {
       setSelectedDate(days[0].fullDate);
     }
   }, [doctor]);
+
   // Update time slots when doctor or selected date changes
   useEffect(() => {
     if (!doctor || !selectedDate) return;
@@ -244,6 +252,7 @@ export default function AppointmentPage() {
     // Reset selected slot when date changes
     setSelectedSlot(null);
   }, [doctor, selectedDate]);
+
   const handleBookAppointment = async () => {
     if (!doctor) {
       console.log("No doctor, returning");
@@ -303,7 +312,21 @@ export default function AppointmentPage() {
       try {
         // Call API to create appointment
         const response = await createAppointment(appointmentData);
-
+        console.log("Create appointment repsonse: ", response);
+        if (response) {
+          console.log("Creating notification");
+          await createNotification({
+            recipientId: appointmentData.doctorId,
+            recipientRole: "doctor",
+            title: "New Appointment",
+            message: `You have a new appointment with ${response.patient?.firstName} ${response.patient?.lastName}`,
+            type: "appointment",
+            targetUrl: `/doctor/appointment`,
+            relatedId: appointmentData.id,
+            createdAt: new Date().toISOString(),
+            read: false,
+          });
+        }
         // Navigate to review page
         router.push(`/user/appointment/${response?.id}/review`);
       } catch (error) {

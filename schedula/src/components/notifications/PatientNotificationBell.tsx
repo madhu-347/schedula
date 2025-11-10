@@ -34,11 +34,13 @@ export default function PatientNotificationBell() {
 
       const recipientId = user.id;
       const fetchedNotifications = await getNotifications(recipientId);
-
-      setNotifications(fetchedNotifications);
+      const userNotifications = fetchedNotifications.filter(
+        (n) => n.recipientRole === "user"
+      );
+      setNotifications(userNotifications);
 
       // Count unread notifications
-      const unread = fetchedNotifications.filter((n) => !n.read).length;
+      const unread = userNotifications.filter((n) => !n.read).length;
       setUnreadCount(unread);
     };
 
