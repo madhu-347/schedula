@@ -159,7 +159,7 @@
       "relationship": "Self"
     },
     "visitType": "Follow-up",
-    "status": "Upcoming",
+    "status": "Cancelled",
     "paid": true,
     "followUpOf": "1762757980095"
   },

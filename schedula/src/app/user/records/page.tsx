@@ -96,7 +96,7 @@ export default function PrescriptionPage() {
               </p>
             </Card>
           ) : (
-            <div className="flex flex-col mr-2 gap-6">
+            <div className="flex flex-col mr-2 gap-6 mb-16">
               {prescriptions.map((p) => (
                 <Link key={p.id} href={`/user/prescription/${p.id}`}>
                   <Card className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow border border-gray-100 w-full p-6">
