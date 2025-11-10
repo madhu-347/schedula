@@ -195,12 +195,13 @@ const AppointmentReviewPage = () => {
             </div>
           )}
 
-          {/* Add to Google Calendar Button */}
-          <div className="mt-6">
+          {/* View My Appointment and Calendar Buttons */}
+          <div className="flex flex-col sm:flex-row gap-3 mt-6">
+            {/* Add to Google Calendar Button */}
             {isAdded ? (
-              <div className="flex flex-col sm:flex-row gap-2">
+              <>
                 <Button
-                  className="w-full flex items-center gap-2"
+                  className="w-full sm:w-1/2 flex items-center justify-center gap-2"
                   onClick={handleViewCalendarEvent}
                 >
                   <ExternalLink className="w-4 h-4" />
@@ -212,44 +213,36 @@ const AppointmentReviewPage = () => {
                   variant="outline"
                   onClick={handleAddToCalendar}
                   disabled={isLoading}
-                  className="w-full flex items-center gap-2"
+                  className="w-full sm:w-1/2 flex items-center justify-center gap-2"
                 >
                   <CalendarPlus className="w-4 h-4" />
                   <span className="text-sm md:text-base">
                     {isLoading ? "Adding..." : "Add Again"}
                   </span>
                 </Button>
-              </div>
+              </>
             ) : (
-              <Button
-                onClick={handleAddToCalendar}
-                disabled={isLoading}
-                className="w-full flex items-center justify-center gap-2"
-              >
-                <CalendarPlus className="w-4 h-4" />
-                <span className="text-sm md:text-base">
-                  {isLoading
-                    ? "Adding to Calendar..."
-                    : "Add to Google Calendar"}
-                </span>
-              </Button>
+              <>
+                <Button
+                  onClick={handleAddToCalendar}
+                  disabled={isLoading}
+                  className="w-full sm:w-1/2 flex items-center justify-center gap-2"
+                >
+                  <CalendarPlus className="w-4 h-4" />
+                  <span className="text-sm md:text-base">
+                    {isLoading
+                      ? "Adding to Calendar..."
+                      : "Add to Google Calendar"}
+                  </span>
+                </Button>
+                <Button
+                  onClick={handleViewAppointments}
+                  className="cursor-pointer w-full sm:w-1/2 rounded-lg text-base font-semibold"
+                >
+                  View My Appointments
+                </Button>
+              </>
             )}
-          </div>
-
-          {/* View My Appointment Button */}
-          <div className="mt-3 md:mt-2 flex flex-col gap-3">
-            {/* <Button
-              onClick={() => router.push("/user/chat/1")}
-              className="cursor-pointer w-full rounded-lg py-6 text-base font-semibold"
-            >
-              Chat Now
-            </Button> */}
-            <Button
-              onClick={handleViewAppointments}
-              className="cursor-pointer w-full rounded-lg py-6 text-base font-semibold"
-            >
-              View My Appointments
-            </Button>
           </div>
         </div>
       </main>

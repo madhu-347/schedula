@@ -1,5 +1,4 @@
 // src/lib/types/appointment.ts
-import type { Prescription } from "./prescription";
 
 export interface Appointment {
   id: string;

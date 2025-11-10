@@ -278,19 +278,6 @@ export default function AppointmentPage() {
           updatedData
         );
         if (response?.success) {
-          // Send notification to doctor about rescheduling
-          try {
-            await fetch("/api/notifications", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                doctorName: `${doctor.firstName} ${doctor.lastName}`,
-                message: `Appointment rescheduled to ${selectedDate} at ${selectedSlot}.`,
-              }),
-            });
-          } catch (err) {
-            console.error("Failed to send notification:", err);
-          }
           // Navigate to the updated appointment details
           router.push(`/user/appointment/${appointmentToReschedule.id}`);
         } else {
@@ -316,21 +303,7 @@ export default function AppointmentPage() {
       try {
         // Call API to create appointment
         const response = await createAppointment(appointmentData);
-        // Send notification to doctor
-        try {
-          await fetch("/api/notifications", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              doctorName: `${doctor.firstName} ${doctor.lastName}`,
-              message: isRescheduling
-                ? `Appointment rescheduled to ${selectedDate} at ${selectedSlot}.`
-                : `New appointment booked on ${selectedDate} at ${selectedSlot}.`,
-            }),
-          });
-        } catch (err) {
-          console.error("Failed to send notification:", err);
-        }
+
         // Navigate to review page
         router.push(`/user/appointment/${response?.id}/review`);
       } catch (error) {

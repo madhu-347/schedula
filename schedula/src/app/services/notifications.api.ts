@@ -1,26 +1,19 @@
 // Notification service for handling notifications for both patient and doctor sides
+// Fetch notifications for a user (doctor or patient)
+import { Notification } from "@/lib/types/notification";
 
-export interface Notification {
-  id: number;
-  recipientId: string;
-  doctorName: string;
-  message: string;
-  timestamp: string;
-  read: boolean;
-  targetUrl?: string;
-}
-
-// Fetch notifications for a doctor
 export async function getNotifications(
-  doctorId?: string
+  recipientId?: string
 ): Promise<Notification[]> {
+  if (!recipientId) {
+    throw new Error("Recipient ID is required");
+  }
   try {
-    const url = doctorId
-      ? `/api/notifications?doctorId=${doctorId}`
-      : "/api/notifications";
+    const url = `/api/notifications?recipientId=${recipientId}`;
 
     const response = await fetch(url);
     const result = await response.json();
+    console.log("notification response", result);
 
     if (result.success) {
       return result.data;
@@ -35,8 +28,7 @@ export async function getNotifications(
 
 // Create a new notification
 export async function createNotification(
-  doctorName: string,
-  message: string
+  notificationData: Notification
 ): Promise<Notification | null> {
   try {
     const response = await fetch("/api/notifications", {
@@ -45,12 +37,11 @@ export async function createNotification(
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        doctorName,
-        message,
+        ...notificationData, // Ensure all properties are included
       }),
     });
-
     const result = await response.json();
+    console.log("notification response", result);
 
     if (result.success) {
       return result.data;
@@ -64,7 +55,7 @@ export async function createNotification(
 }
 
 // Mark a notification as read
-export async function markNotificationAsRead(id: number): Promise<boolean> {
+export async function markNotificationAsRead(id: string): Promise<boolean> {
   try {
     const response = await fetch("/api/notifications", {
       method: "PUT",
@@ -85,10 +76,10 @@ export async function markNotificationAsRead(id: number): Promise<boolean> {
 
 // Get unread notifications count
 export async function getUnreadNotificationsCount(
-  doctorId?: string
+  recipientId?: string
 ): Promise<number> {
   try {
-    const notifications = await getNotifications(doctorId);
+    const notifications = await getNotifications(recipientId);
     return notifications.filter((notification) => !notification.read).length;
   } catch (error) {
     console.error("Failed to get unread notifications count:", error);

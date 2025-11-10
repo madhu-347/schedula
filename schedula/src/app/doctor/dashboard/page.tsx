@@ -30,8 +30,6 @@ import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { Appointment } from "@/lib/types/appointment";
 import { useAuth } from "@/context/AuthContext";
 import { getLatestAppointmentsForDoctor } from "@/app/services/appointments.api";
-import NotificationBell from "@/components/notifications/NotificationBell";
-import DoctorHeader from "@/components/DoctorHeader";
 
 type DashboardStats = {
   todayAppointments: number;
@@ -245,7 +243,7 @@ export default function DoctorDashboardPage() {
     const fetchNotifications = async () => {
       try {
         const res = await fetch(
-          `/api/notifications?doctorId=${encodeURIComponent(doctor.id)}`
+          `/api/notifications?recipientId=${encodeURIComponent(doctor.id)}`
         );
         const data = await res.json();
         if (data.success) {
@@ -318,7 +316,6 @@ export default function DoctorDashboardPage() {
     <ProtectedRoute>
       <div className="min-h-screen bg-gray-50">
         {/* Header */}
-        <DoctorHeader doctor={doctor} />
 
         {/* Main Content Area */}
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -377,7 +374,7 @@ export default function DoctorDashboardPage() {
                       Manage Availability
                     </Link>
                     <Link
-                      href="/doctor/appointments"
+                      href="/doctor/appointment"
                       className="text-sm bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-2 rounded-md transition-colors"
                     >
                       View All Appointments
@@ -518,7 +515,7 @@ export default function DoctorDashboardPage() {
                           key={appt.id}
                           className="border border-gray-100 rounded-lg p-3 hover:bg-gray-50 transition-colors flex items-center justify-between cursor-pointer"
                           onClick={() =>
-                            router.push(`/doctor/appointments/${appt.id}`)
+                            router.push(`/doctor/appointment/${appt.id}`)
                           }
                         >
                           <div className="flex items-center gap-3">
@@ -551,7 +548,7 @@ export default function DoctorDashboardPage() {
                     </p>
                   )}
                   <Link
-                    href="/doctor/appointments"
+                    href="/doctor/appointment"
                     className="text-sm text-cyan-600 hover:underline mt-4 font-medium inline-block"
                   >
                     View Full Schedule

@@ -3,22 +3,45 @@
 // get all prescriptions for doctor (using doctor id)
 // there'll be only one prescription per appointment so no point of getting prescription for appt id.
 import mockData from "@/lib/mockData.json";
+import { NextResponse, NextRequest } from "next/server";
+import { Doctor } from "@/lib/types/doctor";
+import { User } from "@/lib/types/user";
+import { Appointment } from "@/lib/types/appointment";
+import { Prescription } from "@/lib/types/prescription";
+import { getAppointmentById } from "@/app/services/appointments.api";
 
 let prescriptions: any[] = [];
 
 // Helper function to enrich prescription with doctor and patient data
-function enrichPrescription(prescription: any) {
-  const doctor = mockData.doctors.find((d) => d.id === prescription.doctorId);
-  const patient = mockData.users.find((p) => p.id === prescription.patientId);
+const enrichPrescription = async (prescription: Prescription) => {
+  console.log("enrichPrescription called with prescription:", prescription);
 
-  return {
-    ...prescription,
-    doctor: doctor || null,
-    patient: patient || null,
-  };
-}
+  try {
+    const response = await fetch(
+      `http://localhost:3000/api/appointment?id=${prescription.appointmentId}`
+    );
+    const result = await response.json();
+    const appointment = result.success ? result.data : null;
 
-export async function GET(request: Request) {
+    const doctor = appointment?.doctor || null;
+    const patient = appointment?.patientDetails || null;
+
+    return {
+      ...prescription,
+      doctor,
+      patient,
+    };
+  } catch (error) {
+    console.error("Error enriching prescription:", error);
+    return {
+      ...prescription,
+      doctor: null,
+      patient: null,
+    };
+  }
+};
+
+export async function GET(request: NextRequest) {
   const url = new URL(request.url);
   const id = url.searchParams.get("id");
   const patientId = url.searchParams.get("patientId");
@@ -28,65 +51,70 @@ export async function GET(request: Request) {
   if (id) {
     const prescription = prescriptions.find((p) => p.id === id);
     if (!prescription) {
-      return Response.json({
+      return NextResponse.json({
         success: false,
         data: null,
         message: "Not found",
       });
     }
-    return Response.json({
+    const enrichedData = await enrichPrescription(prescription);
+    return NextResponse.json({
       success: true,
-      data: enrichPrescription(prescription),
+      data: enrichedData,
     });
   }
 
   // Get all prescriptions for a patient
   if (patientId) {
-    const data = prescriptions
-      .filter((p) => p.patientId === patientId)
-      .map(enrichPrescription);
+    const filtered = prescriptions.filter((p) => p.patientId === patientId);
+    const data = await Promise.all(filtered.map(enrichPrescription));
     // console.log("all prescriptions for patient", data);
-    return Response.json({ success: true, data });
+    return NextResponse.json({ success: true, data });
   }
 
   // Get all prescriptions for a doctor
   if (doctorId) {
-    const data = prescriptions
-      .filter((p) => p.doctorId === doctorId)
-      .map(enrichPrescription);
-    return Response.json({ success: true, data });
+    const filtered = prescriptions.filter((p) => p.doctorId === doctorId);
+    const data = await Promise.all(filtered.map(enrichPrescription));
+    return NextResponse.json({ success: true, data });
   }
 
   // Get all prescriptions
-  return Response.json({
+  const data = await Promise.all(prescriptions.map(enrichPrescription));
+  return NextResponse.json({
     success: true,
-    data: prescriptions.map(enrichPrescription),
+    data,
   });
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   const body = await request.json();
   const newPrescription = {
-    id: crypto.randomUUID(),
-    createdAt: Date.now(),
     ...body,
+    id: crypto.randomUUID(),
+    createdAt: new Date().toISOString(),
   };
   prescriptions.push(newPrescription);
-  return Response.json({
+  console.log("New prescription added:", newPrescription);
+  console.log("All prescriptions:", prescriptions);
+
+  const enrichedData = await enrichPrescription(newPrescription);
+  return NextResponse.json({
     success: true,
-    data: enrichPrescription(newPrescription),
+    data: enrichedData,
   });
 }
 
-export async function DELETE(request: Request) {
+export async function DELETE(request: NextRequest) {
   const url = new URL(request.url);
   const id = url.searchParams.get("id");
   prescriptions = prescriptions.filter((p) => p.id !== id);
-  return Response.json({ success: true });
+  return NextResponse.json({ success: true });
 }
 
-export async function PUT(request: Request) {
+export async function PUT(request: NextRequest) {
   const body = await request.json();
   prescriptions = prescriptions.map((p) => (p.id === body.id ? body : p));
-  return Response.json({ success: true, data: enrichPrescription(body) });
+  const enrichedData = await enrichPrescription(body);
+  return NextResponse.json({ success: true, data: enrichedData });
 }

@@ -2,9 +2,8 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Star, Search, Calendar } from "lucide-react";
+import { ArrowLeft, Star, Calendar, User, Search } from "lucide-react";
 import { format } from "date-fns";
-import DoctorHeader from "@/components/DoctorHeader";
 
 // === Types ===
 type FeedbackData = {
@@ -39,7 +38,7 @@ type ReviewDisplay = {
 
 type FilterType = "All" | "5 Star" | "4 Star" | "3 Star" | "2 Star" | "1 Star";
 
-export default function DoctorReviewsPage() {
+export default function ReviewsPage() {
   const router = useRouter();
 
   const [reviews, setReviews] = useState<ReviewDisplay[]>([]);
@@ -199,10 +198,7 @@ export default function DoctorReviewsPage() {
   // === UI ===
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <DoctorHeader doctor={null} />
-
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
+      <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Summary */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           {/* Average Rating */}
@@ -383,7 +379,7 @@ export default function DoctorReviewsPage() {
             </p>
           </div>
         )}
-      </main>
+      </div>
     </div>
   );
 }

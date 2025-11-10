@@ -285,7 +285,7 @@ const AppointmentsPage: React.FC = () => {
                           className="w-24 h-24 rounded-2xl object-cover ring-2 ring-gray-100"
                         />
                       ) : (
-                        <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-cyan-100 to-cyan-200 flex items-center justify-center ring-2 ring-gray-100">
+                        <div className="w-24 h-24 rounded-2xl bg-linear-to-br from-cyan-100 to-cyan-200 flex items-center justify-center ring-2 ring-gray-100">
                           <span className="text-3xl font-bold text-cyan-600">
                             {doctorName.charAt(0).toUpperCase()}
                           </span>

@@ -12,7 +12,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { Appointment } from "@/lib/types/appointment";
 import { Doctor } from "@/lib/types/doctor";
 import { User } from "@/lib/types/user";
-import { Prescription } from "@/lib/types/prescription";
 import mockData from "@/lib/mockData.json";
 
 // In-memory storage (resets on server restart)
@@ -22,13 +21,11 @@ const appointmentsData: Appointment[] = JSON.parse(
 
 // Helper function to enrich appointment with patient and doctor data
 function enrichAppointment(appointment: Appointment) {
-  const patient = mockData.users.find(
-    (u: User) => u.id === appointment.patientId
-  ) || null;
+  const patient =
+    mockData.users.find((u: User) => u.id === appointment.patientId) || null;
 
-  const doctor = mockData.doctors.find(
-    (d: Doctor) => d.id === appointment.doctorId
-  ) || null;
+  const doctor =
+    mockData.doctors.find((d: Doctor) => d.id === appointment.doctorId) || null;
 
   // ✅ Safely extract patientDetails with correct type
   const p = appointment.patientDetails;
@@ -188,10 +185,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate patientId exists in users
-    const patientExists = mockData.users.some(
+    const patient = mockData.users.find(
       (user: User) => user.id === body.patientId
     );
-    if (!patientExists) {
+    if (!patient) {
       return NextResponse.json(
         {
           success: false,
@@ -202,10 +199,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate doctorId exists in doctors
-    const doctorExists = mockData.doctors.some(
+    const doctor = mockData.doctors.find(
       (doctor: Doctor) => doctor.id === body.doctorId
     );
-    if (!doctorExists) {
+    if (!doctor) {
       return NextResponse.json(
         {
           success: false,
@@ -384,6 +381,71 @@ export async function POST(request: NextRequest) {
     appointmentsData.push(newAppointment);
 
     console.log("New appointment created:", newAppointment);
+
+    // Send notifications to both doctor and patient
+    // try {
+    //   const patientName = `${patient?.firstName || "Patient"} ${
+    //     patient?.lastName || ""
+    //   }`.trim();
+
+    //   const doctorName = `${doctor.firstName} ${doctor.lastName}`;
+
+    //   // Generate and send notification to doctor
+    //   const doctorNotification = generateDoctorNotification({
+    //     recipientId: body.doctorId,
+    //     doctorName: doctorName,
+    //     patientName: patientName,
+    //     date: body.date,
+    //     time: body.time || "TBD",
+    //     appointmentId: newId,
+    //   });
+
+    //   const doctorNotificationResponse = await fetch(
+    //     process.env.NODE_ENV === "development"
+    //       ? "http://localhost:3000/api/notifications"
+    //       : "/api/notifications",
+    //     {
+    //       method: "POST",
+    //       headers: {
+    //         "Content-Type": "application/json",
+    //       },
+    //       body: JSON.stringify(doctorNotification),
+    //     }
+    //   );
+
+    //   if (!doctorNotificationResponse.ok) {
+    //     console.error("Failed to send notification to doctor");
+    //   }
+
+    //   // Generate and send notification to patient
+    //   // const patientNotification = generatePatientNotification({
+    //   //   recipientId: body.patientId,
+    //   //   doctorName: doctorName,
+    //   //   patientName: patientName,
+    //   //   date: body.date,
+    //   //   time: body.time || "TBD",
+    //   //   appointmentId: newId,
+    //   // });
+
+    //   // const patientNotificationResponse = await fetch(
+    //   //   process.env.NODE_ENV === "development"
+    //   //     ? "http://localhost:3000/api/notifications"
+    //   //     : "/api/notifications",
+    //   //   {
+    //   //     method: "POST",
+    //   //     headers: {
+    //   //       "Content-Type": "application/json",
+    //   //     },
+    //   //     body: JSON.stringify(patientNotification),
+    //   //   }
+    //   // );
+
+    //   // if (!patientNotificationResponse.ok) {
+    //   //   console.error("Failed to send notification to patient");
+    //   // }
+    // } catch (notificationError) {
+    //   console.error("Error sending notifications:", notificationError);
+    // }
 
     // Enrich response with patient and doctor data
     const enrichedAppointment = enrichAppointment(newAppointment);

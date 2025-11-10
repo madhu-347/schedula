@@ -11,6 +11,7 @@ import { getAppointmentById } from "@/app/services/appointments.api";
 import { getPrescriptionsByAppointmentId } from "@/app/services/prescription.api";
 import usePrescriptionForm from "@/hooks/usePrescriptionForm";
 import type { Appointment } from "@/lib/types/appointment";
+import { createNotification } from "@/app/services/notifications.api";
 import { createPrescription } from "@/app/services/prescription.api";
 import Link from "next/link";
 
@@ -260,67 +261,43 @@ export default function PrescriptionFormPage() {
     e.preventDefault();
     setSubmitted(true);
 
-    const eobj = buildErrors();
-    setErrors(eobj);
-    const ok = Object.keys(eobj).length === 0;
-
-    if (!ok) {
-      toast({
-        title: "Form is incomplete",
-        description: "Please fix highlighted fields.",
-        variant: "destructive",
-      });
-      return; // ← saving has NOT been set yet, so button won't get stuck
-    }
+    if (!validateForm()) return;
 
     setSaving(true);
 
-    const appt = await getAppointmentById(String(id));
-    if (!appt) {
-      setSaving(false);
-      toast({
-        title: "Error",
-        description: "Appointment not found",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const prescriptionId = `rx_${Date.now()}_${Math.random()
-      .toString(36)
-      .slice(2, 8)}`;
-
     try {
-      await createPrescription({
-        createdAt: new Date().toISOString(),
-        id: prescriptionId,
-        appointmentId: String(id),
+      const prescriptionData = await createPrescription({
+        appointmentId: id,
+        patientId: appointment?.patientId,
+        doctorId: doctor?.id,
         vitals,
         medicines,
         tests,
         notes,
         files: files.map((f) => ({ name: f.name })),
-      });
+      } as any);
 
-      const recipientId = appt?.patientId;
+      console.log("Prescription created:", prescriptionData);
 
-      if (recipientId) {
+      // Send notification to patient
+      if (appointment?.patientId && doctor) {
         try {
-          await fetch("/api/notifications", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              recipientId,
-              doctorName: appt.doctor?.firstName,
-              message: isEdit
-                ? "Your prescription has been updated."
-                : "A new prescription has been added by your doctor.",
-              appointmentId: id,
-              targetUrl: `/user/prescription/${prescriptionId}`,
-            }),
-          });
-        } catch {
-          /* ignore notification error */
+          const notification = {
+            recipientId: appointment.patientId,
+            recipientRole: "user",
+            title: "New Prescription",
+            message: isEdit
+              ? "Your prescription has been updated."
+              : "A new prescription has been added by your doctor.",
+            type: "prescription",
+            targetUrl: `/user/prescription/${prescriptionData.id}`,
+            relatedId: prescriptionData.id,
+          };
+
+          await createNotification(notification as any);
+        } catch (notificationError) {
+          console.error("Failed to send notification:", notificationError);
+          // Don't fail the whole operation if notification fails
         }
       }
 
@@ -329,7 +306,7 @@ export default function PrescriptionFormPage() {
         description: "Changes have been stored.",
       });
 
-      router.push(`/doctor/appointments/${id}/prescription/view`);
+      router.push(`/doctor/appointment/${id}/prescription/view`);
     } catch (err) {
       console.error(err);
       toast({

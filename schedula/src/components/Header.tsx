@@ -1,63 +1,91 @@
-import React, { useState } from "react";
-import Image from "next/image";
-import { MapPin } from "lucide-react";
-import { useAuth } from "@/context/AuthContext";
-import NotificationBell from "@/components/notifications/NotificationBell";
-import User from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import { MapPin, LogOut } from "lucide-react";
+import PatientNotificationBell from "@/components/notifications/PatientNotificationBell";
+import { User } from "@/lib/types/user";
+import { useRouter } from "next/navigation";
 
+interface userHeaderProps {
+  user: User | null;
+}
 interface HeaderProps {
   setShowNotifications?: (show: boolean) => void;
 }
 
-function Header({ setShowNotifications }: HeaderProps) {
-  const { user, logout } = useAuth();
-  const [showNotifications, setShowNotificationsLocal] = useState(false);
+function Header({ user }: userHeaderProps) {
+  const router = useRouter();
+  const [showDropdown, setShowDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
+
   // console.log("user in header: ", user);
   const firstName = user?.firstName || "User"; // Changed from user?.name to user?.firstName
 
+  const handleLogout = () => {
+    localStorage.removeItem("userId");
+    router.push("/user/login");
+  };
+
+  const handleLogoClick = () => {
+    router.push("/user/dashboard");
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   return (
-    <header className="bg-white shadow-sm sticky top-0 z-20 border-b border-gray-100">
-      <div className="px-4 py-4 sm:px-6 md:px-8 lg:px-12 xl:px-20">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <div className="flex items-center gap-2 sm:gap-3">
-            <div className="relative">
-              <Image
-                src="/user-profile-pic.png"
-                alt="User Profile"
-                width={48}
-                height={48}
-                className="rounded-full w-10 h-10 sm:w-12 sm:h-12 object-cover ring-2 ring-cyan-100"
-              />
+    <div>
+      <header className="bg-white shadow-md">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between h-16 items-center">
+            <div className="flex items-center">
+              <button
+                onClick={handleLogoClick}
+                className="text-xl cursor-pointer font-semibold text-cyan-500 hover:text-cyan-600 transition-colors"
+              >
+                Schedula
+              </button>
             </div>
-            <div>
-              <h1 className="text-base sm:text-lg font-bold text-gray-900">
-                Hello, {firstName ? firstName : "User"}
-              </h1>
-              <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
-                <MapPin className="inline w-3 h-3" />
-                <span className="hidden sm:inline">
-                  {user?.location || "Dombivali, Mumbai"}
-                </span>
-                <span className="sm:hidden">
-                  {user?.location?.split(",")[0] || "Dombivali"}
-                </span>
-              </p>
+            <div className="flex items-center space-x-4">
+              <PatientNotificationBell />
+              <div className="relative" ref={dropdownRef}>
+                <button
+                  onClick={() => setShowDropdown(!showDropdown)}
+                  className="flex items-center space-x-2 text-gray-700 hover:text-gray-900"
+                >
+                  <div className="w-8 h-8 rounded-full bg-cyan-500 flex items-center justify-center text-white font-semibold">
+                    {user?.firstName?.charAt(0) || "U"}
+                  </div>
+                  <span className="hidden md:inline">
+                    {user ? `${user.firstName} ${user.lastName}` : "User"}
+                  </span>
+                </button>
+
+                {showDropdown && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border border-gray-200">
+                    <button
+                      onClick={handleLogout}
+                      className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                    >
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Sign out
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-
-          <div className="flex items-center gap-2 sm:gap-4">
-            <NotificationBell role="patient" />
-
-            <button
-              onClick={() => logout("user")}
-              className="text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2 font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-            >
-              Logout
-            </button>
           </div>
         </div>
-      </div>
-    </header>
+      </header>
+    </div>
   );
 }
 

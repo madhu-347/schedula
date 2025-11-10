@@ -135,7 +135,7 @@ export default function PatientChatPage() {
     // Main container uses flex-col, allows full height
     <main className="min-h-screen bg-gray-100 flex flex-col h-screen pb-20">
       {/* 1. Header (Sticky) */}
-      <header className="sticky top-0 z-10 w-full shrink-0 bg-white shadow-sm">
+      <header className="sticky top-0 z-10 w-full shrink-0">
         {/* Use max-w-6xl for wider layout */}
         <div className="flex items-center p-2 max-w-6xl mx-auto w-full">
           <button
@@ -149,7 +149,7 @@ export default function PatientChatPage() {
       </header>
       {/* 2. Main Content Area (Uses Flexbox for Columns on Medium+ screens) */}
       {/* Added md:flex-row for columns, gap, wider max-w */}
-      <div className="flex-1 overflow-hidden w-full p-4 flex flex-col md:flex-row md:gap-4 max-w-6xl mx-auto">
+      <div className="flex-1 overflow-hidden w-full pb-5 flex flex-col md:flex-row md:gap-4 max-w-6xl mx-auto">
         {/* --- LEFT COLUMN (Patient Details) --- */}
         {/* Takes full width on mobile, half width on desktop */}
         <div className="w-full md:w-1/2 shrink-0 mb-4 md:mb-0">
@@ -201,7 +201,7 @@ export default function PatientChatPage() {
         <div className="w-full md:w-1/2 bg-white rounded-xl shadow-lg flex flex-col overflow-hidden h-full">
           {/* Doctor Info (Fixed height) */}
           {/* ADJUSTED: Reduced padding on small screens (p-3 md:p-4) */}
-          <div className="p-3 md:p-4 border-b border-gray-100 flex items-center flex-shrink-0">
+          <div className="p-3 md:p-4 border-b border-gray-100 flex items-center shrink-0">
             {/* Adjusted image size for mobile */}
             <div className="rounded-full w-12 h-12 md:w-16 md:h-16 bg-cyan-100 mr-3 md:mr-4 flex items-center justify-center">
               <span className="text-cyan-800 font-bold text-lg">
@@ -227,7 +227,7 @@ export default function PatientChatPage() {
 
           {/* Session Start Marker (Fixed height) */}
           {/* ADJUSTED: Reduced vertical margin (my-1 md:my-2) */}
-          <div className="text-center my-1 md:my-2 flex-shrink-0">
+          <div className="text-center my-1 md:my-2 shrink-0">
             <span className="text-xs text-gray-500 bg-gray-100 px-3 py-1 rounded-full shadow-sm">
               Session Start
             </span>
@@ -237,7 +237,7 @@ export default function PatientChatPage() {
           {/* ADJUSTED: Reduced padding (px-3 md:px-4) */}
           <div
             ref={chatContainerRef}
-            className="space-y-3 md:space-y-4 px-3 md:px-4 pb-4 flex-grow overflow-y-auto"
+            className="space-y-3 md:space-y-4 px-3 md:px-4 pb-4 grow overflow-y-auto"
           >
             {messages.map((message) => (
               <div

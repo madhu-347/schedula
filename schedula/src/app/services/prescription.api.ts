@@ -1,18 +1,22 @@
 import { Prescription } from "@/lib/types/prescription";
+import { createNotification } from "./notifications.api";
 
 // ✅ Create prescription
 export async function createPrescription(p: Prescription) {
+  console.log("Creating prescription:", p);
   const response = await fetch("/api/prescription", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(p),
   });
   const result = await response.json();
+  console.log("Prescription created:", result);
   return result.data;
 }
 
 // ✅ Get prescription by prescription ID
 export async function getPrescriptionById(id: string) {
+  console.log("Getting prescription by ID:", id);
   const response = await fetch(`/api/prescription?id=${id}`);
   const result = await response.json();
   return result.success ? result.data : null;
@@ -21,8 +25,9 @@ export async function getPrescriptionById(id: string) {
 // ✅ Get all prescriptions for a patient
 export async function getPrescriptionByPatient(patientId: string) {
   const response = await fetch(`/api/prescription?patientId=${patientId}`);
+  console.log("prescr response : ", response);
   const result = await response.json();
-  console.log("prescriptions for patient", result.data);
+  console.log("prescriptions for patient", result);
   return result.data || [];
 }
 
@@ -35,12 +40,15 @@ export async function getPrescriptionByDoctor(doctorId: string) {
 
 // ✅ Get prescriptions for an appointment
 export async function getPrescriptionsByAppointmentId(appointmentId: string) {
+  console.log("Fetching prescription for appointmentId:", appointmentId);
   // Since the API doesn't have a direct endpoint for appointmentId,
   // we'll fetch all prescriptions and filter client-side
   const allPrescriptions = await getAllPrescriptions();
-  return allPrescriptions.filter(
-    (p: Prescription) => p.appointmentId === appointmentId
+  const prescription = allPrescriptions.find(
+    (p: any) => p.appointmentId === appointmentId
   );
+  console.log("Found prescription:", prescription);
+  return prescription || null;
 }
 
 // ✅ Get all prescriptions
