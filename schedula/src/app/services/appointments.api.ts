@@ -16,18 +16,18 @@ export async function createAppointment(appointmentData: Appointment) {
 
     if (result.success) {
       // If appointment is booked successfully, create a notification
-      const res = await createNotification({
-        id: String(Date.now()),
-        recipientId: appointmentData.doctorId,
-        recipientRole: "doctor",
-        title: "New Appointment",
-        message: `You have a new appointment with ${appointmentData.patientDetails?.fullName}`,
-        type: "appointment",
-        targetUrl: `/doctors/appointments`,
-        relatedId: appointmentData.id,
-        createdAt: new Date().toISOString(),
-        read: false,
-      });
+      // const res = await createNotification({
+      //   id: String(Date.now()),
+      //   recipientId: appointmentData.doctorId,
+      //   recipientRole: "doctor",
+      //   title: "New Appointment",
+      //   message: `You have a new appointment Click here to view`,
+      //   type: "appointment",
+      //   targetUrl: `/doctors/appointments`,
+      //   relatedId: appointmentData.id,
+      //   createdAt: new Date().toISOString(),
+      //   read: false,
+      // });
       return result.data;
     } else {
       console.error("Failed to create appointment:", result.error);

@@ -34,11 +34,11 @@ export default function DoctorNotificationBell() {
 
       const recipientId = doctor.id;
       const fetchedNotifications = await getNotifications(recipientId);
-
-      setNotifications(fetchedNotifications);
+      const doctorNotifications = fetchedNotifications.filter((n) => n.recipientRole === "doctor");
+      setNotifications(doctorNotifications);
 
       // Count unread notifications
-      const unread = fetchedNotifications.filter((n) => !n.read).length;
+      const unread = doctorNotifications.filter((n) => !n.read).length;
       setUnreadCount(unread);
     };
 
