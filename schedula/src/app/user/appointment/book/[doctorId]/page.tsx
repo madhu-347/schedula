@@ -14,6 +14,7 @@ import {
   isTimeSlotBooked,
 } from "@/app/services/appointments.api";
 import { Appointment } from "@/lib/types/appointment";
+import { createNotification } from "@/app/services/notifications.api";
 
 // Type for the User (from localStorage)
 type UserInfo = {
@@ -149,6 +150,17 @@ export default function BookAppointmentPage() {
 
       if (result) {
         // Success! Navigate to the appointment review page
+        await createNotification({
+          recipientId: appointmentData.doctorId,
+          recipientRole: "doctor",
+          title: "New Appointment",
+          message: `You have a new appointment with ${appointmentData.patientDetails?.fullName || 'Patient'}`,
+          type: "appointment",
+          targetUrl: `/doctors/appointment`,
+          relatedId: appointmentData.id,
+          createdAt: new Date().toISOString(),
+          read: false,
+        });
         router.push(`/user/appointment/${result.id}/review`);
       } else {
         setError("Failed to create appointment. Please try again.");

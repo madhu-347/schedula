@@ -61,5 +61,5 @@ export interface Appointment {
 
   prescriptionId?: string;
 
-  followUpOf: string; // appointment id for which this is a follow-up
+  followUpOf?: string; // appointment id for which this is a follow-up
 }
