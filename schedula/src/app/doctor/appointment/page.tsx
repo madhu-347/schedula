@@ -147,39 +147,51 @@ export default function DoctorAppointmentsPage() {
 
   const closeModal = () => setSelected(null);
 
-const handleSaveFollowUp = async () => {
-  if (!followUpDate || !followUpTime) return setAttemptedSave(true);
-  if (!selected || !doctor) return;
+  const handleSaveFollowUp = async () => {
+    if (!followUpDate || !followUpTime) return setAttemptedSave(true);
+    if (!selected || !doctor) return;
 
-  try {
-    const newAppointment: Appointment = {
-      id: String(Date.now()),
-      tokenNo: `TKN-${Math.floor(Math.random() * 9000 + 1000)}`,
-      patientId: selected.patientId,
-      doctorId: doctor.id,
-      doctor: {
-        firstName: doctor.firstName, lastName: doctor.lastName,
-        specialty: doctor.specialty, qualifications: doctor.qualifications, image: doctor.image
-      },
-      patientDetails: selected.patientDetails,
-      day: new Date(followUpDate).toLocaleDateString("en-US", { weekday: "long" }),
-      date: followUpDate, time: followUpTime,
-      type: selected.type || "In-person", status: "Upcoming",
-      visitType: "Follow-up", paid: false, paymentStatus: "Not paid",
-      queuePosition: 0, followUpOf: selected.id
-    };
+    try {
+      const newAppointment: Appointment = {
+        id: String(Date.now()),
+        tokenNo: `TKN-${Math.floor(Math.random() * 9000 + 1000)}`,
+        patientId: selected.patientId,
+        doctorId: doctor.id,
+        doctor: {
+          firstName: doctor.firstName,
+          lastName: doctor.lastName,
+          specialty: doctor.specialty,
+          qualifications: doctor.qualifications,
+          image: doctor.image,
+        },
+        patientDetails: selected.patientDetails,
+        day: new Date(followUpDate).toLocaleDateString("en-US", {
+          weekday: "long",
+        }),
+        date: followUpDate,
+        time: followUpTime,
+        type: selected.type || "In-person",
+        status: "Upcoming",
+        visitType: "Follow-up",
+        paid: false,
+        paymentStatus: "Not paid",
+        queuePosition: 0,
+        followUpOf: selected.id,
+      };
       await createFollowUpAppointment({
         ...newAppointment,
         visitType: "Follow-up",
       });
 
-        setAttemptedSave(false); setShowFollowUpModal(false);
-        setSelected(null); setFollowUpDate(""); setFollowUpTime("");
-      } catch (err) {
-        console.error("Follow-up creation failed:", err);
-      }
-    };
-
+      setAttemptedSave(false);
+      setShowFollowUpModal(false);
+      setSelected(null);
+      setFollowUpDate("");
+      setFollowUpTime("");
+    } catch (err) {
+      console.error("Follow-up creation failed:", err);
+    }
+  };
 
   if (loading) {
     return (
@@ -199,7 +211,7 @@ const handleSaveFollowUp = async () => {
         <div className="flex items-start gap-3 mb-4">
           <button
             aria-label="Back"
-            onClick={() => router.push("doctor/dashboard")}
+            onClick={() => router.back()}
             className="p-2 -ml-2 text-gray-600 hover:text-gray-900"
           >
             <ArrowLeft className="w-6 h-6" />
