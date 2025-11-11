@@ -520,7 +520,7 @@ export default function DoctorDashboardPage() {
                             <div
                               className="flex items-center gap-3 flex-1 cursor-pointer"
                               onClick={() =>
-                                router.push(`/doctor/appointment/${appt.id}`)
+                                router.push(`/doctor/appointment`)
                               }
                             >
                               {appt.type === "Virtual" ? (

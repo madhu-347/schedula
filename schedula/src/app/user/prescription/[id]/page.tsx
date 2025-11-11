@@ -7,7 +7,6 @@ import { Prescription, PrescriptionResponse } from "@/lib/types/prescription";
 import { useAuth } from "@/context/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import type { Doctor } from "@/lib/types/doctor";
-
 import { FileText, User, Stethoscope, Download, ArrowLeft } from "lucide-react";
 import generatePrescriptionPDF from "@/utils/generatePrescriptionPDF";
 import { downloadPrescriptionPDF } from "@/utils/pdfGenerator";
@@ -58,12 +57,12 @@ export default function PrescriptionDetailPage() {
     try {
       // Extract doctor and patient, and create a clean prescription object
       const { doctor, patient, ...prescriptionFields } = prescriptionData;
-      downloadPrescriptionPDF(prescriptionData);
-      // generatePrescriptionPDF({
-      //   doctorInfo: doctor,
-      //   patientInfo: patient as any,
-      //   rx: prescriptionFields as Prescription,
-      // });
+      // downloadPrescriptionPDF(prescriptionData);
+      generatePrescriptionPDF({
+        doctorInfo: doctor,
+        patientInfo: patient as any,
+        rx: prescriptionFields as Prescription,
+      });
     } catch (error) {
       console.error("PDF generation failed:", error);
       alert("Failed to generate PDF. Please check the console for details.");
@@ -95,7 +94,7 @@ export default function PrescriptionDetailPage() {
               <h3 className="text-lg font-medium text-gray-900 mb-1">Error</h3>
               <p className="text-gray-500">{error}</p>
               <button
-                onClick={() => router.push("/user/prescription")}
+                onClick={() => router.push("/user/records")}
                 className="mt-4 px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition-colors"
               >
                 Back to Prescriptions
@@ -123,7 +122,7 @@ export default function PrescriptionDetailPage() {
                 The requested prescription could not be found.
               </p>
               <button
-                onClick={() => router.push("/user/prescription")}
+                onClick={() => router.push("/user/records")}
                 className="mt-4 px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition-colors"
               >
                 Back to Prescriptions
@@ -146,7 +145,7 @@ export default function PrescriptionDetailPage() {
           {/* Header with back button */}
           <div className="flex items-center justify-between mb-6">
             <button
-              onClick={() => router.push("/user/prescription")}
+              onClick={() => router.push("/user/records")}
               className="flex items-center gap-2 text-cyan-600 hover:text-cyan-700"
             >
               <ArrowLeft className="w-5 h-5" />
