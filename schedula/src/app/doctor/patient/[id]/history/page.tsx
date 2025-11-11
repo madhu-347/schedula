@@ -422,7 +422,7 @@ export default function MedicalHistoryPage() {
 
                         <div className="flex gap-2 pl-13">
                           <Link
-                            href={`/doctor/appointment/${item.data.id}`}
+                            href={`/doctor/appointment`}
                             className="text-sm text-cyan-600 hover:text-cyan-700 font-medium"
                           >
                             View Details →
