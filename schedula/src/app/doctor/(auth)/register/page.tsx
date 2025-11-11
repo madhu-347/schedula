@@ -54,30 +54,52 @@ export default function DoctorRegisterPage() {
 
   // --- Doctor Registration Submit Logic ---
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-     // Ensure this only runs for doctor registration
-    if (registerMode !== 'doctor') return;
+  e.preventDefault();
+  if (registerMode !== "doctor") return;
 
-    setIsLoading(true);
-    // ... (Your existing doctor registration submit logic) ...
-     if (mobileError || formData.mobile.length !== 10) { /* ... alert ... */ setIsLoading(false); return; }
-     if (!agreedToTerms) { /* ... alert ... */ setIsLoading(false); return; }
+  setIsLoading(true);
 
-     try {
-         console.log("🩺 Registering Doctor:", formData);
-         // Simulate API call
-         await new Promise((resolve) => setTimeout(resolve, 1500));
-         // Simulate success
-         const newDoctor = { name: formData.fullName, email: formData.email, type: 'doctor' };
-         localStorage.setItem("user", JSON.stringify(newDoctor)); // Or redirect to a doctor dashboard
-         alert("Doctor Registration Successful! (Mock)");
-         router.push("/user/dashboard"); // Redirect after success
+  if (mobileError || formData.mobile.length !== 10) {
+    alert("Enter a valid 10-digit mobile number");
+    setIsLoading(false);
+    return;
+  }
 
-     } catch (error) { /* ... error handling ... */ }
-     finally { setIsLoading(false); }
-  };
+  if (!agreedToTerms) {
+    alert("You must agree to the terms");
+    setIsLoading(false);
+    return;
+  }
+
+  try {
+    console.log("Registering Doctor:", formData);
+
+    // Simulate API call
+    await new Promise((res) => setTimeout(res, 1500));
+
+    const newDoctor = {
+      name: formData.fullName,
+      email: formData.email,
+      type: "doctor",
+    };
+
+    localStorage.setItem("user", JSON.stringify(newDoctor));
+
+    alert("Doctor Registration Successful!");
+
+    // ✅ Redirect new doctor to availability setup page
+    router.push("/doctor/manage-availability");
+
+  } catch (error) {
+    console.error(error);
+    alert("Registration failed");
+  } finally {
+    setIsLoading(false);
+  }
+};
   // --- End Submit Logic ---
 
+  
   const handleLoginRedirect = () => router.push("/doctor/login"); // Link back to doctor login
 
   return (
