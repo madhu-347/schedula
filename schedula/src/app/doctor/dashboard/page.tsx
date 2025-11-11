@@ -13,6 +13,7 @@ import {
   ChevronRight,
   Star,
   Clock,
+  FileText,
 } from "lucide-react";
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/dist/style.css";
@@ -513,32 +514,49 @@ export default function DoctorDashboardPage() {
                       {upcomingAppointments.map((appt) => (
                         <li
                           key={appt.id}
-                          className="border border-gray-100 rounded-lg p-3 hover:bg-gray-50 transition-colors flex items-center justify-between cursor-pointer"
-                          onClick={() =>
-                            router.push(`/doctor/appointment/${appt.id}`)
-                          }
+                          className="border border-gray-100 rounded-lg p-3 hover:bg-gray-50 transition-colors"
                         >
-                          <div className="flex items-center gap-3">
-                            {appt.type === "Virtual" ? (
-                              <Video className="w-5 h-5 text-purple-500 shrink-0" />
-                            ) : (
-                              <Clock className="w-5 h-5 text-cyan-500 shrink-0" />
-                            )}
-                            <div>
-                              <p className="font-medium text-gray-700">
-                                {appt?.patientDetails?.fullName || "Patient"}
-                              </p>
-                              <p className="text-xs text-gray-500">
-                                {appt.date} • {appt.time}
-                              </p>
-                              {appt.patientDetails?.problem && (
-                                <p className="text-xs text-gray-400 mt-1">
-                                  {appt.patientDetails.problem}
-                                </p>
+                          <div className="flex items-center justify-between">
+                            <div
+                              className="flex items-center gap-3 flex-1 cursor-pointer"
+                              onClick={() =>
+                                router.push(`/doctor/appointment/${appt.id}`)
+                              }
+                            >
+                              {appt.type === "Virtual" ? (
+                                <Video className="w-5 h-5 text-purple-500 shrink-0" />
+                              ) : (
+                                <Clock className="w-5 h-5 text-cyan-500 shrink-0" />
                               )}
+                              <div>
+                                <p className="font-medium text-gray-700">
+                                  {appt?.patientDetails?.fullName || "Patient"}
+                                </p>
+                                <p className="text-xs text-gray-500">
+                                  {appt.date} • {appt.time}
+                                </p>
+                                {appt.patientDetails?.problem && (
+                                  <p className="text-xs text-gray-400 mt-1">
+                                    {appt.patientDetails.problem}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Link
+                                href={`/doctor/patient/${appt.patientId}/history`}
+                                className="p-2 rounded-lg hover:bg-cyan-50 transition-colors group"
+                                title="View Medical History"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <FileText className="w-4 h-4 text-gray-400 group-hover:text-cyan-600" />
+                              </Link>
+                              <ChevronRight
+                                size={18}
+                                className="text-gray-400"
+                              />
                             </div>
                           </div>
-                          <ChevronRight size={18} className="text-gray-400" />
                         </li>
                       ))}
                     </ul>
