@@ -35,7 +35,7 @@ export default function PrescriptionPage() {
           : [];
 
         const followUpList = (Array.isArray(appts) ? appts : []).filter(
-          (a) => a.visitType === "Follow-up" && a.status === "Upcoming" && a.followUpOf
+          (a) => a.visitType === "Follow-up" && a.status === "Upcoming"
         );
 
         setPrescriptions(prescriptionList);
