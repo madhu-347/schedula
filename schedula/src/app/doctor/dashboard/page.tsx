@@ -30,7 +30,7 @@ import {
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { Appointment } from "@/lib/types/appointment";
 import { useAuth } from "@/context/AuthContext";
-import { getLatestAppointmentsForDoctor } from "@/app/services/appointments.api";
+import { getAppointmentsByDoctor } from "@/app/services/appointments.api";
 
 type DashboardStats = {
   todayAppointments: number;
@@ -91,7 +91,7 @@ export default function DoctorDashboardPage() {
 
     setIsLoadingData(true);
     try {
-      const appointments: Appointment[] = await getLatestAppointmentsForDoctor(
+      const appointments: Appointment[] = await getAppointmentsByDoctor(
         doctor.id
       );
       console.log("Fetched appointments:", appointments);
@@ -312,7 +312,7 @@ export default function DoctorDashboardPage() {
   `;
 
   const PIE_COLORS = ["#06b6d4", "#f59e0b", "#10b981"];
-
+console.log("upcomingAppointments",upcomingAppointments)
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-gray-50">
@@ -543,18 +543,25 @@ export default function DoctorDashboardPage() {
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
-                              <Link
+                              {/* <Link
                                 href={`/doctor/patient/${appt.patientId}/history`}
                                 className="p-2 rounded-lg hover:bg-cyan-50 transition-colors group"
                                 title="View Medical History"
                                 onClick={(e) => e.stopPropagation()}
                               >
                                 <FileText className="w-4 h-4 text-gray-400 group-hover:text-cyan-600" />
-                              </Link>
+                              </Link> */}
+                              
+                              <Link
+                                href={`/doctor/appointment/${appt.id}`}
+                                className="p-2 rounded-lg hover:bg-cyan-50 transition-colors group"
+                                title="View Appointment"
+                                onClick={(e) => e.stopPropagation()}
+                              >
                               <ChevronRight
-                                size={18}
-                                className="text-gray-400"
+                                className="w-4 h-4 text-gray-400 group-hover:text-cyan-600"
                               />
+                              </Link>
                             </div>
                           </div>
                         </li>

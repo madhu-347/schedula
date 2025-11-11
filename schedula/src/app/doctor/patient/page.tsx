@@ -30,7 +30,6 @@ export default function DoctorPatientsPage() {
         setIsLoading(true);
         const appointments: Appointment[] = await getAppointmentsByDoctor(doctor.id);
         const uniquePatients = new Map();
-console.log("Appointmed in the patieds page",appointments)
         appointments.forEach((apt: Appointment) => {
           if (apt?.patientId && !uniquePatients.has(apt?.patientId)) {
             uniquePatients.set(apt?.patientId, {
