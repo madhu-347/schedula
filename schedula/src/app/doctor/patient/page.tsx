@@ -22,41 +22,56 @@ export default function DoctorPatientsPage() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
-  useEffect(() => {
-    if (!doctor?.id) return;
+    useEffect(() => {
+      if (!doctor?.id) return;
 
-    const fetchPatients = async () => {
-      try {
-        setIsLoading(true);
-        const appointments: Appointment[] = await getAppointmentsByDoctor(doctor.id);
-        const uniquePatients = new Map();
-        appointments.forEach((apt: Appointment) => {
-          if (apt?.patientId && !uniquePatients.has(apt?.patientId)) {
-            uniquePatients.set(apt?.patientId, {
-              id: apt?.patientId,
-              fullName: apt?.patientDetails?.fullName || "N/A",
-              age: apt?.patientDetails?.age,
-              gender: apt?.patientDetails?.gender,
-              phone: apt?.patientDetails?.phone,
-              problem: apt?.patientDetails?.problem,
-              status: apt?.status,
-              totalVisits: appointments.filter((a) => a.patientId === apt?.patientId).length,
-              lastVisit: apt.date,
-            });
-          }
-        });
+      const fetchPatients = async () => {
+        try {
+          setIsLoading(true);
+          const appointments: Appointment[] = await getAppointmentsByDoctor(doctor.id);
+          const uniquePatients = new Map();
+          appointments.forEach((apt: Appointment) => {
+            if (!apt?.patientDetails) return;
 
-        setPatients(Array.from(uniquePatients.values()));
-       
-      } catch (error) {
-        console.error("Failed to load patients:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+            // Create a unique key based on patient info
+            const key = `${apt.patientDetails.fullName}-${apt.patientDetails.phone}`;
 
-    fetchPatients();
-  }, [doctor?.id]);
+            if (!uniquePatients.has(key)) {
+              const patientAppointments = appointments.filter(
+                (a) =>
+                  a.patientDetails?.fullName === apt.patientDetails?.fullName &&
+                  a.patientDetails?.phone === apt.patientDetails?.phone
+              );
+
+              uniquePatients.set(key, {
+                id: apt?.patientId, // pseudo ID
+                fullName: apt.patientDetails.fullName || "N/A",
+                age: apt.patientDetails.age,
+                gender: apt.patientDetails.gender,
+                phone: apt.patientDetails.phone,
+                problem: apt.patientDetails.problem,
+                status: apt.status,
+                totalVisits: patientAppointments.length,
+                lastVisit:
+                  patientAppointments
+                    .map((a) => new Date(a.date))
+                    .sort((a, b) => b.getTime() - a.getTime())[0]
+                    ?.toISOString() || "—",
+              });
+            }
+          });
+
+          setPatients(Array.from(uniquePatients.values()));
+        } catch (error) {
+          console.error("Failed to load patients:", error);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+
+      fetchPatients();
+    }, [doctor?.id]);
+
    const filteredPatients = patients.filter((p) => {
     const matchesSearch =
         p.fullName.toLowerCase().includes(search.toLowerCase()) ||
