@@ -170,7 +170,7 @@ export default function DoctorDashboardPage() {
   // Extract dates for calendar marking
   const extractAppointmentDates = (appointments: Appointment[]) => {
     const dates = appointments
-      .filter((a) => a.date && a.status !== "Cancelled")
+     .filter((a) => a.date && a.status === "Upcoming")
       .map((a) => {
         try {
           return new Date(a.date);
@@ -580,7 +580,6 @@ export default function DoctorDashboardPage() {
     </ProtectedRoute>
   );
 }
-
 // StatBox Component
 interface StatBoxProps {
   title: string;
@@ -590,8 +589,19 @@ interface StatBoxProps {
 }
 
 function StatBox({ title, value, icon: Icon, color }: StatBoxProps) {
+  const router = useRouter();
+
+  const handleClick = () => {
+    if (title === "Total Patients") router.push("/doctor/patient");
+  };
+
   return (
-    <div className="bg-white p-4 rounded-lg shadow-md flex items-center gap-4 hover:shadow-lg transition-shadow">
+    <div
+      onClick={handleClick}
+      className={`bg-white p-4 rounded-lg shadow-md flex items-center gap-4 hover:shadow-lg transition-shadow ${
+        title === "Total Patients" ? "cursor-pointer hover:bg-blue-50" : ""
+      }`}
+    >
       <div className={`p-3 rounded-full ${color}`}>
         <Icon className="w-6 h-6" />
       </div>

@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useRef } from "react";
 import { useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
@@ -21,6 +22,7 @@ import {
   Calendar as CalendarIcon,
   Info,
   MapPin,
+  ArrowLeft
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import {
@@ -56,6 +58,8 @@ interface ExtendedEventProps {
 /* --- Component --- */
 export default function CalendarPage() {
   const { doctor } = useAuth();
+   const router = useRouter();
+  
   const doctorId = doctor?.id as string | undefined;
 
   // FullCalendar wants EventInput[] as events
@@ -370,7 +374,17 @@ export default function CalendarPage() {
       <div className="p-4 sm:p-8 bg-gray-50 min-h-screen">
         <div className="flex justify-between items-center mb-6">
           <div>
-            <h2 className="text-2xl font-bold text-gray-800">My Calendar</h2>
+            <div className="flex">
+             <button
+                         onClick={() => router.back()}
+                         className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+                         title="Go back"
+                     >
+                         <ArrowLeft className="w-5 h-5 text-gray-600" />
+                     </button>
+              <h2 className="text-2xl font-bold text-gray-800">My Calendar</h2>
+            </div>
+            
             <p className="text-sm text-gray-500 mt-1">
               Manage your appointments - Drag to reschedule
             </p>
