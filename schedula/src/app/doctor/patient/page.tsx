@@ -22,42 +22,43 @@ export default function DoctorPatientsPage() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
-  useEffect(() => {
-    if (!doctor?.id) return;
+useEffect(() => {
+  if (!doctor?.id) return;
 
-    const fetchPatients = async () => {
-      try {
-        setIsLoading(true);
-        const appointments: Appointment[] = await getAppointmentsByDoctor(doctor.id);
-        const uniquePatients = new Map();
-console.log("Appointmed in the patieds page",appointments)
-        appointments.forEach((apt: Appointment) => {
-          if (apt?.patientId && !uniquePatients.has(apt?.patientId)) {
-            uniquePatients.set(apt?.patientId, {
-              id: apt?.patientId,
-              fullName: apt?.patientDetails?.fullName || "N/A",
-              age: apt?.patientDetails?.age,
-              gender: apt?.patientDetails?.gender,
-              phone: apt?.patientDetails?.phone,
-              problem: apt?.patientDetails?.problem,
-              status: apt?.status,
-              totalVisits: appointments.filter((a) => a.patientId === apt?.patientId).length,
-              lastVisit: apt.date,
-            });
-          }
-        });
+  const fetchPatients = async () => {
+    try {
+      setIsLoading(true);
+      const appointments: Appointment[] = await getAppointmentsByDoctor(doctor.id);
 
-        setPatients(Array.from(uniquePatients.values()));
-       
-      } catch (error) {
-        console.error("Failed to load patients:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+      const uniquePatients = new Map();
 
-    fetchPatients();
-  }, [doctor?.id]);
+      appointments.forEach((apt: Appointment) => {
+        if (apt?.patientId && !uniquePatients.has(apt?.patientId)) {
+          uniquePatients.set(apt?.patientId, {
+            id: apt?.patientId,
+            fullName: apt?.patientDetails?.fullName || "N/A",
+            age: apt?.patientDetails?.age,
+            gender: apt?.patientDetails?.gender,
+            phone: apt?.patientDetails?.phone,
+            problem: apt?.patientDetails?.problem,
+            status: apt?.status,
+            totalVisits: appointments.filter((a) => a.patientId === apt?.patientId).length,
+            lastVisit: apt.date,
+          });
+        }
+      });
+
+      setPatients(Array.from(uniquePatients.values()));
+    } catch (error) {
+      console.error("Failed to load patients:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  fetchPatients();
+}, [doctor?.id]);
+
    const filteredPatients = patients.filter((p) => {
     const matchesSearch =
         p.fullName.toLowerCase().includes(search.toLowerCase()) ||
