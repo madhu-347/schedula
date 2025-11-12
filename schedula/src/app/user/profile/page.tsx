@@ -57,6 +57,7 @@ function ProfilePage() {
     if (!user) return;
 
     try {
+      // send the updates to the server
       const result = await updateProfile({
         ...user,
         ...formData,
