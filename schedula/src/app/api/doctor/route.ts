@@ -108,30 +108,26 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     const { id, ...updateData } = body;
 
-    // In a real app, you would update the database
-    // For now, we'll update the mock data
     const { doctors } = mockData;
     const doctorIndex = doctors.findIndex((doc) => doc.id === id);
 
     if (doctorIndex === -1) {
-      return new NextResponse(`Doctor with id ${id} not found`, {
-        status: 404,
-      });
+      return new NextResponse(`Doctor with id ${id} not found`, { status: 404 });
     }
 
-    // Update the doctor data
+    // ✅ Update the doctor data
     doctors[doctorIndex] = { ...doctors[doctorIndex], ...updateData };
 
-    // In a real application, you would save to a database
-    // For mock data, we'll just return the updated doctor
+    // ✅ Persist the changes to mockData.json
+    const filePath = join(process.cwd(), "src/lib/mockData.json");
+    writeFileSync(filePath, JSON.stringify(mockData, null, 2), "utf-8");
+
     return NextResponse.json({
       success: true,
       doctor: doctors[doctorIndex],
     });
   } catch (error) {
-    if (error instanceof Error) {
-      console.error("Failed to update doctor:", error.message);
-    }
+    console.error("Failed to update doctor:", error);
     return new NextResponse("Internal Server Error", { status: 500 });
   }
 }
