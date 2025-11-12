@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
       lastName,
       email,
       phone,
-      password, // ⚠️ In production, hash this
+      password, 
       specialty,
       type: "doctor",
       image: "",

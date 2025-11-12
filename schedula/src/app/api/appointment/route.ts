@@ -19,6 +19,8 @@ import path from "path";
 // File-based persistence helpers
 const dataDir = path.join(process.cwd(), "data");
 const appointmentsFile = path.join(dataDir, "appointments.json");
+const usersFile = path.join(dataDir, "users.json");
+const doctorsFile = path.join(dataDir, "doctors.json");
 
 async function ensureDataDir() {
   try {
@@ -42,13 +44,43 @@ async function writeAppointments(data: Appointment[]): Promise<void> {
   await fs.writeFile(appointmentsFile, JSON.stringify(data, null, 2), "utf8");
 }
 
+async function readUsers(): Promise<User[]> {
+  try {
+    await ensureDataDir();
+    const data = await fs.readFile(usersFile, "utf8");
+    return JSON.parse(data);
+  } catch {
+    // Fallback to mock data on first run
+    return JSON.parse(JSON.stringify(mockData.users)) as User[];
+  }
+}
+
+async function readDoctors(): Promise<Doctor[]> {
+  try {
+    await ensureDataDir();
+    const data = await fs.readFile(doctorsFile, "utf8");
+    return JSON.parse(data);
+  } catch {
+    // Fallback to mock data on first run
+    return JSON.parse(JSON.stringify(mockData.doctors)) as Doctor[];
+  }
+}
+
 // Helper function to enrich appointment with patient and doctor data
-function enrichAppointment(appointment: Appointment) {
+function enrichAppointment(
+  appointment: Appointment,
+  usersData?: User[],
+  doctorsData?: Doctor[]
+) {
+  // Use provided data or fall back to mockData
+  const userData = usersData || mockData.users;
+  const doctorData = doctorsData || mockData.doctors;
+
   const patient =
-    mockData.users.find((u: User) => u.id === appointment.patientId) || null;
+    userData.find((u: User | any) => u.id === appointment.patientId) || null;
 
   const doctor =
-    mockData.doctors.find((d: Doctor) => d.id === appointment.doctorId) || null;
+    doctorData.find((d: Doctor | any) => d.id === appointment.doctorId) || null;
 
   // ✅ Safely extract patientDetails with correct type
   const p = appointment.patientDetails;
@@ -77,8 +109,14 @@ function enrichAppointment(appointment: Appointment) {
 }
 
 // Helper function to enrich multiple appointments
-function enrichAppointments(appointments: Appointment[]) {
-  return appointments.map(enrichAppointment);
+function enrichAppointments(
+  appointments: Appointment[],
+  usersData?: User[],
+  doctorsData?: Doctor[]
+) {
+  return appointments.map((app) =>
+    enrichAppointment(app, usersData, doctorsData)
+  );
 }
 
 export async function GET(request: NextRequest) {
@@ -97,6 +135,8 @@ export async function GET(request: NextRequest) {
     const limit = limitParam ? parseInt(limitParam, 10) : null;
 
     const appointmentsData = await readAppointments();
+    const usersData = await readUsers();
+    const doctorsData = await readDoctors();
 
     // If ID is provided, return specific appointment with enriched data
     if (id) {
@@ -110,7 +150,11 @@ export async function GET(request: NextRequest) {
       }
 
       // Enrich with patient and doctor data
-      const enrichedAppointment = enrichAppointment(appointment);
+      const enrichedAppointment = enrichAppointment(
+        appointment,
+        usersData,
+        doctorsData
+      );
 
       return NextResponse.json(
         { success: true, data: enrichedAppointment },
@@ -166,7 +210,11 @@ export async function GET(request: NextRequest) {
         : filteredAppointments;
 
     // Enrich all appointments with patient and doctor data
-    const enrichedAppointments = enrichAppointments(limitedAppointments);
+    const enrichedAppointments = enrichAppointments(
+      limitedAppointments,
+      usersData,
+      doctorsData
+    );
 
     return NextResponse.json(
       {
@@ -195,6 +243,8 @@ export async function POST(request: NextRequest) {
     console.log("create appt req body ", body);
 
     const appointmentsData = await readAppointments();
+    const usersData = await readUsers();
+    const doctorsData = await readDoctors();
 
     // Validate required fields based on interface
     const requiredFields = ["patientId", "doctorId", "day", "date", "status"];
@@ -212,9 +262,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate patientId exists in users
-    const patient = mockData.users.find(
-      (user: User) => user.id === body.patientId
-    );
+    const patient = usersData.find((user: User) => user.id === body.patientId);
     if (!patient) {
       return NextResponse.json(
         {
@@ -226,7 +274,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate doctorId exists in doctors
-    const doctor = mockData.doctors.find(
+    const doctor = doctorsData.find(
       (doctor: Doctor) => doctor.id === body.doctorId
     );
     if (!doctor) {
@@ -477,7 +525,11 @@ export async function POST(request: NextRequest) {
     // }
 
     // Enrich response with patient and doctor data
-    const enrichedAppointment = enrichAppointment(newAppointment);
+    const enrichedAppointment = enrichAppointment(
+      newAppointment,
+      usersData,
+      doctorsData
+    );
 
     return NextResponse.json(
       {
@@ -518,6 +570,8 @@ export async function PUT(request: NextRequest) {
     }
 
     const appointmentsData = await readAppointments();
+    const usersData = await readUsers();
+    const doctorsData = await readDoctors();
     const appointmentIndex = appointmentsData.findIndex(
       (app: Appointment) => app.id === id
     );
@@ -676,7 +730,9 @@ export async function PUT(request: NextRequest) {
 
     // Enrich response with patient and doctor data
     const enrichedAppointment = enrichAppointment(
-      appointmentsData[appointmentIndex]
+      appointmentsData[appointmentIndex],
+      usersData,
+      doctorsData
     );
 
     return NextResponse.json(

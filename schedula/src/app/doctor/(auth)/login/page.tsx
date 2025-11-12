@@ -4,12 +4,12 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { InputFieldComponent } from "@/components/ui/InputField";
-import mockData from "@/lib/mockData.json";
 import AuthBanner from "@/components/auth/AuthBanner";
 import AuthHeader from "@/components/auth/AuthHeader";
 import { useAuth } from "@/context/AuthContext";
-import { Doctor } from "@/lib/types/doctor";
 import toast from "react-hot-toast";
+import { doctorLogin } from "@/app/services/doctor.api";
+import { Eye, EyeOff } from "lucide-react"; // Added icons for password toggle
 
 type LoginMode = "user" | "doctor";
 
@@ -20,6 +20,7 @@ export default function LoginPage() {
   const [remember, setRemember] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [loginMode, setLoginMode] = useState<LoginMode>("doctor");
+  const [showPassword, setShowPassword] = useState(false); // State for password visibility
 
   // ✅ Switch pages cleanly (NO redirect loop)
   useEffect(() => {
@@ -55,39 +56,36 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      const foundAccount: Doctor | undefined = mockData.doctors.find(
-        (d: Doctor) =>
-          d.email === formData.email && d.password === formData.password
-      );
+      // Use the doctorLogin service instead of mock data
+      const result = await doctorLogin(formData.email, formData.password);
+      console.log("Login result:", result);
 
-      if (!foundAccount) {
-        toast.error("Invalid credentials. Please try again.");
-        setIsLoading(false);
-        return;
+      if (result.success) {
+        // ✅ Log doctor into AuthContext
+        await login(result.data.id, "doctor");
+
+        const accountInfo = {
+          id: result.data.id,
+          firstName: result.data.firstName,
+          lastName: result.data.lastName,
+          email: result.data.email,
+          type: "doctor",
+        };
+
+        localStorage.setItem("pendingUser", JSON.stringify(accountInfo));
+
+        const generatedOtp = generateOtp(4);
+        localStorage.setItem("generatedOtp", generatedOtp);
+        localStorage.setItem(
+          "otpExpiry",
+          (Date.now() + 2 * 60 * 1000).toString()
+        );
+
+        toast.success(`OTP sent! (Check console: ${generatedOtp})`);
+        router.push("/doctor/otp");
+      } else {
+        toast.error(result.error || "Invalid credentials. Please try again.");
       }
-
-      // ✅ Log doctor into AuthContext
-      await login(foundAccount.id, "doctor");
-
-      const accountInfo = {
-        id: foundAccount.id,
-        firstName: foundAccount.firstName,
-        lastName: foundAccount.lastName,
-        email: foundAccount.email,
-        type: "doctor",
-      };
-
-      localStorage.setItem("pendingUser", JSON.stringify(accountInfo));
-
-      const generatedOtp = generateOtp(4);
-      localStorage.setItem("generatedOtp", generatedOtp);
-      localStorage.setItem(
-        "otpExpiry",
-        (Date.now() + 2 * 60 * 1000).toString()
-      );
-
-      toast.success(`OTP sent! (Check console: ${generatedOtp})`);
-      router.push("/doctor/otp");
     } catch (err) {
       console.error("Login error:", err);
       toast.error("Something went wrong.");
@@ -139,7 +137,10 @@ export default function LoginPage() {
                 Login
               </h2>
 
-              <form onSubmit={handleSubmit} className="space-y-4 w-full max-w-md">
+              <form
+                onSubmit={handleSubmit}
+                className="space-y-4 w-full max-w-md"
+              >
                 <div>
                   <label className="block text-sm font-medium mb-2">
                     Email / Mobile
@@ -157,13 +158,26 @@ export default function LoginPage() {
                   <label className="block text-sm font-medium mb-2">
                     Password
                   </label>
-                  <InputFieldComponent
-                    type="password"
-                    placeholder="Enter your password"
-                    value={formData.password}
-                    required
-                    onChange={handleInputChange("password")}
-                  />
+                  <div className="relative">
+                    <InputFieldComponent
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Enter your password"
+                      value={formData.password}
+                      required
+                      onChange={handleInputChange("password")}
+                    />
+                    <button
+                      type="button"
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-5 w-5 text-gray-500" />
+                      ) : (
+                        <Eye className="h-5 w-5 text-gray-500" />
+                      )}
+                    </button>
+                  </div>
                 </div>
 
                 <div className="flex justify-between items-center pt-2">
@@ -196,31 +210,34 @@ export default function LoginPage() {
               </form>
               {/*  Demo Credentials Section */}
               <div className="mt-6 bg-gray-50 border border-gray-200 rounded-lg p-2 text-sm text-gray-700 w-full max-w-md">
-                  <span className="text-[10px] text-cyan-600 bg-cyan-100 px-2 py-0.5 m-2 rounded-full">
-                    For testing only
-                  </span>
+                <span className="text-[10px] text-cyan-600 bg-cyan-100 px-2 py-0.5 m-2 rounded-full">
+                  For testing only
+                </span>
 
                 <div className="space-y-3">
                   <div className="border-b border-gray-100 pb-2">
                     <p className="text-xs text-gray-700">
-                      <span className="font-semibold">Username:</span> priyasharma@schedula.com
+                      <span className="font-semibold">Username:</span>{" "}
+                      priyasharma@schedula.com
                     </p>
                     <p className="text-xs text-gray-700">
-                      <span className="font-semibold">Password:</span> password123
+                      <span className="font-semibold">Password:</span>{" "}
+                      password123
                     </p>
                   </div>
 
                   <div>
                     <p className="text-xs text-gray-700">
-                      <span className="font-semibold">Username:</span> prakashdas@schedula.com
+                      <span className="font-semibold">Username:</span>{" "}
+                      prakashdas@schedula.com
                     </p>
                     <p className="text-xs text-gray-700">
-                      <span className="font-semibold">Password:</span> password123
+                      <span className="font-semibold">Password:</span>{" "}
+                      password123
                     </p>
                   </div>
                 </div>
               </div>
-
 
               <p className="text-center text-sm text-gray-600 mt-6">
                 Don&apos;t have an account?{" "}

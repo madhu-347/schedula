@@ -13,7 +13,11 @@
       "bio": "As Psychologist Dr. Prakash Das practices about 7+ years...",
       "fee": 300,
       "isAvailable": true,
-      "availableDays": ["Monday", "Wednesday", "Friday"],
+      "availableDays": [
+        "Monday",
+        "Wednesday",
+        "Friday"
+      ],
       "availableTime": {
         "morning": {
           "from": "09:30",
@@ -25,7 +29,6 @@
         }
       }
     },
-
     {
       "id": "2",
       "email": "priyasharma@schedula.com",
@@ -40,7 +43,11 @@
       "isAvailable": true,
       "fee": 700,
       "bio": "Dr. Sharma is a leading expert in cardiac care with 10+ years...",
-      "availableDays": ["Tuesday", "Thursday", "Saturday"],
+      "availableDays": [
+        "Tuesday",
+        "Thursday",
+        "Saturday"
+      ],
       "availableTime": {
         "morning": {
           "from": "10:00",
@@ -52,7 +59,6 @@
         }
       }
     },
-
     {
       "id": "3",
       "email": "anilkumar@schedula.com",
@@ -67,7 +73,11 @@
       "isAvailable": true,
       "fee": 500,
       "bio": "Specializes in all skin-related ailments and cosmetic procedures...",
-      "availableDays": ["Monday", "Wednesday", "Friday"],
+      "availableDays": [
+        "Monday",
+        "Wednesday",
+        "Friday"
+      ],
       "availableTime": {
         "morning": {
           "from": "10:30",
@@ -78,9 +88,25 @@
           "to": "17:00"
         }
       }
+    },
+    {
+      "id": "doc-1762975398829",
+      "firstName": "Arya",
+      "lastName": "Kumar",
+      "email": "arya@gmail.com",
+      "phone": "9342782346",
+      "password": "12345",
+      "specialty": "General Medicine",
+      "type": "doctor",
+      "image": "",
+      "availableDays": [],
+      "availableTime": {
+        "morning": null,
+        "evening": null
+      },
+      "createdAt": "2025-11-12T19:23:18.830Z"
     }
   ],
-
   "users": [
     {
       "id": "1",

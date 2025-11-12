@@ -1,14 +1,14 @@
-// Login API Route: /api/user/login
-// POST - Authenticate user credentials
+// Doctor Login API Route: /api/doctor/login
+// POST - Authenticate doctor credentials
 
 import { NextRequest, NextResponse } from "next/server";
-import { User } from "@/lib/types/user";
+import { Doctor } from "@/lib/types/doctor";
 import { promises as fs } from "fs";
 import path from "path";
 import mockData from "@/lib/mockData.json";
 
 const dataDir = path.join(process.cwd(), "data");
-const usersFile = path.join(dataDir, "users.json");
+const doctorsFile = path.join(dataDir, "doctors.json");
 
 async function ensureDataDir() {
   try {
@@ -16,18 +16,18 @@ async function ensureDataDir() {
   } catch {}
 }
 
-async function readUsers(): Promise<User[]> {
+async function readDoctors(): Promise<Doctor[]> {
   try {
     await ensureDataDir();
-    const raw = await fs.readFile(usersFile, "utf8");
-    return JSON.parse(raw) as User[];
+    const raw = await fs.readFile(doctorsFile, "utf8");
+    return JSON.parse(raw) as Doctor[];
   } catch {
     // Fallback to mockData on first run
-    return JSON.parse(JSON.stringify(mockData.users)) as User[];
+    return JSON.parse(JSON.stringify(mockData.doctors)) as Doctor[];
   }
 }
 
-// POST - Authenticate user
+// POST - Authenticate doctor
 export async function POST(req: NextRequest) {
   try {
     const { email, password } = await req.json();
@@ -40,13 +40,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Get users from file
-    const usersData = await readUsers();
+    // Get doctors from file
+    const doctorsData = await readDoctors();
 
-    // Find user by email
-    const user = usersData.find((u) => u.email === email);
+    // Find doctor by email
+    const doctor = doctorsData.find((d) => d.email === email);
 
-    if (!user) {
+    if (!doctor) {
       return NextResponse.json(
         { success: false, error: "Invalid credentials" },
         { status: 401 }
@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Check password (in a real app, you'd use bcrypt)
-    if (user.password !== password) {
+    if (doctor.password !== password) {
       return NextResponse.json(
         { success: false, error: "Invalid credentials" },
         { status: 401 }
@@ -62,20 +62,20 @@ export async function POST(req: NextRequest) {
     }
 
     // Remove password from response
-    const { password: _, ...userWithoutPassword } = user;
+    const { password: _, ...doctorWithoutPassword } = doctor;
 
-    console.log("User logged in:", userWithoutPassword);
+    console.log("Doctor logged in:", doctorWithoutPassword);
 
     return NextResponse.json(
       {
         success: true,
-        data: userWithoutPassword,
+        data: doctorWithoutPassword,
         message: "Login successful",
       },
       { status: 200 }
     );
   } catch (error) {
-    console.error("Error in POST /api/user/login:", error);
+    console.error("Error in POST /api/doctor/login:", error);
     return NextResponse.json(
       { success: false, error: "Internal server error" },
       { status: 500 }
