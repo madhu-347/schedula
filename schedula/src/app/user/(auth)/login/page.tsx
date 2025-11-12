@@ -200,6 +200,33 @@ export default function LoginPage() {
                   {isLoading ? "Signing In..." : "Sign In"}
                 </Button>
               </form>
+               {/*  Demo Credentials Section */}
+              <div className="mt-6 bg-gray-50 border border-gray-200 rounded-lg p-2 text-sm text-gray-700 w-full max-w-md">
+                  <span className="text-[10px] text-cyan-600 bg-cyan-100 px-2 py-0.5 m-2 rounded-full">
+                    For testing only
+                  </span>
+
+                <div className="space-y-3">
+                  <div className="border-b border-gray-100 pb-2">
+                    <p className="text-xs text-gray-700">
+                      <span className="font-semibold">Username:</span> priya@example.com
+                    </p>
+                    <p className="text-xs text-gray-700">
+                      <span className="font-semibold">Password:</span> password123
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="text-xs text-gray-700">
+                      <span className="font-semibold">Username:</span> anjali@example.com
+                    </p>
+                    <p className="text-xs text-gray-700">
+                      <span className="font-semibold">Password:</span> password123
+                    </p>
+                  </div>
+                </div>
+              </div>
+
 
               <p className="text-center text-sm text-gray-600 mt-6">
                 Don&apos;t have an account?{" "}
