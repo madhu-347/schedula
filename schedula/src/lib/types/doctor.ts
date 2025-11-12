@@ -10,7 +10,7 @@ export interface Doctor {
   specialty: string;
   qualifications?: string;
   fellowship?: string;
-  isAvailable: boolean;
+  isAvailable?: boolean;
   availableDays?: string[];
   availableTime?: {
     morning: {
