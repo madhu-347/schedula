@@ -17,7 +17,7 @@ export default function DoctorRegisterPage() {
     firstName: "",
     lastName: "",
     email: "",
-    mobile: "",
+    phone: "",
     password: "",
     specialty: "",
   });
@@ -41,9 +41,9 @@ export default function DoctorRegisterPage() {
   // Input handler remains the same
   const handleInputChange = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
       const value = e.target.value;
-      if (field === "mobile") {
+      if (field === "phone") {
           if (!/^\d*$/.test(value)) return;
-          setFormData((prev) => ({ ...prev, mobile: value }));
+          setFormData((prev) => ({ ...prev, phone: value }));
           if (value.length === 0) setMobileError("");
           else if (value.length !== 10) setMobileError("Mobile must be 10 digits");
           else setMobileError("");
@@ -59,7 +59,7 @@ export default function DoctorRegisterPage() {
 
   setIsLoading(true);
 
-  if (mobileError || formData.mobile.length !== 10) {
+  if (mobileError || formData.phone.length !== 10) {
     alert("Enter a valid 10-digit mobile number");
     setIsLoading(false);
     return;
@@ -142,7 +142,7 @@ export default function DoctorRegisterPage() {
                  {/* Email */}
                  <div><label className="block text-sm font-medium mb-1">Email</label><InputFieldComponent type="email" placeholder="Enter email address" value={formData.email} required onChange={handleInputChange("email")}/></div>
                  {/* Mobile Number */}
-                 <div><label className="block text-sm font-medium mb-1">Mobile Number</label><InputFieldComponent type="tel" placeholder="Enter 10-digit mobile" value={formData.mobile} required onChange={handleInputChange("mobile")} maxLength={10}/>{mobileError && <p className="text-red-500 text-xs mt-1">{mobileError}</p>}</div>
+                 <div><label className="block text-sm font-medium mb-1">Mobile Number</label><InputFieldComponent type="tel" placeholder="Enter 10-digit mobile" value={formData.phone} required onChange={handleInputChange("phone")} maxLength={10}/>{mobileError && <p className="text-red-500 text-xs mt-1">{mobileError}</p>}</div>
                  {/* Password */}
                  <div><label className="block text-sm font-medium mb-1">Password</label><InputFieldComponent type="password" placeholder="Create a password" value={formData.password} required onChange={handleInputChange("password")}/></div>
                  {/* Specialization */}

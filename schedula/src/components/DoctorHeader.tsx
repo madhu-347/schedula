@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect } from "react";
 import { Doctor } from "@/lib/types/doctor";
 import DoctorNotificationBell from "./notifications/DoctorNotificationBell";
-import { LogOut } from "lucide-react";
+import { LogOut, User } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 interface DoctorHeaderProps {
@@ -67,16 +67,29 @@ function DoctorHeader({ doctor }: DoctorHeaderProps) {
                 </button>
 
                 {showDropdown && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border border-gray-200">
-                    <button
-                      onClick={handleLogout}
-                      className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
-                    >
-                      <LogOut className="mr-2 h-4 w-4" />
-                      Sign out
-                    </button>
-                  </div>
-                )}
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border border-gray-200">
+                  <button
+                    onClick={() => {
+                      setShowDropdown(false);
+                      handleLogout();
+                    }}
+                    className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Sign out
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowDropdown(false);
+                      router.push("/doctor/profile");
+                    }}
+                    className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                  >
+                    <User className="mr-2 h-4 w-4" />
+                    Profile
+                  </button>
+                </div>
+              )}
               </div>
             </div>
           </div>

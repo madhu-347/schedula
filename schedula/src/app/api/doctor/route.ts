@@ -8,9 +8,9 @@ import { join } from "path";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { firstName, lastName, email, mobile, password, specialty } = body;
+    const { firstName, lastName, email, phone, password, specialty } = body;
 
-    if (!firstName || !lastName || !email || !mobile || !password) {
+    if (!firstName || !lastName || !email || !phone || !password) {
       return NextResponse.json(
         { success: false, message: "Missing required fields" },
         { status: 400 }
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
       firstName,
       lastName,
       email,
-      mobile,
+      phone,
       password, // ⚠️ In production, hash this
       specialty,
       type: "doctor",
