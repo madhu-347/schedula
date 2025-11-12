@@ -5,12 +5,12 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { InputFieldComponent } from "@/components/ui/InputField";
-import mockData from "@/lib/mockData.json";
 import AuthBanner from "@/components/auth/AuthBanner";
 import AuthHeader from "@/components/auth/AuthHeader";
 import { useAuth } from "@/context/AuthContext";
-import { User } from "@/lib/types/user";
 import toast from "react-hot-toast";
+import { userLogin } from "@/app/services/user.api";
+import { Eye, EyeOff } from "lucide-react"; // Added icons for password toggle
 
 type LoginMode = "user" | "doctor";
 
@@ -21,6 +21,7 @@ export default function LoginPage() {
   const [remember, setRemember] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [loginMode, setLoginMode] = useState<LoginMode>("user");
+  const [showPassword, setShowPassword] = useState(false); // State for password visibility
 
   // Redirect if doctor mode
   useEffect(() => {
@@ -56,25 +57,25 @@ export default function LoginPage() {
     if (loginMode !== "user") return;
 
     setIsLoading(true);
-    console.log("🔐 Checking mock USER credentials...");
+    console.log("🔐 Checking USER credentials...");
 
     try {
-      const foundAccount: User | undefined = mockData.users.find(
-        (u) => u.email === formData.email || u.phone === formData.email
-      );
+      // Use the userLogin service instead of mock data
+      const result = await userLogin(formData.email, formData.password);
+      console.log("Login result:", result);
 
-      if (foundAccount && foundAccount.password === formData.password) {
-        console.log(`✅ USER found:`, foundAccount);
+      if (result.success) {
+        console.log(`✅ USER found:`, result.data);
 
         const accountInfo = {
-          id: foundAccount.id ?? Date.now().toString(),
-          firstName: foundAccount.firstName,
-          lastName: foundAccount.lastName,
-          email: foundAccount.email,
+          id: result.data.id ?? Date.now().toString(),
+          firstName: result.data.firstName,
+          lastName: result.data.lastName,
+          email: result.data.email,
           type: loginMode,
         };
 
-        login(foundAccount.id, "user");
+        login(result.data.id, "user");
         localStorage.setItem("pendingUser", JSON.stringify(accountInfo));
 
         const generatedOtp = generateOtp(4);
@@ -90,7 +91,9 @@ export default function LoginPage() {
         }, 2000); // 2-second delay
         router.push("/user/otp");
       } else {
-        toast.error("❌ Invalid credentials. Please try again.");
+        toast.error(
+          result.error || "❌ Invalid credentials. Please try again."
+        );
       }
     } catch (error) {
       console.error("Login error:", error);
@@ -161,13 +164,26 @@ export default function LoginPage() {
                   <label className="block text-sm font-medium mb-2">
                     Password
                   </label>
-                  <InputFieldComponent
-                    type="password"
-                    placeholder="Enter your password"
-                    value={formData.password}
-                    required
-                    onChange={handleInputChange("password")}
-                  />
+                  <div className="relative">
+                    <InputFieldComponent
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Enter your password"
+                      value={formData.password}
+                      required
+                      onChange={handleInputChange("password")}
+                    />
+                    <button
+                      type="button"
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-5 w-5 text-gray-500" />
+                      ) : (
+                        <Eye className="h-5 w-5 text-gray-500" />
+                      )}
+                    </button>
+                  </div>
                 </div>
 
                 <div className="flex justify-between items-center pt-2">
@@ -200,33 +216,36 @@ export default function LoginPage() {
                   {isLoading ? "Signing In..." : "Sign In"}
                 </Button>
               </form>
-               {/*  Demo Credentials Section */}
+              {/*  Demo Credentials Section */}
               <div className="mt-6 bg-gray-50 border border-gray-200 rounded-lg p-2 text-sm text-gray-700 w-full max-w-md">
-                  <span className="text-[10px] text-cyan-600 bg-cyan-100 px-2 py-0.5 m-2 rounded-full">
-                    For testing only
-                  </span>
+                <span className="text-[10px] text-cyan-600 bg-cyan-100 px-2 py-0.5 m-2 rounded-full">
+                  For testing only
+                </span>
 
                 <div className="space-y-3">
                   <div className="border-b border-gray-100 pb-2">
                     <p className="text-xs text-gray-700">
-                      <span className="font-semibold">Username:</span> priya@example.com
+                      <span className="font-semibold">Username:</span>{" "}
+                      priya@example.com
                     </p>
                     <p className="text-xs text-gray-700">
-                      <span className="font-semibold">Password:</span> password123
+                      <span className="font-semibold">Password:</span>{" "}
+                      password123
                     </p>
                   </div>
 
                   <div>
                     <p className="text-xs text-gray-700">
-                      <span className="font-semibold">Username:</span> anjali@example.com
+                      <span className="font-semibold">Username:</span>{" "}
+                      anjali@example.com
                     </p>
                     <p className="text-xs text-gray-700">
-                      <span className="font-semibold">Password:</span> password123
+                      <span className="font-semibold">Password:</span>{" "}
+                      password123
                     </p>
                   </div>
                 </div>
               </div>
-
 
               <p className="text-center text-sm text-gray-600 mt-6">
                 Don&apos;t have an account?{" "}

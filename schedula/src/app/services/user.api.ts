@@ -1,5 +1,23 @@
 import { User } from "@/lib/types/user";
 
+export const userRegister = async (user: User) => {
+  try {
+    const response = await fetch("/api/user/register", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(user),
+    });
+    const data = await response.json();
+    console.log("response for user register: ", data);
+    return data;
+  } catch (error) {
+    console.error("Error registering user:", error);
+    throw error;
+  }
+};
+
 export const userLogin = async (email: string, password: string) => {
   try {
     const response = await fetch("/api/user/login", {
@@ -9,11 +27,12 @@ export const userLogin = async (email: string, password: string) => {
       },
       body: JSON.stringify({ email, password }),
     });
-    console.log("response for user login: ", response);
     if (!response.ok) {
       throw new Error("Network response was not ok " + response.statusText);
     }
-    return response.json();
+    const data = await response.json();
+    console.log("response for user login: ", data);
+    return data;
   } catch (error) {
     console.error("Error logging in user:", error);
     throw error;
@@ -57,9 +76,9 @@ export async function createUser(user: User) {
 export async function getUserById(id: string): Promise<{ data: User }> {
   try {
     const response = await fetch(`/api/user?id=${id}`);
-    if (!response.ok) {
-      throw new Error("Network response was not ok " + response.statusText);
-    }
+    // if (!response.ok) {
+    //   throw new Error("Network response was not ok " + response.statusText);
+    // }
 
     const result = await response.json();
 
@@ -105,8 +124,11 @@ export async function updateUser(user: User) {
 
 export const getProfile = async (id: string) => {
   try {
-    const res = await fetch(`/api/user/profile?id=${id}`);
-    const data = await res.json();
+    const response = await fetch(`/api/user/profile?id=${id}`);
+    if (!response.ok) {
+      throw new Error("Network response was not ok " + response.statusText);
+    }
+    const data = await response.json();
     console.log("response for get profile: ", data);
     return data;
   } catch (error) {
@@ -117,14 +139,17 @@ export const getProfile = async (id: string) => {
 
 export const updateProfile = async (user: User) => {
   try {
-    const res = await fetch(`/api/user/profile`, {
+    const response = await fetch(`/api/user/profile`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify(user),
     });
-    const data = await res.json();
+    if (!response.ok) {
+      throw new Error("Network response was not ok " + response.statusText);
+    }
+    const data = await response.json();
     console.log("response for update profile: ", data);
     return data;
   } catch (error) {
