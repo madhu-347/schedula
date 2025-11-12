@@ -5,6 +5,69 @@ import mockData from "@/lib/mockData.json";
 import { writeFileSync } from "fs";
 import { join } from "path";
 
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { firstName, lastName, email, mobile, password, specialty } = body;
+
+    if (!firstName || !lastName || !email || !mobile || !password) {
+      return NextResponse.json(
+        { success: false, message: "Missing required fields" },
+        { status: 400 }
+      );
+    }
+
+    // Get existing doctors from mock data
+    const { doctors } = mockData;
+
+    // Check for duplicate email
+    const existingDoctor = doctors.find(
+      (doc) => doc.email.toLowerCase() === email.toLowerCase()
+    );
+    if (existingDoctor) {
+      return NextResponse.json(
+        { success: false, message: "Doctor with this email already exists" },
+        { status: 409 }
+      );
+    }
+
+    // Create new doctor record
+    const newDoctor = {
+      id: `doc-${Date.now()}`,
+      firstName,
+      lastName,
+      email,
+      mobile,
+      password, // ⚠️ In production, hash this
+      specialty,
+      type: "doctor",
+      image: "",
+      availableDays: [],
+      availableTime: { morning: null, evening: null },
+      createdAt: new Date().toISOString(),
+    };
+
+    // Save to mockData.json
+    doctors.push(newDoctor);
+    const filePath = join(process.cwd(), "src/lib/mockData.json");
+    writeFileSync(filePath, JSON.stringify(mockData, null, 2));
+
+    return NextResponse.json({
+      success: true,
+      data: newDoctor,
+      message: "Doctor registered successfully",
+    });
+  } catch (error) {
+    console.error("Error registering doctor:", error);
+    return NextResponse.json(
+      { success: false, message: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+
+
+
 export async function GET(request: NextRequest) {
   try {
     // Get the search parameters from the request URL

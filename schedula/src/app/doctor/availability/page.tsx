@@ -5,6 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import { updateDoctor, getDoctorById } from "@/app/services/doctor.api";
 import { Button } from "@/components/ui/Button";
 import { toast } from "@/hooks/useToast";
+import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 
 const daysOfWeek = [
@@ -19,71 +20,107 @@ const daysOfWeek = [
 
 export default function AvailabilityPage() {
   const { doctor, loading } = useAuth();
+  const router = useRouter();
   const [availableDays, setAvailableDays] = useState<string[]>([]);
-  const [morningTime, setMorningTime] = useState({
-    from: "09:00",
-    to: "12:00",
-  });
-  const [eveningTime, setEveningTime] = useState({
-    from: "14:00",
-    to: "18:00",
-  });
+  const [morningTime, setMorningTime] = useState({ from: "09:00", to: "12:00" });
+  const [eveningTime, setEveningTime] = useState({ from: "14:00", to: "18:00" });
   const [isSaving, setIsSaving] = useState(false);
+  const [isAvailable, setIsAvailable] = useState(true);
+
+  const [bio, setBio] = useState("");
+  const [qualifications, setQualifications] = useState("");
+  const [fee, setFee] = useState<number | string>("");
+  const [image, setImage] = useState<string>("");
 
   useEffect(() => {
-    if (doctor) {
-      setAvailableDays(doctor.availableDays || []);
-      setMorningTime(
-        doctor.availableTime?.morning || {
-          from: "09:00",
-          to: "12:00",
-        }
-      );
-      setEveningTime(
-        doctor.availableTime?.evening || {
-          from: "14:00",
-          to: "18:00",
-        }
-      );
-    }
-  }, [doctor]);
+    const fetchDoctor = async () => {
+      if (!doctor?.id) return;
+      try {
+        const res = await getDoctorById(doctor.id);
+        const fullDoctor = res?.doctor || doctor;
+
+        setAvailableDays(fullDoctor.availableDays || []);
+        setMorningTime(fullDoctor.availableTime?.morning || { from: "09:00", to: "12:00" });
+        setEveningTime(fullDoctor.availableTime?.evening || { from: "14:00", to: "18:00" });
+        setIsAvailable(fullDoctor.isAvailable ?? true);
+        setBio(fullDoctor.bio || "");
+        setQualifications(fullDoctor.qualifications || "");
+        setFee(fullDoctor.fee || "");
+        setImage(fullDoctor.image || "/default-doctor.png");
+      } catch (error) {
+        console.error("Failed to load doctor details:", error);
+      }
+    };
+
+    fetchDoctor();
+  }, [doctor?.id]);
 
   const toggleDay = (day: string) => {
-    if (availableDays.includes(day)) {
-      setAvailableDays(availableDays.filter((d) => d !== day));
-    } else {
-      setAvailableDays([...availableDays, day]);
+    setAvailableDays((prev) =>
+      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]
+    );
+  };
+
+  const handleToggleAvailability = async () => {
+    if (!doctor) return;
+    const newStatus = !isAvailable;
+    setIsAvailable(newStatus);
+
+    try {
+      const updatedDoctor = { ...doctor, isAvailable: newStatus };
+      await updateDoctor(doctor.id, updatedDoctor);
+      toast({
+        title: newStatus ? "Status: Available" : "Status: Unavailable",
+        description: newStatus
+          ? "Patients can now book appointments with you."
+          : "You are marked as unavailable.",
+      });
+    } catch {
+      toast({
+        title: "Error",
+        description: "Failed to update your status.",
+        variant: "destructive",
+      });
+      setIsAvailable(!newStatus);
     }
+  };
+
+  // 🟢 Handle image upload (convert to base64 for now)
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64 = reader.result as string;
+      setImage(base64);
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleSave = async () => {
     if (!doctor) return;
-
     setIsSaving(true);
+
     try {
       const updatedDoctor = {
         ...doctor,
+        isAvailable,
         availableDays,
-        availableTime: {
-          morning: morningTime,
-          evening: eveningTime,
-        },
+        availableTime: { morning: morningTime, evening: eveningTime },
+        bio,
+        qualifications,
+        fee: Number(fee),
+        image,
       };
 
       await updateDoctor(doctor.id, updatedDoctor);
-
-      // Update the auth context with the new data
-      const refreshedDoctor = await getDoctorById(doctor.id);
-      if (refreshedDoctor?.doctor) {
-        // The AuthContext would need to be updated, but we can't directly modify it here
-        // In a real app, you'd have a method to refresh the doctor data in the context
-      }
-
+      router.push("/doctor/dashboard");
       toast({
-        title: "Availability Updated",
-        description: "Your availability has been successfully updated.",
+        title: "Profile Updated",
+        description: "Your details and availability have been saved successfully.",
       });
-    } catch (error) {
+    } catch {
       toast({
         title: "Error",
         description: "Failed to update availability. Please try again.",
@@ -105,13 +142,123 @@ export default function AvailabilityPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">My Availability</h1>
-          <p className="text-gray-600">
-            Set your working days and hours to manage appointment bookings
-          </p>
+        {/* Header */}
+        <div className="mb-6 flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">My Availability</h1>
+            <p className="text-gray-600">
+              Set your working days, hours, and update your professional details
+            </p>
+          </div>
+
+          {/* Toggle Availability */}
+          <div className="flex items-center gap-3">
+            <span
+              className={`text-sm font-medium ${
+                isAvailable ? "text-cyan-600" : "text-gray-500"
+              }`}
+            >
+              {isAvailable ? "Available" : "Unavailable"}
+            </span>
+            <button
+              onClick={handleToggleAvailability}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-300 ${
+                isAvailable ? "bg-cyan-500" : "bg-gray-300"
+              }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-300 ${
+                  isAvailable ? "translate-x-6" : "translate-x-1"
+                }`}
+              />
+            </button>
+          </div>
         </div>
 
+        {/* 🟢 Professional Details Card with Image Upload */}
+        <Card className="p-6 mb-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">
+            Professional Details
+          </h2>
+
+          {/* Profile Image Upload */}
+          <div className="flex items-center gap-6 mb-6">
+            <div className="relative">
+              <img
+                src={image || "/default-doctor.png"}
+                alt="Doctor Profile"
+                className="w-24 h-24 rounded-full object-cover border border-gray-200 shadow-sm"
+              />
+              <label className="absolute bottom-0 right-0 bg-cyan-500 text-white rounded-full p-1 cursor-pointer hover:bg-cyan-600 transition">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className="hidden"
+                />
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={2}
+                  stroke="currentColor"
+                  className="w-4 h-4"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M12 4v16m8-8H4"
+                  />
+                </svg>
+              </label>
+            </div>
+            <p className="text-sm text-gray-600">
+              Upload or change your profile photo
+            </p>
+          </div>
+
+          {/* Doctor Info Inputs */}
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm text-gray-700 mb-1">
+                Qualifications
+              </label>
+              <input
+                type="text"
+                value={qualifications}
+                onChange={(e) => setQualifications(e.target.value)}
+                placeholder="e.g. MBBS, MS (Surgeon)"
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm text-gray-700 mb-1">
+                Consultation Fee (₹)
+              </label>
+              <input
+                type="number"
+                value={fee}
+                onChange={(e) => setFee(e.target.value)}
+                placeholder="e.g. 300"
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm text-gray-700 mb-1">Bio</label>
+              <textarea
+                value={bio}
+                onChange={(e) => setBio(e.target.value)}
+                placeholder="Write a short introduction about yourself..."
+                rows={4}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
+              ></textarea>
+            </div>
+          </div>
+        </Card>
+
+        {/* Working Days */}
         <Card className="p-6 mb-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">
             Working Days
@@ -133,6 +280,7 @@ export default function AvailabilityPage() {
           </div>
         </Card>
 
+        {/* Working Hours */}
         <Card className="p-6 mb-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">
             Working Hours
@@ -143,9 +291,7 @@ export default function AvailabilityPage() {
               <h3 className="font-medium text-gray-900 mb-3">Morning Hours</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm text-gray-700 mb-1">
-                    From
-                  </label>
+                  <label className="block text-sm text-gray-700 mb-1">From</label>
                   <input
                     type="time"
                     value={morningTime.from}
@@ -173,9 +319,7 @@ export default function AvailabilityPage() {
               <h3 className="font-medium text-gray-900 mb-3">Evening Hours</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm text-gray-700 mb-1">
-                    From
-                  </label>
+                  <label className="block text-sm text-gray-700 mb-1">From</label>
                   <input
                     type="time"
                     value={eveningTime.from}
@@ -201,6 +345,7 @@ export default function AvailabilityPage() {
           </div>
         </Card>
 
+        {/* Save Button */}
         <div className="flex justify-end">
           <Button
             onClick={handleSave}

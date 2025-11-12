@@ -320,6 +320,16 @@ export default function AppointmentDetailsPage() {
                   Add Prescription
                 </Button>
               )}
+
+                <Button
+                className="bg-cyan-500 hover:bg-cyan-6-00 text-white"
+                onClick={() =>
+                  router.push(`/doctor/patient/${appointment.patientId}/history`)
+                }
+              >
+                <Stethoscope className="w-4 h-4 mr-2" />
+                View Medical History
+              </Button>
             </>
           )}
         </div>

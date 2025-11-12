@@ -34,9 +34,16 @@ export default function PrescriptionPage() {
           ? rxData.filter(Boolean)
           : [];
 
-        const followUpList = (Array.isArray(appts) ? appts : []).filter(
-          (a) => a.visitType === "Follow-up" && a.status === "Upcoming"
-        );
+        const followUpList = (Array.isArray(appts) ? appts : []).filter((a) => {
+        const isFollowUp = a.visitType === "Follow-up";
+        const isUpcoming = a.status === "Upcoming";
+
+        // Ensure date is in the future
+        const appointmentDate = new Date(a.date);
+        const isInFuture = appointmentDate >= new Date();
+
+        return isFollowUp && isUpcoming && isInFuture;
+      });
 
         setPrescriptions(prescriptionList);
         setFollowUps(followUpList);

@@ -153,7 +153,7 @@ export async function POST(req: Request) {
 
     const event = {
       summary: `Doctor Appointment with Dr. ${doctor.firstName} ${doctor.lastName}`,
-      location: "Wellora Health Center, Chennai",
+      location: "Schedula Health Center, Chennai",
       description: `Appointment with Dr. ${doctor.firstName} ${doctor.specialty}\nPatient: ${patient.firstName} ${patient.lastName}\nAppointment ID: ${appointment.id}`,
       start: {
         dateTime: startDate.toISOString(),
