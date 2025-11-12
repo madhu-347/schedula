@@ -21,17 +21,23 @@ export default function DoctorProfilePage() {
   const [isSaved, setIsSaved] = useState(false);
 
   // Load existing doctor data
-  useEffect(() => {
-    if (doctor) {
-      setImage(doctor.image || "/default-doctor.png");
-      setBio(doctor.bio || "");
-      setQualifications(doctor.qualifications || "");
-      setFee(doctor.fee || "");
-      const hasAllDetails =
-        !!doctor.image && !!doctor.bio && !!doctor.qualifications && !!doctor.fee;
-      setIsSaved(hasAllDetails);
-    }
-  }, [doctor]);
+ useEffect(() => {
+  if (!doctor) return;
+
+  const storedImage =
+    localStorage.getItem(`doctorImage_${doctor.id}`) ||
+    doctor.image ||
+    "/default-doctor.png";
+
+  setImage(storedImage);
+  setBio(doctor.bio || "");
+  setQualifications(doctor.qualifications || "");
+  setFee(doctor.fee || "");
+
+  const hasAllDetails =
+    !!storedImage && !!doctor.bio && !!doctor.qualifications && !!doctor.fee;
+  setIsSaved(hasAllDetails);
+}, [doctor]);
     useEffect(() => {
         if (doctor) {
             const storedImage =
@@ -65,55 +71,46 @@ export default function DoctorProfilePage() {
     };
 
   const handleSaveProfile = async () => {
-    if (!doctor) return;
+  if (!doctor) return;
 
-    if (!isProfileComplete) {
-      toast({
-        title: "Incomplete Fields",
-        description: "Please fill all fields before saving.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsSaving(true);
-    try {
-      const updatedDoctor = {
-        ...doctor,
-        image,
-        bio,
-        qualifications,
-        fee: Number(fee),
-      };
-
-      await updateDoctor(doctor.id, updatedDoctor);
-      localStorage.setItem("user", JSON.stringify(updatedDoctor));
-
-      setIsSaved(true);
-
-      toast({
-        title: "Profile Updated",
-        description: "Your profile has been successfully updated.",
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update profile. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-cyan-500"></div>
-      </div>
-    );
+  if (!isProfileComplete) {
+    toast({
+      title: "Incomplete Fields",
+      description: "Please fill all fields before saving.",
+      variant: "destructive",
+    });
+    return;
   }
 
+  setIsSaving(true);
+  try {
+    const updatedDoctor = {
+      ...doctor,
+      image,
+      bio,
+      qualifications,
+      fee: Number(fee),
+    };
+
+    await updateDoctor(doctor.id, updatedDoctor);
+
+    setIsSaved(true);
+
+    toast({
+      title: "Profile Updated",
+      description: "Your profile has been successfully updated.",
+    });
+  } catch (error) {
+    console.error("Error updating profile:", error);
+    toast({
+      title: "Error",
+      description: "Failed to update profile. Please try again.",
+      variant: "destructive",
+    });
+  } finally {
+    setIsSaving(false);
+  }
+};
   return (
     <div className="min-h-screen bg-gray-50 py-10 px-6">
       <div className="max-w-4xl mx-auto space-y-8">
