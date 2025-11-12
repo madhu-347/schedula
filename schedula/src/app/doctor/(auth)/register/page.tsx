@@ -14,12 +14,12 @@ type RegisterMode = 'user' | 'doctor';
 export default function DoctorRegisterPage() {
   const router = useRouter();
   const [formData, setFormData] = useState({
-    fullName: "",
+    firstName: "",
+    lastName: "",
     email: "",
     mobile: "",
     password: "",
-    specialization: "",
-    licenseNumber: "",
+    specialty: "",
   });
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -73,22 +73,16 @@ export default function DoctorRegisterPage() {
 
   try {
     console.log("Registering Doctor:", formData);
+    const res = await fetch("/api/doctor", { method: "POST", body: JSON.stringify(formData) });
+    const result = await res.json();
+    if (!result.success) throw new Error(result.message || "Registration failed");
 
-    // Simulate API call
-    await new Promise((res) => setTimeout(res, 1500));
+    const newDoctor = result.data;
 
-    const newDoctor = {
-      name: formData.fullName,
-      email: formData.email,
-      type: "doctor",
-    };
+    const expiry = Date.now() + 1000 * 60 * 60 * 24 * 7; // valid for 7 days
+    alert("Doctor Registration Successful!, Login again to continue");
 
-    localStorage.setItem("user", JSON.stringify(newDoctor));
-
-    alert("Doctor Registration Successful!");
-
-    // ✅ Redirect new doctor to availability setup page
-    router.push("/doctor/manage-availability");
+    router.push("/doctor/login");
 
   } catch (error) {
     console.error(error);
@@ -141,8 +135,10 @@ export default function DoctorRegisterPage() {
              <>
                <h2 className="text-2xl font-semibold text-gray-800 mb-6 text-center">Create Account</h2>
                <form onSubmit={handleSubmit} className="space-y-4 w-full max-w-md">
-                 {/* Full Name */}
-                 <div><label className="block text-sm font-medium mb-1">Full Name</label><InputFieldComponent type="text" placeholder="Enter full name" value={formData.fullName} required onChange={handleInputChange("fullName")}/></div>
+                 {/* First Name */}
+                 <div><label className="block text-sm font-medium mb-1">First Name</label><InputFieldComponent type="text" placeholder="Enter first name" value={formData.firstName} required onChange={handleInputChange("firstName")}/></div>
+                  {/* Last Name */}
+                 <div><label className="block text-sm font-medium mb-1">Last Name</label><InputFieldComponent type="text" placeholder="Enter Last name" value={formData.lastName} required onChange={handleInputChange("lastName")}/></div>
                  {/* Email */}
                  <div><label className="block text-sm font-medium mb-1">Email</label><InputFieldComponent type="email" placeholder="Enter email address" value={formData.email} required onChange={handleInputChange("email")}/></div>
                  {/* Mobile Number */}
@@ -150,9 +146,7 @@ export default function DoctorRegisterPage() {
                  {/* Password */}
                  <div><label className="block text-sm font-medium mb-1">Password</label><InputFieldComponent type="password" placeholder="Create a password" value={formData.password} required onChange={handleInputChange("password")}/></div>
                  {/* Specialization */}
-                 <div><label className="block text-sm font-medium mb-1">Specialization</label><InputFieldComponent type="text" placeholder="e.g., Cardiologist" value={formData.specialization} required onChange={handleInputChange("specialization")}/></div>
-                 {/* License Number (Optional) */}
-                 <div><label className="block text-sm font-medium mb-1">License Number <span className="text-gray-400">(Optional)</span></label><InputFieldComponent type="text" placeholder="Enter medical license number" value={formData.licenseNumber} onChange={handleInputChange("licenseNumber")}/></div>
+                 <div><label className="block text-sm font-medium mb-1">Specialization</label><InputFieldComponent type="text" placeholder="e.g., Cardiologist" value={formData.specialty} required onChange={handleInputChange("specialty")}/></div>
                  {/* Terms & Conditions */}
                  <div className="flex items-center gap-2 pt-2"><input type="checkbox" id="terms" checked={agreedToTerms} onChange={(e) => setAgreedToTerms(e.target.checked)} className="w-4 h-4 accent-cyan-400"/><label htmlFor="terms" className="text-sm text-gray-600">I agree to the <a href="#" className="text-pink-500 hover:underline"> Terms & Conditions </a></label></div>
                  {/* Register Button */}

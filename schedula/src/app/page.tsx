@@ -38,7 +38,7 @@ export default function LandingPage() {
         transition={{ duration: 0.6 }}
       >
         <h1 className="text-3xl font-bold bg-linear-to-t from-[#46C2DE] to-[#000000] bg-clip-text text-transparent">
-          Wellora
+          Schedula
         </h1>
         <nav className="space-x-6 hidden md:block">
           <Link href="#features" className="hover:text-[#46C2DE]">
@@ -137,7 +137,7 @@ export default function LandingPage() {
         viewport={{ once: true }}
       >
         <h3 className="text-3xl font-semibold text-center mb-12">
-          Why Choose <span className="text-[#46C2DE]">Wellora</span>?
+          Why Choose <span className="text-[#46C2DE]">Schedula</span>?
         </h3>
         <div className="grid md:grid-cols-3 gap-8">
           {[
@@ -226,7 +226,7 @@ export default function LandingPage() {
         whileInView={{ opacity: 1 }}
         transition={{ duration: 0.6 }}
       >
-        © {new Date().getFullYear()} Wellora. All rights reserved.
+        © {new Date().getFullYear()} Schedula. All rights reserved.
       </motion.footer>
     </div>
   );
