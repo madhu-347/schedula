@@ -4,14 +4,39 @@
 import { NextRequest, NextResponse } from "next/server";
 import mockData from "@/lib/mockData.json";
 import { User } from "@/lib/types/user";
+import { promises as fs } from "fs";
+import path from "path";
 
-// In-memory storage (simulating database)
-// Note: This will reset on server restart. For persistence, use a real database.
-const usersData: User[] = JSON.parse(JSON.stringify(mockData.users)) as User[];
+const dataDir = path.join(process.cwd(), "data");
+const usersFile = path.join(dataDir, "users.json");
+
+async function ensureDataDir() {
+  try {
+    await fs.mkdir(dataDir, { recursive: true });
+  } catch {}
+}
+
+async function readUsers(): Promise<User[]> {
+  try {
+    await ensureDataDir();
+    const raw = await fs.readFile(usersFile, "utf8");
+    return JSON.parse(raw) as User[];
+  } catch {
+    // Fallback to mockData on first run
+    return JSON.parse(JSON.stringify(mockData.users)) as User[];
+  }
+}
+
+async function writeUsers(users: User[]): Promise<void> {
+  await ensureDataDir();
+  await fs.writeFile(usersFile, JSON.stringify(users, null, 2), "utf8");
+}
 
 // GET - Retrieve user(s)
 export async function GET(req: NextRequest) {
   try {
+    const usersData = await readUsers();
+
     // If no parameters, return all users
     if (req.nextUrl.searchParams.size === 0) {
       return NextResponse.json({
@@ -75,6 +100,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
+    const usersData = await readUsers();
 
     // Validation
     if (!body.name || !body.email) {
@@ -105,6 +131,7 @@ export async function POST(req: NextRequest) {
     };
 
     usersData.push(newUser);
+    await writeUsers(usersData);
 
     console.log("New user created:", newUser);
 
@@ -138,6 +165,7 @@ export async function PUT(req: NextRequest) {
       );
     }
 
+    const usersData = await readUsers();
     const userIndex = usersData.findIndex((user) => user.id === id);
 
     if (userIndex === -1) {
@@ -153,6 +181,8 @@ export async function PUT(req: NextRequest) {
       ...updateData,
       id: id, // Ensure ID doesn't change
     };
+
+    await writeUsers(usersData);
 
     console.log("User updated:", usersData[userIndex]);
 
@@ -187,6 +217,7 @@ export async function DELETE(req: NextRequest) {
       );
     }
 
+    const usersData = await readUsers();
     const userIndex = usersData.findIndex((user) => user.id === id);
 
     if (userIndex === -1) {
@@ -198,6 +229,7 @@ export async function DELETE(req: NextRequest) {
 
     const deletedUser = usersData[userIndex];
     usersData.splice(userIndex, 1);
+    await writeUsers(usersData);
 
     console.log("User deleted:", deletedUser);
 

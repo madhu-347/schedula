@@ -1,5 +1,25 @@
 import { User } from "@/lib/types/user";
 
+export const userLogin = async (email: string, password: string) => {
+  try {
+    const response = await fetch("/api/user/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ email, password }),
+    });
+    console.log("response for user login: ", response);
+    if (!response.ok) {
+      throw new Error("Network response was not ok " + response.statusText);
+    }
+    return response.json();
+  } catch (error) {
+    console.error("Error logging in user:", error);
+    throw error;
+  }
+};
+
 export async function getAllUsers() {
   try {
     const response = await fetch("/api/user");
@@ -45,11 +65,15 @@ export async function getUserById(id: string): Promise<{ data: User }> {
 
     // Normalize output: always return { data: User }
     if (result?.user) {
-      return { data: { ...result.user, id: result.user.id || result.user._id || id } };
+      return {
+        data: { ...result.user, id: result.user.id || result.user._id || id },
+      };
     }
 
     if (result?.data) {
-      return { data: { ...result.data, id: result.data.id || result.data._id || id } };
+      return {
+        data: { ...result.data, id: result.data.id || result.data._id || id },
+      };
     }
 
     return { data: { ...result, id: result.id || result._id || id } };
@@ -58,7 +82,6 @@ export async function getUserById(id: string): Promise<{ data: User }> {
     throw error;
   }
 }
-
 
 export async function updateUser(user: User) {
   try {
@@ -79,3 +102,33 @@ export async function updateUser(user: User) {
     throw error;
   }
 }
+
+export const getProfile = async (id: string) => {
+  try {
+    const res = await fetch(`/api/user/profile?id=${id}`);
+    const data = await res.json();
+    console.log("response for get profile: ", data);
+    return data;
+  } catch (error) {
+    console.error("Error fetching profile:", error);
+    throw error;
+  }
+};
+
+export const updateProfile = async (user: User) => {
+  try {
+    const res = await fetch(`/api/user/profile`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(user),
+    });
+    const data = await res.json();
+    console.log("response for update profile: ", data);
+    return data;
+  } catch (error) {
+    console.error("Error updating profile:", error);
+    throw error;
+  }
+};
