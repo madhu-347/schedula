@@ -16,11 +16,11 @@ export interface Doctor {
     morning: {
       from: string;
       to: string;
-    };
+    } | null;
     evening: {
       from: string;
       to: string;
-    };
+    } | null;
   };
   bio?: string; // Make optional
   is_favorited?: boolean;
