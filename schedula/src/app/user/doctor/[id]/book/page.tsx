@@ -196,7 +196,7 @@ export default function AppointmentPage() {
     if (!doctor || !selectedDate) return;
     // Generate time slots based on doctor's available time
     const morningSlots =
-      doctor.availableTime?.morning.from && doctor.availableTime?.morning.to
+      doctor.availableTime?.morning?.from && doctor.availableTime?.morning.to
         ? generateTimeSlots(
             doctor.availableTime.morning.from,
             doctor.availableTime.morning.to,
@@ -204,7 +204,7 @@ export default function AppointmentPage() {
           )
         : generateTimeSlots("09:00", "13:00", 30); // Default morning slots
     const eveningSlots =
-      doctor.availableTime?.evening.from && doctor.availableTime?.evening.to
+      doctor.availableTime?.evening?.from && doctor.availableTime?.evening.to
         ? generateTimeSlots(
             doctor.availableTime.evening.from,
             doctor.availableTime.evening.to,
