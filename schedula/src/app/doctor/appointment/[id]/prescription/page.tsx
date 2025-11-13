@@ -25,6 +25,9 @@ export default function PrescriptionFormPage() {
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [submitted, setSubmitted] = useState(false);
   const [isFormValid, setIsFormValid] = useState(false);
+
+  const [existingPrescription, setExistingPrescription] = useState<any>(null);
+  const [isEdit, setIsEdit] = useState(false);
   const {
     vitals = { bp: "", pulse: "", temperature: "", spo2: "", weight: "" },
     setVitals,
@@ -184,34 +187,52 @@ export default function PrescriptionFormPage() {
     setIsFormValid(Object.keys(e).length === 0);
   }, [submitted, vitals, medicines, tests]);
 
-  useEffect(() => {
-    if (!id) return;
+    useEffect(() => {
+      if (!id) return;
 
-    (async () => {
-      try {
-        const appt = await getAppointmentById(String(id));
+      (async () => {
+        try {
+          const appt = await getAppointmentById(String(id));
 
-        //  Fetch prescriptions for this appointment
-        const prescriptions = await getPrescriptionsByAppointmentId(String(id));
-        const latestRx =
-          prescriptions && prescriptions.length > 0
-            ? prescriptions[prescriptions.length - 1]
-            : null;
+          // Fetch prescriptions for this appointment
+          const prescriptions = await getPrescriptionsByAppointmentId(String(id));
+console.log("prescriptions",prescriptions)
+          if (prescriptions ) {
+            const latestRx = prescriptions;
 
-        setAppointment({
-          ...appt,
-          prescription: latestRx || null,
-        });
-      } catch (err) {
-        console.error(err);
-        toast({
-          title: "Error",
-          description: "Failed to load appointment data.",
-          variant: "destructive",
-        });
-      }
-    })();
-  }, [id]);
+            setExistingPrescription(latestRx);
+            setIsEdit(true); // <-- IMPORTANT
+
+            // Prefill prescription fields
+            setVitals({
+              bp: latestRx.vitals.bp || "",
+              pulse: latestRx.vitals.pulse || "",
+              temperature: latestRx.vitals.temperature || "",
+              spo2: latestRx.vitals.spo2 || "",
+              weight: latestRx.vitals.weight || "",
+            });
+
+            setMedicines(latestRx.medicines || []);
+            setTests(latestRx.tests || [{ name: "" }]);
+            setNotes(latestRx.notes || "");
+            setFiles(latestRx.files || []);
+          } else {
+            // No prescription = Add Mode
+            setExistingPrescription(null);
+            setIsEdit(false);
+          }
+
+          setAppointment(appt);
+        } catch (err) {
+          console.error(err);
+          toast({
+            title: "Error",
+            description: "Failed to load appointment data.",
+            variant: "destructive",
+          });
+        }
+      })();
+    }, [id]);
 
   const addMedicine = () =>
     setMedicines([
@@ -255,69 +276,86 @@ export default function PrescriptionFormPage() {
     setFiles((prevFiles) => [...prevFiles, ...prepared]);
   };
 
-  const isEdit = false;
-
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitted(true);
+  e.preventDefault();
+  setSubmitted(true);
 
-    if (!validateForm()) return;
+  if (!validateForm()) return;
 
-    setSaving(true);
+  setSaving(true);
 
-    try {
-      const prescriptionData = await createPrescription({
-        appointmentId: id,
-        patientId: appointment?.patientId,
-        doctorId: doctor?.id,
-        vitals,
-        medicines,
-        tests,
-        notes,
-        files: files.map((f) => ({ name: f.name })),
-      } as any);
+  try {
+    const payload = {
+      id : "",
+      createdAt : "",
+      appointmentId: id,
+      patientId: appointment?.patientId,
+      doctorId: doctor?.id,
+      vitals,
+      medicines,
+      tests,
+      notes,
+      files: files.map((f) => ({
+        name: f.name,
+        type: f.type,
+        dataUrl: f.dataUrl,
+      })),
+    };
 
-      console.log("Prescription created:", prescriptionData);
+    let prescriptionData;
 
-      // Send notification to patient
-      if (appointment?.patientId && doctor) {
-        try {
-          const notification = {
-            recipientId: appointment.patientId,
-            recipientRole: "user",
-            title: "New Prescription",
-            message: isEdit
-              ? "Your prescription has been updated."
-              : "A new prescription has been added by your doctor.",
-            type: "prescription",
-            targetUrl: `/user/prescription/${prescriptionData.id}`,
-            relatedId: prescriptionData.id,
-          };
+    if (isEdit && existingPrescription) {
+      // -------------------------
+      // UPDATE EXISTING
+      // -------------------------
+      prescriptionData = await fetch("/api/prescription", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...payload,
+          id: existingPrescription.id,
+        }),
+      }).then((res) => res.json());
 
-          await createNotification(notification as any);
-        } catch (notificationError) {
-          console.error("Failed to send notification:", notificationError);
-          // Don't fail the whole operation if notification fails
-        }
-      }
-
-      toast({
-        title: isEdit ? "Prescription Updated " : "Prescription Saved ",
-        description: "Changes have been stored.",
-      });
-
-      router.push(`/doctor/appointment/${id}/prescription/view`);
-    } catch (err) {
-      console.error(err);
-      toast({
-        title: "Save failed",
-        description: "Could not save prescription. Try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setSaving(false);
+    } else {
+      // -------------------------
+      // CREATE NEW
+      // -------------------------
+      prescriptionData = await createPrescription(payload);
     }
-  };
+
+    // 🔔 Notification
+    if (appointment?.patientId && doctor) {
+      await createNotification({
+        recipientId: appointment.patientId,
+        recipientRole: "user",
+        title: isEdit ? "Prescription Updated" : "New Prescription",
+        message: isEdit
+          ? "Your prescription has been updated."
+          : "A new prescription has been added.",
+        type: "prescription",
+        targetUrl: `/user/prescription/${prescriptionData.data.id}`,
+        relatedId: prescriptionData.data.id,
+      });
+    }
+
+    toast({
+      title: isEdit ? "Prescription Updated" : "Prescription Saved",
+      description: "Changes have been stored successfully.",
+    });
+
+    router.push(`/doctor/appointment/${id}/prescription/view`);
+  } catch (err) {
+    console.error(err);
+    toast({
+      title: "Save failed",
+      description: "Could not save prescription. Try again.",
+      variant: "destructive",
+    });
+  } finally {
+    setSaving(false);
+  }
+};
 
   const inputErrorClass = (key: string) =>
     errors[key] ? "border-red-500 focus:border-red-500 focus:ring-red-400" : "";

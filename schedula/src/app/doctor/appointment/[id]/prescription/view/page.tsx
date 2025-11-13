@@ -43,7 +43,7 @@ export default function DoctorPrescriptionViewPage() {
         description: "The prescription has been removed.",
       });
 
-      router.push(`/doctor/appointment/${id}/prescription`);
+      router.push(`/doctor/appointment/${id}`);
     } else {
       toast({
         title: "Error",
