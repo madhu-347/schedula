@@ -85,11 +85,10 @@ export default function DoctorOtpPage() {
         const hasProfile = doctor?.qualifications || doctor?.fee || doctor?.bio;
 
         // Redirect based on missing fields
-        if (!hasAvailability) {
-          router.push("/doctor/availability");
-        } else if (!hasProfile) {
+        if (!hasProfile) {
           router.push("/doctor/profile");
-        } else {
+        }
+          else {
           router.push("/doctor/dashboard");
         }
       } else {
