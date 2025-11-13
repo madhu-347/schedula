@@ -134,7 +134,7 @@ const AppointmentReviewPage = () => {
             time={appointment.time}
             duration="30 minutes"
             fee="₹1000"
-            clinicAddress="Wellora Health Center, Chennai"
+            clinicAddress="Schedula Health Center, Chennai"
           />
 
           {/* Add Patient Details Section - Only show if no patient details yet */}
