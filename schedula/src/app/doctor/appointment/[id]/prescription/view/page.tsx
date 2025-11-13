@@ -68,7 +68,6 @@ export default function DoctorPrescriptionViewPage() {
         setLoading(false);
         return;
       }
-
       const prescriptionData = result.data;
       console.log("Prescription data:", prescriptionData);
       console.log("Doctor data:", prescriptionData.doctor);

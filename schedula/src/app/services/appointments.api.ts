@@ -12,32 +12,31 @@ export async function createAppointment(appointmentData: Appointment) {
       body: JSON.stringify(appointmentData),
     });
 
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error("API error response:", errorData);
+      throw new Error(
+        errorData.error || errorData.details || "Failed to create appointment"
+      );
+    }
+
     const result = await response.json();
+    console.log("create appointment result: ", result);
 
     if (result.success) {
-      // If appointment is booked successfully, create a notification
-      // const res = await createNotification({
-      //   id: String(Date.now()),
-      //   recipientId: appointmentData.doctorId,
-      //   recipientRole: "doctor",
-      //   title: "New Appointment",
-      //   message: `You have a new appointment Click here to view`,
-      //   type: "appointment",
-      //   targetUrl: `/doctors/appointments`,
-      //   relatedId: appointmentData.id,
-      //   createdAt: new Date().toISOString(),
-      //   read: false,
-      // });
       return result.data;
     } else {
       console.error("Failed to create appointment:", result.error);
-      alert(result.error);
-      return null;
+      throw new Error(result.error || "Failed to create appointment");
     }
   } catch (error) {
     console.error("Error creating appointment:", error);
-    alert("Failed to create appointment. Please try again.");
-    return null;
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : "Failed to create appointment. Please try again.";
+    alert(errorMessage);
+    throw error;
   }
 }
 
