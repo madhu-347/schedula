@@ -29,10 +29,9 @@ export default function AuthHeader({ activeLink, userType = 'user' }: AuthHeader
   return (
     <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
       <div className="flex items-center justify-between max-w-7xl mx-auto px-6 py-4">
-        {/* Wellora Logo - Link to landing page */}
         <Link href="/">
           <h1 className="text-2xl font-bold bg-linear-to-r from-[#46C2DE] to-[#000000] bg-clip-text text-transparent cursor-pointer">
-            Wellora
+            Schedula
           </h1>
         </Link>
 
