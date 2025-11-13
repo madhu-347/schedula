@@ -319,7 +319,7 @@ export default function AppointmentPage() {
             recipientId: appointmentData.doctorId,
             recipientRole: "doctor",
             title: "New Appointment",
-            message: `You have a new appointment with ${response.patient?.firstName} ${response.patient?.lastName}`,
+            message: `You have a new appointment booked by ${response.patient?.firstName} ${response.patient?.lastName}`,
             type: "appointment",
             targetUrl: `/doctor/appointment`,
             relatedId: appointmentData.id,

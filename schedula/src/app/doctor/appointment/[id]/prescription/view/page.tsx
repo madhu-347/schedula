@@ -7,6 +7,7 @@ import { toast } from "@/hooks/useToast";
 import {
   getPrescriptionsByAppointmentId,
   deletePrescription,
+  getPrescriptionById,
 } from "@/app/services/prescription.api";
 import generatePrescriptionPDF from "@/utils/generatePrescriptionPDF";
 import type { Doctor } from "@/lib/types/doctor";
@@ -56,11 +57,10 @@ export default function DoctorPrescriptionViewPage() {
   const fetchPrescription = async () => {
     setLoading(true);
     try {
-      const prescriptionData = await getPrescriptionsByAppointmentId(id);
+      const result = await getPrescriptionsByAppointmentId(id);
+      console.log("Prescription result:", result);
 
-      console.log("Prescription data:", prescriptionData);
-
-      if (!prescriptionData) {
+      if (!result || !result.success) {
         toast({
           title: "No prescription",
           description: "No prescription found for this appointment.",
@@ -69,17 +69,15 @@ export default function DoctorPrescriptionViewPage() {
         return;
       }
 
-      // Check if it's enriched data or plain prescription
-      if (prescriptionData.doctor && prescriptionData.patient) {
-        // Enriched data from API
-        setPrescription(prescriptionData);
-        setDoctorInfo(prescriptionData.doctor);
-        setPatientInfo(prescriptionData.patient);
-      } else {
-        // Plain prescription data
-        setPrescription(prescriptionData);
-        // Doctor and patient info will be null
-      }
+      const prescriptionData = result.data;
+      console.log("Prescription data:", prescriptionData);
+      console.log("Doctor data:", prescriptionData.doctor);
+      console.log("Patient data:", prescriptionData.patient);
+
+      // Set enriched data
+      setPrescription(prescriptionData);
+      setDoctorInfo(prescriptionData.doctor);
+      setPatientInfo(prescriptionData.patient);
     } catch (error) {
       console.error("Error fetching prescription:", error);
       toast({
