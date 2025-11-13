@@ -312,26 +312,36 @@ export default function AppointmentPage() {
       try {
         // Call API to create appointment
         const response = await createAppointment(appointmentData);
-        console.log("Create appointment repsonse: ", response);
+        console.log("Create appointment response: ", response);
+
+        // Create notification for doctor
         if (response) {
           console.log("Creating notification");
-          await createNotification({
-            recipientId: appointmentData.doctorId,
-            recipientRole: "doctor",
-            title: "New Appointment",
-            message: `You have a new appointment booked by ${response.patient?.firstName} ${response.patient?.lastName}`,
-            type: "appointment",
-            targetUrl: `/doctor/appointment`,
-            relatedId: appointmentData.id,
-            createdAt: new Date().toISOString(),
-            read: false,
-          });
+          try {
+            await createNotification({
+              recipientId: appointmentData.doctorId,
+              recipientRole: "doctor",
+              title: "New Appointment",
+              message: `You have a new appointment booked by ${
+                response.patient?.firstName || ""
+              } ${response.patient?.lastName || ""}`,
+              type: "appointment",
+              targetUrl: `/doctor/appointment`,
+              relatedId: response.id,
+              createdAt: new Date().toISOString(),
+              read: false,
+            });
+          } catch (notifError) {
+            console.error("Failed to send notification:", notifError);
+            // Don't fail the booking if notification fails
+          }
+
+          // Navigate to review page
+          router.push(`/user/appointment/${response.id}/review`);
         }
-        // Navigate to review page
-        router.push(`/user/appointment/${response?.id}/review`);
       } catch (error) {
         console.error("Failed to create appointment:", error);
-        alert("Failed to book appointment. Please try again.");
+        // Error alert is already shown by the service layer
       }
     }
   };

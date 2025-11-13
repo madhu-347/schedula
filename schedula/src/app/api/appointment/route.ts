@@ -40,8 +40,15 @@ async function readAppointments(): Promise<Appointment[]> {
 }
 
 async function writeAppointments(data: Appointment[]): Promise<void> {
-  await ensureDataDir();
-  await fs.writeFile(appointmentsFile, JSON.stringify(data, null, 2), "utf8");
+  try {
+    await ensureDataDir();
+    await fs.writeFile(appointmentsFile, JSON.stringify(data, null, 2), "utf8");
+  } catch (error) {
+    console.error("Failed to write appointments file:", error);
+    // On Vercel, file writes will fail - this is expected
+    // Data will be lost between function invocations
+    // For production, you should use a database instead
+  }
 }
 
 async function readUsers(): Promise<User[]> {
@@ -342,7 +349,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Validate patientDetails if provided
+    // Validate patientDetails if provided (not required for initial booking)
     if (body.patientDetails) {
       const requiredPatientFields = ["fullName", "age", "gender", "phone"];
       const missingPatientFields = requiredPatientFields.filter(

@@ -179,6 +179,7 @@ export default function PrescriptionFormPage() {
 
     return newErrors;
   };
+
   useEffect(() => {
     if (!submitted) return; // ✅ don't validate until submit clicked
 
@@ -198,7 +199,7 @@ export default function PrescriptionFormPage() {
         const prescriptions = await getPrescriptionsByAppointmentId(String(id));
         console.log("prescriptions", prescriptions);
         if (prescriptions) {
-          const latestRx = prescriptions;
+          const latestRx = prescriptions.data;
 
           setExistingPrescription(latestRx);
           setIsEdit(true); // <-- IMPORTANT

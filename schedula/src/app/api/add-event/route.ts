@@ -20,7 +20,12 @@ export async function POST(req: Request) {
       authOptions
     )) as CustomSession | null;
 
-    if (!session || !session.accessToken) {
+    if (!session) {
+      return Response.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Check if we have access token, if not, we need to re-authenticate
+    if (!session.accessToken) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -81,10 +86,29 @@ export async function POST(req: Request) {
         "http://localhost:3000/api/auth/callback/google"
     );
 
+    // Set credentials
     oauth2Client.setCredentials({
       access_token: session.accessToken,
       refresh_token: session.refreshToken,
     });
+
+    // Check if token is expired and refresh if needed
+    if (session.expiresAt && Date.now() >= session.expiresAt * 1000) {
+      if (session.refreshToken) {
+        try {
+          // Refresh the access token using the refresh token
+          const { credentials } = await oauth2Client.refreshAccessToken();
+          // Update the credentials with the new access token
+          oauth2Client.setCredentials(credentials);
+        } catch (refreshError: any) {
+          console.error("Error refreshing token:", refreshError);
+          // If refresh fails, we need to re-authenticate
+          return Response.json({ error: "Unauthorized" }, { status: 401 });
+        }
+      } else {
+        return Response.json({ error: "Unauthorized" }, { status: 401 });
+      }
+    }
 
     const calendar = google.calendar({ version: "v3", auth: oauth2Client });
 
@@ -163,7 +187,11 @@ export async function POST(req: Request) {
         dateTime: endDate.toISOString(),
         timeZone: "Asia/Kolkata",
       },
-      attendees: [{ email: patient.email || "patient@example.com" }],
+      attendees: [
+        {
+          email: patient.email || session.user?.email || "patient@example.com",
+        },
+      ],
       reminders: {
         useDefault: false,
         overrides: [
@@ -185,6 +213,23 @@ export async function POST(req: Request) {
     });
   } catch (error: any) {
     console.error("Error creating event:", error);
+
+    // Handle specific Google OAuth errors
+    if (
+      error.code === 401 ||
+      (error.response && error.response.status === 401)
+    ) {
+      return Response.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (
+      error.message &&
+      (error.message.includes("invalid_grant") ||
+        error.message.includes("invalid_request"))
+    ) {
+      return Response.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     return Response.json(
       {
         success: false,
