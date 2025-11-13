@@ -23,10 +23,52 @@ export default function AvailabilityPage() {
   const { doctor, loading } = useAuth();
   const router = useRouter();
   const [availableDays, setAvailableDays] = useState<string[]>([]);
-  const [morningTime, setMorningTime] = useState({ from: "09:00", to: "12:00" });
-  const [eveningTime, setEveningTime] = useState({ from: "14:00", to: "18:00" });
+  const [morningTime, setMorningTime] = useState({
+    from: "09:00",
+    to: "12:00",
+  });
+  const [eveningTime, setEveningTime] = useState({
+    from: "14:00",
+    to: "18:00",
+  });
   const [isSaving, setIsSaving] = useState(false);
   const [isAvailable, setIsAvailable] = useState(true);
+
+  // Generate time options with 30-minute intervals for specific ranges
+  const generateMorningTimeOptions = (): string[] => {
+    const options: string[] = [];
+    // Morning hours: 9:00 AM to 1:00 PM (9 to 13 in 24-hour format)
+    for (let hour = 9; hour <= 13; hour++) {
+      for (let minute = 0; minute < 60; minute += 30) {
+        // Skip 1:30 PM and later
+        if (hour === 13 && minute > 0) break;
+        const timeString = `${hour.toString().padStart(2, "0")}:${minute
+          .toString()
+          .padStart(2, "0")}`;
+        options.push(timeString);
+      }
+    }
+    return options;
+  };
+
+  const generateEveningTimeOptions = (): string[] => {
+    const options: string[] = [];
+    // Evening hours: 2:00 PM to 8:00 PM (14 to 18 in 24-hour format)
+    for (let hour = 14; hour <= 18; hour++) {
+      for (let minute = 0; minute < 60; minute += 30) {
+        // Skip 6:30 PM and later
+        if (hour === 18 && minute > 0) break;
+        const timeString = `${hour.toString().padStart(2, "0")}:${minute
+          .toString()
+          .padStart(2, "0")}`;
+        options.push(timeString);
+      }
+    }
+    return options;
+  };
+
+  const morningTimeOptions = generateMorningTimeOptions();
+  const eveningTimeOptions = generateEveningTimeOptions();
 
   useEffect(() => {
     const fetchDoctor = async () => {
@@ -36,8 +78,12 @@ export default function AvailabilityPage() {
         const fullDoctor = res?.doctor || doctor;
 
         setAvailableDays(fullDoctor.availableDays || []);
-        setMorningTime(fullDoctor.availableTime?.morning || { from: "09:00", to: "12:00" });
-        setEveningTime(fullDoctor.availableTime?.evening || { from: "14:00", to: "18:00" });
+        setMorningTime(
+          fullDoctor.availableTime?.morning || { from: "09:00", to: "12:00" }
+        );
+        setEveningTime(
+          fullDoctor.availableTime?.evening || { from: "14:00", to: "18:00" }
+        );
         setIsAvailable(fullDoctor.isAvailable ?? true);
       } catch (error) {
         console.error("Failed to load doctor details:", error);
@@ -77,7 +123,6 @@ export default function AvailabilityPage() {
     }
   };
 
-
   const handleSave = async () => {
     if (!doctor) return;
     setIsSaving(true);
@@ -94,7 +139,8 @@ export default function AvailabilityPage() {
       router.push("/doctor/dashboard");
       toast({
         title: "Profile Updated",
-        description: "Your details and availability have been saved successfully.",
+        description:
+          "Your details and availability have been saved successfully.",
       });
     } catch {
       toast({
@@ -129,7 +175,9 @@ export default function AvailabilityPage() {
               >
                 <ArrowLeft className="w-5 h-5 text-gray-600" />
               </button>
-              <h1 className="text-2xl font-bold text-gray-900">My Availability</h1>
+              <h1 className="text-2xl font-bold text-gray-900">
+                Manage Availability
+              </h1>
             </div>
             <p className="text-gray-600">
               Set your working days, hours, and update your professional details
@@ -193,26 +241,38 @@ export default function AvailabilityPage() {
               <h3 className="font-medium text-gray-900 mb-3">Morning Hours</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm text-gray-700 mb-1">From</label>
-                  <input
-                    type="time"
+                  <label className="block text-sm text-gray-700 mb-1">
+                    From
+                  </label>
+                  <select
                     value={morningTime.from}
                     onChange={(e) =>
                       setMorningTime({ ...morningTime, from: e.target.value })
                     }
                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
-                  />
+                  >
+                    {morningTimeOptions.map((time: string) => (
+                      <option key={`morning-from-${time}`} value={time}>
+                        {time}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-sm text-gray-700 mb-1">To</label>
-                  <input
-                    type="time"
+                  <select
                     value={morningTime.to}
                     onChange={(e) =>
                       setMorningTime({ ...morningTime, to: e.target.value })
                     }
                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
-                  />
+                  >
+                    {morningTimeOptions.map((time: string) => (
+                      <option key={`morning-to-${time}`} value={time}>
+                        {time}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
             </div>
@@ -221,26 +281,38 @@ export default function AvailabilityPage() {
               <h3 className="font-medium text-gray-900 mb-3">Evening Hours</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm text-gray-700 mb-1">From</label>
-                  <input
-                    type="time"
+                  <label className="block text-sm text-gray-700 mb-1">
+                    From
+                  </label>
+                  <select
                     value={eveningTime.from}
                     onChange={(e) =>
                       setEveningTime({ ...eveningTime, from: e.target.value })
                     }
                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
-                  />
+                  >
+                    {eveningTimeOptions.map((time: string) => (
+                      <option key={`evening-from-${time}`} value={time}>
+                        {time}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-sm text-gray-700 mb-1">To</label>
-                  <input
-                    type="time"
+                  <select
                     value={eveningTime.to}
                     onChange={(e) =>
                       setEveningTime({ ...eveningTime, to: e.target.value })
                     }
                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
-                  />
+                  >
+                    {eveningTimeOptions.map((time: string) => (
+                      <option key={`evening-to-${time}`} value={time}>
+                        {time}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
             </div>

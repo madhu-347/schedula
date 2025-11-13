@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react"; // Import React explicitly i
 import { useRouter } from "next/navigation";
 import AuthBanner from "@/components/auth/AuthBanner";
 import { toast } from "react-hot-toast";
+import { getDoctorById } from "@/app/services/doctor.api";
 
 export default function DoctorOtpPage() {
   const router = useRouter();
@@ -63,6 +64,44 @@ export default function DoctorOtpPage() {
     };
   }, [timer, isValidSession]); // Depend on timer and session validity
 
+  const checkDoctorRouting = async (user: any) => {
+    console.log("Checking doctor routing...");
+    // Get doctor details to check required fields
+    try {
+      const data = await getDoctorById(user.id);
+      console.log("get doctor data by id response", data);
+      if (data.doctor) {
+        const doctor = data.doctor;
+        console.log("doctor data", doctor);
+
+        // Check if doctor has availability fields
+        const hasAvailability =
+          doctor?.availableDays ||
+          doctor?.availableTime ||
+          doctor?.availableTime?.morning ||
+          doctor?.availableTime?.evening;
+
+        // Check if doctor has profile fields
+        const hasProfile = doctor?.qualifications || doctor?.fee || doctor?.bio;
+
+        // Redirect based on missing fields
+        if (!hasAvailability) {
+          router.push("/doctor/availability");
+        } else if (!hasProfile) {
+          router.push("/doctor/profile");
+        } else {
+          router.push("/doctor/dashboard");
+        }
+      } else {
+        // Fallback to dashboard if unable to fetch doctor data
+        router.push("/doctor/dashboard");
+      }
+    } catch (error) {
+      console.error("Error checking doctor fields:", error);
+      // Fallback to dashboard if error occurs
+      router.push("/doctor/dashboard");
+    }
+  };
   // Verify OTP
   const handleVerifyOtp = () => {
     const storedOtp = localStorage.getItem("generatedOtp");
@@ -89,10 +128,10 @@ export default function DoctorOtpPage() {
       localStorage.removeItem("pendingUser");
       localStorage.removeItem("generatedOtp");
       localStorage.removeItem("otpExpiry");
-      toast.success("OTP Verified Successfully 🎉");
-      setTimeout(() => {
-        router.push("/doctor/dashboard");
-      }, 1000);
+      toast.success("OTP Verified Successfully 🎉! Redirecting...");
+
+      checkDoctorRouting(user);
+      // Check if doctor has required fields and redirect accordingly
     } else {
       toast.error("Invalid OTP. Please try again.");
     }

@@ -1,9 +1,35 @@
 // src/app/api/doctor/route.ts
 
 import { NextResponse, NextRequest } from "next/server";
-import mockData from "@/lib/mockData.json";
-import { writeFileSync } from "fs";
-import { join } from "path";
+import { Doctor } from "@/lib/types/doctor";
+import { promises as fs } from "fs";
+import path from "path";
+
+// File-based persistence helpers
+const dataDir = path.join(process.cwd(), "data");
+const doctorsFile = path.join(dataDir, "doctors.json");
+
+async function ensureDataDir() {
+  try {
+    await fs.mkdir(dataDir, { recursive: true });
+  } catch {}
+}
+
+async function readDoctors(): Promise<Doctor[]> {
+  try {
+    await ensureDataDir();
+    const data = await fs.readFile(doctorsFile, "utf8");
+    return JSON.parse(data);
+  } catch {
+    // Return empty array if no data exists
+    return [] as Doctor[];
+  }
+}
+
+async function writeDoctors(data: Doctor[]): Promise<void> {
+  await ensureDataDir();
+  await fs.writeFile(doctorsFile, JSON.stringify(data, null, 2), "utf8");
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,11 +43,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get existing doctors from mock data
-    const { doctors } = mockData;
+    // Get existing doctors from file
+    const doctorsData = await readDoctors();
 
     // Check for duplicate email
-    const existingDoctor = doctors.find(
+    const existingDoctor = doctorsData.find(
       (doc) => doc.email.toLowerCase() === email.toLowerCase()
     );
     if (existingDoctor) {
@@ -32,25 +58,26 @@ export async function POST(request: NextRequest) {
     }
 
     // Create new doctor record
-    const newDoctor = {
-      id: `doc-${Date.now()}`,
+    const newDoctor: Doctor = {
+      id: `doc-${Date.now()}`, // Unique ID
       firstName,
       lastName,
       email,
       phone,
-      password, 
-      specialty,
-      type: "doctor",
+      password,
+      specialty: specialty || "",
+      isAvailable: true,
       image: "",
       availableDays: [],
-      availableTime: { morning: null, evening: null },
-      createdAt: new Date().toISOString(),
+      availableTime: {
+        morning: { from: "", to: "" },
+        evening: { from: "", to: "" },
+      },
     };
 
-    // Save to mockData.json
-    doctors.push(newDoctor);
-    const filePath = join(process.cwd(), "src/lib/mockData.json");
-    writeFileSync(filePath, JSON.stringify(mockData, null, 2));
+    // Save to doctors.json
+    doctorsData.push(newDoctor);
+    await writeDoctors(doctorsData);
 
     return NextResponse.json({
       success: true,
@@ -66,22 +93,21 @@ export async function POST(request: NextRequest) {
   }
 }
 
-
-
 export async function GET(request: NextRequest) {
   try {
     // Get the search parameters from the request URL
     const searchParams = request.nextUrl.searchParams;
     const id = searchParams.get("id"); // Look for '?id=...'
 
-    const { doctors } = mockData;
+    const doctorsData = await readDoctors();
 
     if (id) {
       // --- THIS IS THE NEW LOGIC ---
       // If an ID is provided, find that one doctor
       console.log(`API: Looking for single doctor with ID: ${id}`);
-      const doctor = doctors.find((doc) => doc.id === id);
+      const doctor = doctorsData.find((doc) => doc.id === id);
 
+      console.log("login doctor data: ", doctor);
       if (doctor) {
         return NextResponse.json({ doctor });
       } else {
@@ -93,7 +119,10 @@ export async function GET(request: NextRequest) {
       // --- THIS IS THE OLD LOGIC ---
       // If no ID is provided, return all doctors
       console.log("API: Returning all doctors");
-      return NextResponse.json({ doctors: doctors, total: doctors.length });
+      return NextResponse.json({
+        doctors: doctorsData,
+        total: doctorsData.length,
+      });
     }
   } catch (error) {
     if (error instanceof Error) {
@@ -108,23 +137,24 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     const { id, ...updateData } = body;
 
-    const { doctors } = mockData;
-    const doctorIndex = doctors.findIndex((doc) => doc.id === id);
+    const doctorsData = await readDoctors();
+    const doctorIndex = doctorsData.findIndex((doc) => doc.id === id);
 
     if (doctorIndex === -1) {
-      return new NextResponse(`Doctor with id ${id} not found`, { status: 404 });
+      return new NextResponse(`Doctor with id ${id} not found`, {
+        status: 404,
+      });
     }
 
     // ✅ Update the doctor data
-    doctors[doctorIndex] = { ...doctors[doctorIndex], ...updateData };
+    doctorsData[doctorIndex] = { ...doctorsData[doctorIndex], ...updateData };
 
-    // ✅ Persist the changes to mockData.json
-    const filePath = join(process.cwd(), "src/lib/mockData.json");
-    writeFileSync(filePath, JSON.stringify(mockData, null, 2), "utf-8");
+    // ✅ Persist the changes to doctors.json
+    await writeDoctors(doctorsData);
 
     return NextResponse.json({
       success: true,
-      doctor: doctors[doctorIndex],
+      doctor: doctorsData[doctorIndex],
     });
   } catch (error) {
     console.error("Failed to update doctor:", error);
