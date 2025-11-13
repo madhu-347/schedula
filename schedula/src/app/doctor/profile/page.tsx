@@ -21,23 +21,6 @@ export default function DoctorProfilePage() {
   const [isSaved, setIsSaved] = useState(false);
 
   // Load existing doctor data
- useEffect(() => {
-  if (!doctor) return;
-
-  const storedImage =
-    localStorage.getItem(`doctorImage_${doctor.id}`) ||
-    doctor.image ||
-    "/default-doctor.png";
-
-  setImage(storedImage);
-  setBio(doctor.bio || "");
-  setQualifications(doctor.qualifications || "");
-  setFee(doctor.fee || "");
-
-  const hasAllDetails =
-    !!storedImage && !!doctor.bio && !!doctor.qualifications && !!doctor.fee;
-  setIsSaved(hasAllDetails);
-}, [doctor]);
     useEffect(() => {
         if (doctor) {
             const storedImage =
