@@ -3,7 +3,7 @@
     "id": "1",
     "firstName": "Priya",
     "lastName": "Sharma",
-    "email": "priya@gmail.com",
+    "email": "priya@example.com",
     "password": "password123",
     "phone": "9876543210",
     "location": "Bengaluru"
@@ -23,14 +23,5 @@
     "email": "anjali@example.com",
     "password": "password123",
     "phone": "7012345678"
-  },
-  {
-    "id": "1762974501029",
-    "firstName": "Bharath",
-    "lastName": "S V",
-    "email": "svbharath2005@schedula.com",
-    "password": "12345",
-    "phone": "8073012368",
-    "location": ""
   }
 ]

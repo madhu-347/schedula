@@ -33,8 +33,11 @@ export default function generatePrescriptionPDF({
   patientInfo,
   rx,
 }: PropType) {
+  console.log("generating pdf with doctor", doctorInfo)
+  console.log("generating pdf with patient", patientInfo)
   if (!doctorInfo || !patientInfo) return;
 
+  console.log("generatePrescriptionPDF");
   const doc = new jsPDF({ unit: "pt", format: "a4" });
   const margin = 40;
   let y = 70;
@@ -48,14 +51,8 @@ export default function generatePrescriptionPDF({
     doc.setFillColor(0, 170, 195);
     doc.rect(0, 0, 600, 80, "F");
 
-    doc.setFont("helvetica", "bold")
-      .setFontSize(18)
-      .setTextColor("#ffffff");
-    doc.text(
-      `Dr. ${doctorInfo.firstName} ${doctorInfo.lastName}`,
-      margin,
-      35
-    );
+    doc.setFont("helvetica", "bold").setFontSize(18).setTextColor("#ffffff");
+    doc.text(`Dr. ${doctorInfo.firstName} ${doctorInfo.lastName}`, margin, 35);
 
     doc.setFontSize(11);
     doc.text(`${doctorInfo.qualifications}`, margin, 55);
@@ -67,9 +64,7 @@ export default function generatePrescriptionPDF({
     y = 115;
 
     // ------------ PATIENT DETAILS --------------
-    doc.setFont("helvetica", "bold")
-      .setFontSize(13)
-      .setTextColor("#007f94");
+    doc.setFont("helvetica", "bold").setFontSize(13).setTextColor("#007f94");
     doc.text("Patient Details", margin, y);
 
     doc.setTextColor("#000");
@@ -114,9 +109,7 @@ export default function generatePrescriptionPDF({
     y += 55;
 
     // RX SYMBOL
-    doc.setFontSize(30)
-      .setFont("helvetica", "bold")
-      .setTextColor("#003366");
+    doc.setFontSize(30).setFont("helvetica", "bold").setTextColor("#003366");
     doc.text("Rx", leftX, y);
 
     doc.setTextColor("#000").setFontSize(12);
@@ -125,7 +118,9 @@ export default function generatePrescriptionPDF({
     // ------------ VITALS TABLE --------------
     if (rx.vitals) {
       autoTable(doc, {
-        head: [["BP (mmHg)", "Pulse (bpm)", "Temp (°F)", "SpO2 (%)", "Weight (Kg)"]],
+        head: [
+          ["BP (mmHg)", "Pulse (bpm)", "Temp (°F)", "SpO2 (%)", "Weight (Kg)"],
+        ],
         body: [
           [
             rx.vitals.bp ? `${rx.vitals.bp} mmHg` : "-",
@@ -167,9 +162,7 @@ export default function generatePrescriptionPDF({
 
     // ------------ TESTS --------------
     if (rx.tests?.length) {
-      doc.setFont("helvetica", "bold")
-        .setFontSize(12)
-        .setTextColor("#007f94");
+      doc.setFont("helvetica", "bold").setFontSize(12).setTextColor("#007f94");
       doc.text("Recommended Tests:", margin, y);
       doc.setTextColor("#000");
 
@@ -194,9 +187,7 @@ export default function generatePrescriptionPDF({
     doc.setDrawColor(80).setLineWidth(0.5);
     doc.line(sigX - 10, sigY + 5, sigX + 120, sigY + 5);
 
-    doc.setFont("helvetica", "normal")
-      .setFontSize(9)
-      .setTextColor("#555");
+    doc.setFont("helvetica", "normal").setFontSize(9).setTextColor("#555");
     doc.text("Doctor Signature", sigX + 20, sigY + 18);
 
     // ------------ FOOTER --------------
@@ -213,9 +204,7 @@ export default function generatePrescriptionPDF({
     const footerY = 785;
     const spacing = 20;
 
-    doc.setFont("helvetica", "normal")
-      .setFontSize(10)
-      .setTextColor("#006d6d");
+    doc.setFont("helvetica", "normal").setFontSize(10).setTextColor("#006d6d");
 
     footerItems.forEach((txt, i) => {
       doc.text(txt, footerCenter, footerY + i * spacing, { align: "center" });

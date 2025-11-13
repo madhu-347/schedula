@@ -520,7 +520,7 @@ console.log("upcomingAppointments",upcomingAppointments)
                             <div
                               className="flex items-center gap-3 flex-1 cursor-pointer"
                               onClick={() =>
-                                router.push(`/doctor/appointment`)
+                                router.push(`/doctor/appointment/${appt.id}`)
                               }
                             >
                               {appt.type === "Virtual" ? (
@@ -551,16 +551,14 @@ console.log("upcomingAppointments",upcomingAppointments)
                               >
                                 <FileText className="w-4 h-4 text-gray-400 group-hover:text-cyan-600" />
                               </Link> */}
-                              
+
                               <Link
                                 href={`/doctor/appointment/${appt.id}`}
                                 className="p-2 rounded-lg hover:bg-cyan-50 transition-colors group"
                                 title="View Appointment"
                                 onClick={(e) => e.stopPropagation()}
                               >
-                              <ChevronRight
-                                className="w-4 h-4 text-gray-400 group-hover:text-cyan-600"
-                              />
+                                <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-cyan-600" />
                               </Link>
                             </div>
                           </div>

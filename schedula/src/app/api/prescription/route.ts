@@ -15,6 +15,9 @@ import path from "path";
 // File-based persistence helpers
 const dataDir = path.join(process.cwd(), "data");
 const prescriptionsFile = path.join(dataDir, "prescriptions.json");
+const appointmentsFile = path.join(dataDir, "appointments.json");
+const usersFile = path.join(dataDir, "users.json");
+const doctorsFile = path.join(dataDir, "doctors.json");
 
 async function ensureDataDir() {
   try {
@@ -37,19 +40,80 @@ async function writePrescriptions(data: any[]): Promise<void> {
   await fs.writeFile(prescriptionsFile, JSON.stringify(data, null, 2), "utf8");
 }
 
+async function readAppointments(): Promise<Appointment[]> {
+  try {
+    await ensureDataDir();
+    const data = await fs.readFile(appointmentsFile, "utf8");
+    return JSON.parse(data);
+  } catch {
+    return JSON.parse(JSON.stringify(mockData.appointments)) as Appointment[];
+  }
+}
+
+async function readUsers(): Promise<User[]> {
+  try {
+    await ensureDataDir();
+    const data = await fs.readFile(usersFile, "utf8");
+    return JSON.parse(data);
+  } catch {
+    return JSON.parse(JSON.stringify(mockData.users)) as User[];
+  }
+}
+
+async function readDoctors(): Promise<Doctor[]> {
+  try {
+    await ensureDataDir();
+    const data = await fs.readFile(doctorsFile, "utf8");
+    return JSON.parse(data);
+  } catch {
+    return JSON.parse(JSON.stringify(mockData.doctors)) as Doctor[];
+  }
+}
+
 // Helper function to enrich prescription with doctor and patient data
-const enrichPrescription = async (prescription: Prescription) => {
+const enrichPrescription = async (prescription: any) => {
   console.log("enrichPrescription called with prescription:", prescription);
 
   try {
-    const response = await fetch(
-      `http://localhost:3000/api/appointment?id=${prescription.appointmentId}`
-    );
-    const result = await response.json();
-    const appointment = result.success ? result.data : null;
+    // Read data directly from file system instead of HTTP request
+    const appointments = await readAppointments();
+    const users = await readUsers();
+    const doctors = await readDoctors();
 
-    const doctor = appointment?.doctor || null;
-    const patient = appointment?.patientDetails || null;
+    // Find the appointment
+    const appointment = appointments.find(
+      (a) => a.id === prescription.appointmentId
+    );
+
+    if (!appointment) {
+      console.warn(`Appointment ${prescription.appointmentId} not found`);
+      return {
+        ...prescription,
+        doctor: null,
+        patient: null,
+      };
+    }
+
+    // Find doctor
+    const doctor = doctors.find((d) => d.id === prescription.doctorId) || null;
+
+    // Get patient details from appointment or find user
+    let patient = appointment.patientDetails || null;
+
+    // If patientDetails not in appointment, try to get from users
+    if (!patient && prescription.patientId) {
+      const user = users.find((u) => u.id === prescription.patientId);
+      if (user) {
+        patient = {
+          id: user.id,
+          fullName: `${user.firstName} ${user.lastName}`,
+          age: 0, // Default values
+          gender: "Other" as const,
+          phone: user.phone || "",
+          relationship: "Self" as const,
+        };
+      }
+    }
 
     return {
       ...prescription,
@@ -71,6 +135,7 @@ export async function GET(request: NextRequest) {
   const id = url.searchParams.get("id");
   const patientId = url.searchParams.get("patientId");
   const doctorId = url.searchParams.get("doctorId");
+  const appointmentId = url.searchParams.get("appointmentId");
 
   const prescriptions = await readPrescriptions();
 
@@ -82,6 +147,25 @@ export async function GET(request: NextRequest) {
         success: false,
         data: null,
         message: "Not found",
+      });
+    }
+    const enrichedData = await enrichPrescription(prescription);
+    return NextResponse.json({
+      success: true,
+      data: enrichedData,
+    });
+  }
+
+  // Get prescription by appointment ID
+  if (appointmentId) {
+    const prescription = prescriptions.find(
+      (p) => p.appointmentId === appointmentId
+    );
+    if (!prescription) {
+      return NextResponse.json({
+        success: false,
+        data: null,
+        message: "No prescription found for this appointment",
       });
     }
     const enrichedData = await enrichPrescription(prescription);
@@ -152,8 +236,20 @@ export async function PUT(request: NextRequest) {
   const body = await request.json();
 
   const prescriptions = await readPrescriptions();
-  const updated = prescriptions.map((p) => (p.id === body.id ? body : p));
-  await writePrescriptions(updated);
+  const index = prescriptions.findIndex((p) => p.id === body.id);
+
+  if (index === -1) {
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Prescription not found",
+      },
+      { status: 404 }
+    );
+  }
+
+  prescriptions[index] = body;
+  await writePrescriptions(prescriptions);
 
   const enrichedData = await enrichPrescription(body);
   return NextResponse.json({ success: true, data: enrichedData });

@@ -41,14 +41,12 @@ export async function getPrescriptionByDoctor(doctorId: string) {
 // ✅ Get prescriptions for an appointment
 export async function getPrescriptionsByAppointmentId(appointmentId: string) {
   console.log("Fetching prescription for appointmentId:", appointmentId);
-  // Since the API doesn't have a direct endpoint for appointmentId,
-  // we'll fetch all prescriptions and filter client-side
-  const allPrescriptions = await getAllPrescriptions();
-  const prescription = allPrescriptions.find(
-    (p: any) => p.appointmentId === appointmentId
+  const response = await fetch(
+    `/api/prescription?appointmentId=${appointmentId}`
   );
-  console.log("Found prescription:", prescription);
-  return prescription || null;
+  const result = await response.json();
+  console.log("Prescription API response:", result);
+  return result.success ? result : null;
 }
 
 // ✅ Get all prescriptions
