@@ -11,7 +11,6 @@ export default function OtpPage() {
   const [timer, setTimer] = useState(120);
   const [otpVisible, setOtpVisible] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  
 
   // Check for pending user
   useEffect(() => {
@@ -62,8 +61,13 @@ export default function OtpPage() {
       localStorage.removeItem("pendingUser");
       localStorage.removeItem("generatedOtp");
       localStorage.removeItem("otpExpiry");
-      toast.success("OTP Verified Successfully 🎉");
+
+      // Show success toast and store its ID
+      const id = toast.success("OTP Verified Successfully 🎉");
+
       setTimeout(() => {
+        // Dismiss the toast before navigating
+        toast.dismiss(id);
         router.push("/user/dashboard");
       }, 1500); // 1.5 seconds delay
     } else {
@@ -138,7 +142,7 @@ export default function OtpPage() {
             <div className="mt-5 bg-cyan-50 border border-cyan-200 text-cyan-700 px-4 py-2 rounded-md text-sm flex justify-center items-center gap-2">
               OTP: <strong>{otpVisible}</strong>
               <button
-                 onClick={() => {
+                onClick={() => {
                   navigator.clipboard.writeText(otpVisible);
                   setCopied(true);
                   setTimeout(() => setCopied(false), 1500); // reset after 1.5 seconds

@@ -77,6 +77,7 @@ export default function AppointmentDetailsPage() {
     };
     fetchPrescription();
   }, [id]);
+
   const markCompleted = async () => {
     if (!appointment) return;
     setSaving(true);
@@ -84,7 +85,8 @@ export default function AppointmentDetailsPage() {
       const updatedAppointment = await updateAppointment(appointment.id, {
         status: "Completed",
       });
-      if (updatedAppointment) {
+
+      if (updatedAppointment && updatedAppointment.success) {
         setAppointment({ ...appointment, status: "Completed" });
         setShowFollowUpModal(true);
       } else {
@@ -97,6 +99,7 @@ export default function AppointmentDetailsPage() {
       setSaving(false);
     }
   };
+
   const cancelAppointment = async () => {
     if (!confirm("Are you sure you want to cancel this appointment?")) return;
 
@@ -289,10 +292,10 @@ export default function AppointmentDetailsPage() {
               <Button
                 variant="outline"
                 className="border-cyan-600 text-cyan-600 hover:bg-cyan-50"
-                onClick={() => router.push(`/doctor/appointment/${id}/edit`)}
+                onClick={() => router.push(`/doctor/calendar`)}
               >
                 <Edit className="w-4 h-4 mr-2" />
-                Edit Appointment
+                Reschedule Appointment
               </Button>
 
               <Button
